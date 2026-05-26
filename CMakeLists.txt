@@ -36,9 +36,9 @@ find_package(assimp REQUIRED)
 
 include_directories("./")
 
-# add_library(Common)
-# add_subdirectory("common")
-# target_link_libraries(Common Eigen3::Eigen assimp)
+add_library(Common)
+add_subdirectory("common")
+target_link_libraries(Common Eigen3::Eigen assimp)
 
 # add_library(Collision)
 # add_subdirectory("collision")
@@ -58,11 +58,11 @@ include_directories("./")
 
 add_library(Graphics)
 add_subdirectory("graphics")
-target_link_libraries(Graphics Eigen3::Eigen ${VTK_LIBRARIES})
+target_link_libraries(Graphics Eigen3::Eigen ${VTK_LIBRARIES} Common)
 
 add_library(Simulation)
 add_subdirectory("simulation")
-target_link_libraries(Simulation Eigen3::Eigen ${VTK_LIBRARIES} Graphics yaml-cpp)
+target_link_libraries(Simulation Eigen3::Eigen ${VTK_LIBRARIES} Common Graphics yaml-cpp)
 
 
 #####################################################

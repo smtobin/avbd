@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/Mesh.hpp"
+#include "common/mesh/Mesh.hpp"
 
 
 #include "config/SimulationRenderConfig.hpp"
