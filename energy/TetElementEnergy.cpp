@@ -77,13 +77,21 @@ Mat3r TetElementEnergy::hessian(int index) const
     }
     else
     {
-        Mat3r hyd_hess = Mat3r::Zero();
-        Mat3r dev_hess = Mat3r::Zero();
-        for (int k = 0; k < 3; k++)
-        {
-            hyd_hess -= _lambda * detF_grad_full.col(k) * detF_grad_full.col(k).transpose();
-            dev_hess -= _mu * Q.row(k).squaredNorm() * Mat3r::Identity();
-        }
+        Vec3r a3 =
+            -detF_grad_full.col(0)
+            -detF_grad_full.col(1)
+            -detF_grad_full.col(2);
+
+        Vec3r q3 =
+            -Q.row(0).transpose()
+            -Q.row(1).transpose()
+            -Q.row(2).transpose();
+
+        Mat3r hyd_hess =
+            _lambda * a3 * a3.transpose();
+
+        Mat3r dev_hess =
+            _mu * q3.squaredNorm() * Mat3r::Identity();
 
         return hyd_hess + dev_hess;
     }
