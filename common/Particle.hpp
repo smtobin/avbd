@@ -13,9 +13,19 @@ struct Particle
     constexpr static int DOF = 3;
     Vec3r position;         // position (global frame) of the particle
     Vec3r velocity;     // translational velocity (global frame) of the particle
-    Vec3r mass;              // mass of the particle
+    Real mass;              // mass of the particle
     Vec3r prev_position;    // previous position (at the end of the last time step) of the particle
     bool fixed=false;             // if true, the particle is "fixed" and should not move
+
+    Particle(const Vec3r& position_, const Vec3r& velocity_, Real mass_, bool fixed_)
+        : position(position_), velocity(velocity_), mass(mass_), prev_position(position_), fixed(fixed_)
+    {
+    }
+
+    Particle(const Vec3r& position_)
+        : position(position_), velocity(0,0,0), mass(1), prev_position(position_), fixed(false)
+    {
+    }
 
     /** Updates the particle based on its current velocity (in the absence of constraints) and applied external wrench.
      * @param dt - the time step

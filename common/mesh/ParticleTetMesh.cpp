@@ -1,14 +1,14 @@
-#include "common/mesh/TetMesh.hpp"
+#include "common/mesh/ParticleTetMesh.hpp"
 
 #include <set>
 
-TetMesh::TetMesh(const std::vector<Vec3r>& vertices, const std::vector<Vec3i>& faces, const std::vector<Vec4i>& elements)
-    : Mesh(vertices, faces), _elements(elements)
+ParticleTetMesh::ParticleTetMesh(const std::vector<Vec3r>& vertices, const std::vector<Vec3i>& faces, const std::vector<Vec4i>& elements)
+    : ParticleMesh(vertices, faces), _elements(elements)
 {
     setCurrentStateAsUndeformedState();
 }
 
-void TetMesh::_computeAdjacentVertices()
+void ParticleTetMesh::_computeAdjacentVertices()
 {
     _vertex_adjacent_vertices.resize(_vertices.totalSize());
     
@@ -43,9 +43,9 @@ void TetMesh::_computeAdjacentVertices()
     }
 }
 
-void TetMesh::setCurrentStateAsUndeformedState()
+void ParticleTetMesh::setCurrentStateAsUndeformedState()
 {
-    Mesh::setCurrentStateAsUndeformedState();
+    ParticleMesh::setCurrentStateAsUndeformedState();
 
     // update maps for vertices -> elements, edges -> elements, faces -> elements
     _vertex_to_elements_map.clear();
@@ -149,7 +149,7 @@ void TetMesh::setCurrentStateAsUndeformedState()
     
 }
 
-Real TetMesh::elementVolume(int index) const
+Real ParticleTetMesh::elementVolume(int index) const
 {
     const Eigen::Vector4i& elem = element(index);
     const Vec3r& v1 = vertex(elem[0]);
@@ -160,7 +160,7 @@ Real TetMesh::elementVolume(int index) const
     return elementVolume(v1, v2, v3, v4);
 }
 
-Real TetMesh::elementVolume(const Vec3r& v1, const Vec3r& v2, const Vec3r& v3, const Vec3r& v4) const
+Real ParticleTetMesh::elementVolume(const Vec3r& v1, const Vec3r& v2, const Vec3r& v3, const Vec3r& v4) const
 {
     Mat3r X;
     X.col(0) = (v1 - v4);
@@ -170,7 +170,7 @@ Real TetMesh::elementVolume(const Vec3r& v1, const Vec3r& v2, const Vec3r& v3, c
     return std::abs(X.determinant() / 6.0);
 }
 
-Mat3r TetMesh::elementDeformationGradient(int index) const
+Mat3r ParticleTetMesh::elementDeformationGradient(int index) const
 {
     const Eigen::Vector4i& elem = element(index);
     const Vec3r& v1 = vertex(elem[0]);
@@ -186,7 +186,7 @@ Mat3r TetMesh::elementDeformationGradient(int index) const
     return deformed_basis * _element_inv_undeformed_basis[index];
 }
 
-std::vector<int> TetMesh::elementSurfaceFaces(int element_index) const
+std::vector<int> ParticleTetMesh::elementSurfaceFaces(int element_index) const
 {
     std::vector<int> surface_faces;
     auto range = _element_to_surface_faces_map.equal_range(element_index);
@@ -198,21 +198,21 @@ std::vector<int> TetMesh::elementSurfaceFaces(int element_index) const
     return surface_faces;
 }
 
-Vec3r TetMesh::elementCentroid(int element_index) const
+Vec3r ParticleTetMesh::elementCentroid(int element_index) const
 {
     const Vec4i& elem_verts = element(element_index);
     Vec3r sum = vertex(elem_verts[0]) + vertex(elem_verts[1]) + vertex(elem_verts[2]) + vertex(elem_verts[3]);
     return sum/4.0;
 }
 
-Vec3r TetMesh::elementInitialCentroid(int element_index) const
+Vec3r ParticleTetMesh::elementInitialCentroid(int element_index) const
 {
     const Vec4i& elem_verts = element(element_index);
     Vec3r sum = initialVertex(elem_verts[0]) + initialVertex(elem_verts[1]) + initialVertex(elem_verts[2]) + initialVertex(elem_verts[3]);
     return sum/4.0;
 }
 
-std::vector<int> TetMesh::faceAdjacentElements(int element_index)
+std::vector<int> ParticleTetMesh::faceAdjacentElements(int element_index)
 {
     const Vec4i& elem = element(element_index);
 
@@ -274,7 +274,7 @@ std::vector<int> TetMesh::faceAdjacentElements(int element_index)
     return adjacent_elements;
 }
 
-void TetMesh::_updateElementMapsForNewElement(int element_index)
+void ParticleTetMesh::_updateElementMapsForNewElement(int element_index)
 {
     const Vec4i& elem = element(element_index);
     // update vertex -> element map
@@ -301,7 +301,7 @@ void TetMesh::_updateElementMapsForNewElement(int element_index)
     _face_to_elements_map.insert({Face(elem[1], elem[2], elem[3]), element_index});
 }
 
-void TetMesh::_updateElementMapsForRemovedElement(int element_index)
+void ParticleTetMesh::_updateElementMapsForRemovedElement(int element_index)
 {
     // vertex -> element mappings
     _updateVertexElementMapForRemovedElement(element_index);
@@ -316,7 +316,7 @@ void TetMesh::_updateElementMapsForRemovedElement(int element_index)
     _updateElementSurfaceFaceMapForRemovedElement(element_index);
 }
 
-void TetMesh::_updateVertexElementMapForRemovedElement(int element_index)
+void ParticleTetMesh::_updateVertexElementMapForRemovedElement(int element_index)
 {
     const Vec4i& elem_to_remove = element(element_index);
     for (int k = 0; k < 4; k++)
@@ -337,7 +337,7 @@ void TetMesh::_updateVertexElementMapForRemovedElement(int element_index)
     }
 }
 
-void TetMesh::_updateEdgeElementMapForRemovedElement(int element_index)
+void ParticleTetMesh::_updateEdgeElementMapForRemovedElement(int element_index)
 {
     const Vec4i& elem_to_remove = element(element_index);
     for (int k1 = 0; k1 < 4; k1++)
@@ -368,7 +368,7 @@ void TetMesh::_updateEdgeElementMapForRemovedElement(int element_index)
     }
 }
 
-void TetMesh::_updateFaceElementMapForRemovedElement(int element_index)
+void ParticleTetMesh::_updateFaceElementMapForRemovedElement(int element_index)
 {
     const Vec4i& elem_to_remove = element(element_index);
     // F012
@@ -417,12 +417,12 @@ void TetMesh::_updateFaceElementMapForRemovedElement(int element_index)
     }
 }
 
-void TetMesh::_updateElementSurfaceFaceMapForRemovedElement(int element_index)
+void ParticleTetMesh::_updateElementSurfaceFaceMapForRemovedElement(int element_index)
 {
     _element_to_surface_faces_map.erase(element_index);
 }
 
-int TetMesh::_addFace(const Vec3i& new_face, int elem_with_face)
+int ParticleTetMesh::_addFace(const Vec3i& new_face, int elem_with_face)
 {
     // the new face (nominally) is the same as the element face
     // but we likely have to flip the normal
@@ -481,14 +481,14 @@ int TetMesh::_addFace(const Vec3i& new_face, int elem_with_face)
     return new_face_index;
 }
 
-void TetMesh::removeElementWithFace(int face_index)
+void ParticleTetMesh::removeElementWithFace(int face_index)
 {
     // get the element corresponding to the surface face
     int elem_index = elementWithFace(face_index);
     removeElement(elem_index);
 }
 
-TetMesh::RemovedElement TetMesh::removeElement(int elem_index)
+ParticleTetMesh::RemovedElement ParticleTetMesh::removeElement(int elem_index)
 {
     // increment topology version since the topology is changing
     _topology_version++;
@@ -557,7 +557,7 @@ TetMesh::RemovedElement TetMesh::removeElement(int elem_index)
     return removed_element;
 }
 
-void TetMesh::_updateVertexVolumesForRemovedElement(int element_index)
+void ParticleTetMesh::_updateVertexVolumesForRemovedElement(int element_index)
 {
     const Vec4i& elem = element(element_index);
     Real rest_volume = elementRestVolume(element_index);
@@ -567,7 +567,7 @@ void TetMesh::_updateVertexVolumesForRemovedElement(int element_index)
     }
 }
 
-// std::vector<TetMesh::RemovedElement> TetMesh::recentlyRemovedElements(bool clear_cache)
+// std::vector<ParticleTetMesh::RemovedElement> ParticleTetMesh::recentlyRemovedElements(bool clear_cache)
 // {
 //     if (clear_cache)
 //     {
@@ -581,7 +581,7 @@ void TetMesh::_updateVertexVolumesForRemovedElement(int element_index)
 //     }
 // }
 
-std::pair<int, Real> TetMesh::averageTetEdgeLength() const
+std::pair<int, Real> ParticleTetMesh::averageTetEdgeLength() const
 {
     std::set<std::pair<int, int>> edges;
 
@@ -644,7 +644,7 @@ std::pair<int, Real> TetMesh::averageTetEdgeLength() const
     return std::pair<int,Real>(edges.size(), total_length/edges.size());
 }
 
-std::tuple<std::vector<int>, std::vector<Vec3i>, std::vector<int>> TetMesh::submeshForElementClass(int element_class) const
+std::tuple<std::vector<int>, std::vector<Vec3i>, std::vector<int>> ParticleTetMesh::submeshForElementClass(int element_class) const
 {
     std::vector<int> class_vertices_vec;
     std::vector<Vec3i> class_faces_vec;

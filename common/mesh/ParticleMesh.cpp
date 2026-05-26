@@ -1,4 +1,4 @@
-#include "common/mesh/Mesh.hpp"
+#include "common/mesh/ParticleMesh.hpp"
 
 #include <set>
 #include <iostream>
@@ -14,9 +14,15 @@ std::ostream& operator<<(std::ostream& os, const Face& face) {
     return os;
 }
 
-Mesh::Mesh(const std::vector<Vec3r>& vertices, const std::vector<Vec3i>& faces)
-    : _vertices(vertices), _faces(faces)
+ParticleMesh::ParticleMesh(const std::vector<Vec3r>& vertices, const std::vector<Vec3i>& faces)
+    : _faces(faces)
 {
+    // create particles from vertices list
+    for (const auto& vert : vertices)
+    {
+        _vertices.emplace_back(vert);
+    }
+
     // create surface vertex property
     addVertexProperty<bool>("surface");
     auto& surface_property = getVertexProperty<bool>("surface");
@@ -32,7 +38,7 @@ Mesh::Mesh(const std::vector<Vec3r>& vertices, const std::vector<Vec3i>& faces)
     setCurrentStateAsUndeformedState();
 }
 
-void Mesh::_computeAdjacentVertices()
+void ParticleMesh::_computeAdjacentVertices()
 {
     _vertex_adjacent_vertices.resize(numVertices());
     
@@ -63,7 +69,7 @@ void Mesh::_computeAdjacentVertices()
     }
 }
 
-void Mesh::setCurrentStateAsUndeformedState()
+void ParticleMesh::setCurrentStateAsUndeformedState()
 {
     AABB bbox = boundingBox();
     _unrotated_size_xyz = bbox.size();
@@ -75,11 +81,11 @@ void Mesh::setCurrentStateAsUndeformedState()
     _initial_vertices.resize(_vertices.totalSize());
     for (unsigned i = 0; i < _vertices.totalSize(); i++)
     {
-        _initial_vertices[i] = _vertices[i];
+        _initial_vertices[i] = _vertices[i].position;
     }
 }
 
-void Mesh::updateVertexNormals()
+void ParticleMesh::updateVertexNormals()
 {
     // make sure we have enough space
     _vertex_normals.resize(_vertices.totalSize());
@@ -128,141 +134,24 @@ void Mesh::updateVertexNormals()
     }
 }
 
-Real* Mesh::vertexPointer(int index) const
-{
-    Real* p = const_cast<Real*>(_vertices.at(index).data());
-    return p;
-}
-
-AABB Mesh::boundingBox() const
+AABB ParticleMesh::boundingBox() const
 {
     Vec3r min = Vec3r::Constant(std::numeric_limits<Real>::max());
     Vec3r max = Vec3r::Constant(std::numeric_limits<Real>::lowest());
     for (const auto& v : _vertices)
     {
-        min[0] = std::min(v[0], min[0]);
-        min[1] = std::min(v[1], min[1]);
-        min[2] = std::min(v[2], min[2]);
+        min[0] = std::min(v.position[0], min[0]);
+        min[1] = std::min(v.position[1], min[1]);
+        min[2] = std::min(v.position[2], min[2]);
 
-        max[0] = std::max(v[0], max[0]);
-        max[1] = std::max(v[1], max[1]);
-        max[2] = std::max(v[2], max[2]);
+        max[0] = std::max(v.position[0], max[0]);
+        max[1] = std::max(v.position[1], max[1]);
+        max[2] = std::max(v.position[2], max[2]);
     }
     return AABB(min, max);
 }
 
-std::pair<int,Real> Mesh::averageFaceEdgeLength() const
-{
-    // keep track of unique edges, stored in ascending-index order
-    std::set<std::pair<int, int>> edges;
-
-    // add all the unique edges to the set
-    for (const auto& face : _faces)
-    {
-        // 3 edges per face
-        // make sure to insert them into the set in ascending-index order
-        if (face[0] > face[1])  edges.insert(std::pair<int,int>(face[1], face[0]));
-        else                    edges.insert(std::pair<int,int>(face[0], face[1]));
-
-        if (face[0] > face[2])  edges.insert(std::pair<int,int>(face[2], face[0]));
-        else                    edges.insert(std::pair<int,int>(face[0], face[2]));
-
-        if (face[1] > face[2])  edges.insert(std::pair<int,int>(face[2], face[1]));
-        else                    edges.insert(std::pair<int,int>(face[1], face[2]));
-    }
-
-    // go through set of edges and add up total edge length
-    Real total_edge_length = 0;
-    for (const auto& edge : edges)
-    {
-        total_edge_length += (vertex(edge.first) - vertex(edge.second)).norm();
-    }
-
-    // return the number of unqiue edges as well as the average edge length in the mesh
-    return std::pair<int,Real>(edges.size(), total_edge_length / edges.size());
-}
-
-int Mesh::getClosestVertex(const Vec3r& p) const
-{
-    unsigned closest_index = 0;
-    Real closest_dist = (p - vertex(0)).squaredNorm();
-    // I'm sure there is a better way to do this with std
-    for (const auto& index : _vertices.validIndices())
-    {
-        Real dist = (p - vertex(index)).squaredNorm();
-        if (dist < closest_dist)
-        {
-            closest_index = index;
-            closest_dist = dist;
-        }
-    }
-
-    return closest_index;
-
-}
-
-std::vector<int> Mesh::getVerticesWithX(Real x) const
-{
-    std::vector<int> verts;
-    for (const auto& index : _vertices.validIndices())
-    {
-        if (vertex(index)[0] == x)
-        {
-            verts.push_back(index);
-        }
-    }
-
-    return verts;
-}
-
-std::vector<int> Mesh::getVerticesWithY(Real y) const
-{
-    std::vector<int> verts;
-    for (const auto& index : _vertices.validIndices())
-    {
-        if (vertex(index)[1] == y)
-        {
-            verts.push_back(index);
-        }
-    }
-
-    return verts;
-}
-
-std::vector<int> Mesh::getVerticesWithZ(Real z) const
-{
-    std::vector<int> verts;
-    for (const auto& index : _vertices.validIndices())
-    {
-        if (vertex(index)[2] == z)
-        {
-            verts.push_back(index);
-        }
-    }
-
-    return verts;
-}
-
-void Mesh::resize(const Real size_of_max_dim)
-{
-    // compute the AABB
-    const AABB aabb = boundingBox();
-    // find the scaling factor such that when the mesh is scaled the largest dimension has the specified size
-    Real scaling_factor = size_of_max_dim / (aabb.max - aabb.min).maxCoeff();
-
-    // move all vertices to be centered around (0,0,0), apply the scaling, and then move them back
-    // moveTogether(-aabb.center());    /** TODO: why is this commented out? */
-    for (auto& v : _vertices)
-        v *= scaling_factor;
-
-    _mesh_origin *= scaling_factor;
-    // moveTogether(aabb.center());
-
-    // scale the unrotated size
-    _unrotated_size_xyz *= scaling_factor;
-}
-
-void Mesh::resize(const Vec3r& new_size)
+void ParticleMesh::resize(const Vec3r& new_size)
 {
     // compute the AABB
     const AABB aabb = boundingBox();
@@ -277,9 +166,9 @@ void Mesh::resize(const Vec3r& new_size)
     // moveTogether(-aabb.center());
     for (auto& v : _vertices)
     {
-        v[0] *= scaling_factor_x;
-        v[1] *= scaling_factor_y;
-        v[2] *= scaling_factor_z;
+        v.position[0] *= scaling_factor_x;
+        v.position[1] *= scaling_factor_y;
+        v.position[2] *= scaling_factor_z;
     }
 
     for (auto& v : _initial_vertices)
@@ -300,10 +189,10 @@ void Mesh::resize(const Vec3r& new_size)
     _unrotated_size_xyz[2] *= scaling_factor_z;
 }
 
-void Mesh::moveTogether(const Vec3r& delta)
+void ParticleMesh::moveTogether(const Vec3r& delta)
 {
     for (auto& v : _vertices)
-        v += delta;
+        v.position += delta;
 
     for (auto& v : _initial_vertices)
         v += delta;
@@ -311,12 +200,12 @@ void Mesh::moveTogether(const Vec3r& delta)
     _mesh_origin += delta;
 }
 
-// void Mesh::moveSeparate(const VerticesMat& delta)
+// void ParticleMesh::moveSeparate(const VerticesMat& delta)
 // {
 //     _vertices.noalias() += delta;
 // }
 
-void Mesh::moveTo(const Vec3r& position)
+void ParticleMesh::moveTo(const Vec3r& position)
 {
 
     // calculate the required position offset based on the current center of the AABB
@@ -327,7 +216,7 @@ void Mesh::moveTo(const Vec3r& position)
     moveTogether(offset);
 }
 
-void Mesh::rotateAbout(const Vec3r& p, const Vec3r& xyz_angles)
+void ParticleMesh::rotateAbout(const Vec3r& p, const Vec3r& xyz_angles)
 {
     const Real x = xyz_angles(0) * M_PI / 180.0;
     const Real y = xyz_angles(1) * M_PI / 180.0;
@@ -349,11 +238,11 @@ void Mesh::rotateAbout(const Vec3r& p, const Vec3r& xyz_angles)
     rotateAbout(p, rot_mat);
 }
 
-void Mesh::rotateAbout(const Vec3r& p, const Mat3r& rot_mat)
+void ParticleMesh::rotateAbout(const Vec3r& p, const Mat3r& rot_mat)
 {
     moveTogether(-p);
     for (auto& v : _vertices)
-        v = rot_mat * v;
+        v.position = rot_mat * v.position;
 
     for (auto& v : _initial_vertices)
         v = rot_mat * v;
@@ -362,7 +251,7 @@ void Mesh::rotateAbout(const Vec3r& p, const Mat3r& rot_mat)
     moveTogether(p);
 }
 
-std::tuple<Real, Vec3r, Mat3r> Mesh::massProperties(Real density) const
+std::tuple<Real, Vec3r, Mat3r> ParticleMesh::massProperties(Real density) const
 {
     // uses the algorithm described here: http://number-none.com/blow/inertia/index.html
     Real total_volume = 0;
@@ -414,7 +303,7 @@ std::tuple<Real, Vec3r, Mat3r> Mesh::massProperties(Real density) const
     return std::tuple<Real, Vec3r, Mat3r>(density*total_volume, center_of_mass, density*I);
 }
 
-Vec3r Mesh::massCenter() const
+Vec3r ParticleMesh::massCenter() const
 {
     Real total_volume = 0;
     Vec3r weighted_volume(0,0,0);
@@ -450,7 +339,7 @@ Vec3r Mesh::massCenter() const
     return weighted_volume / total_volume;
 }
 
-bool Mesh::isInside(const Vec3r& p) const
+bool ParticleMesh::isInside(const Vec3r& p) const
 {
     Real total = 0;
     for (const auto& f : _faces)
@@ -477,14 +366,14 @@ bool Mesh::isInside(const Vec3r& p) const
     return std::abs(w) > 0.5;
 }
 
-void Mesh::writeMeshToObjFile(const std::string& filename) const
+void ParticleMesh::writeMeshToObjFile(const std::string& filename) const
 {
     std::ofstream obj_file(filename);
     if (obj_file.is_open())
     {
         for (const auto& v : _vertices)
         {
-            obj_file << "v " << v[0] << " " << v[1] << " " << v[2] << std::endl;
+            obj_file << "v " << v.position[0] << " " << v.position[1] << " " << v.position[2] << std::endl;
         }
         
         for (const auto& f : _faces)

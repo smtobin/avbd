@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 project(XPBDRods LANGUAGES CXX)
 
+set(CMAKE_BUILD_RPATH "/usr/local/lib")
+set(CMAKE_INSTALL_RPATH "/usr/local/lib")
+
 set(CMAKE_CXX_STANDARD 17)                       # specify C++ standard
 set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra")
 set(CMAKE_BUILD_TYPE Release)
@@ -33,16 +36,22 @@ endif()
 
 # find assimp
 find_package(assimp REQUIRED)
+# find gmsh
+find_package(gmsh REQUIRED)
 
 include_directories("./")
 
 add_library(Common)
 add_subdirectory("common")
-target_link_libraries(Common Eigen3::Eigen assimp)
+target_link_libraries(Common Eigen3::Eigen assimp gmsh)
 
 # add_library(Collision)
 # add_subdirectory("collision")
 # target_link_libraries(Collision Eigen3::Eigen Common)
+
+add_library(Energy)
+add_subdirectory("energy")
+target_link_libraries(Energy Eigen3::Eigen Common)
 
 # add_library(Solver)
 # add_subdirectory("solver")
@@ -62,7 +71,7 @@ target_link_libraries(Graphics Eigen3::Eigen ${VTK_LIBRARIES} Common)
 
 add_library(Simulation)
 add_subdirectory("simulation")
-target_link_libraries(Simulation Eigen3::Eigen ${VTK_LIBRARIES} Common Graphics yaml-cpp)
+target_link_libraries(Simulation Eigen3::Eigen ${VTK_LIBRARIES} Common Energy Graphics yaml-cpp)
 
 
 #####################################################
@@ -72,6 +81,11 @@ add_executable(Sim exec/main.cpp)
 target_link_libraries(Sim Simulation ${VTK_LIBRARIES})
 
 
+###################################################
+# TESTS
+###################################################
+add_executable(TestEnergy test/test_energy.cpp)
+target_link_libraries(TestEnergy Energy Eigen3::Eigen)
 
 
 

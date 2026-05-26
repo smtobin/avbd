@@ -4,13 +4,15 @@ project(XPBDRods)
 set(COMMON_DIR "./")
 
 set(COMMON_HEADERS
-    ${COMMON_DIR}/mesh/Mesh.hpp
-    ${COMMON_DIR}/mesh/TetMesh.hpp
+    ${COMMON_DIR}/mesh/ParticleMesh.hpp
+    ${COMMON_DIR}/mesh/ParticleTetMesh.hpp
+    ${COMMON_DIR}/mesh/MeshUtils.hpp
 )
 
 set(COMMON_SOURCES
-    ${COMMON_DIR}/mesh/Mesh.cpp
-    ${COMMON_DIR}/mesh/TetMesh.cpp
+    ${COMMON_DIR}/mesh/ParticleMesh.cpp
+    ${COMMON_DIR}/mesh/ParticleTetMesh.cpp
+    ${COMMON_DIR}/mesh/MeshUtils.cpp
 )
 
 target_sources(Common

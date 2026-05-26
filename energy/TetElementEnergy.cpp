@@ -3,10 +3,16 @@
 namespace Energy
 {
 
-TetElementEnergy::TetElementEnergy(const TetMesh* mesh, int element_index, Real lambda, Real mu)
+TetElementEnergy::TetElementEnergy(const ParticleTetMesh* mesh, int element_index, Real lambda, Real mu)
     : _mesh(mesh), _element(element_index), _lambda(lambda), _mu(mu)
 {
 
+}
+
+const Particle* TetElementEnergy::particle(int index) const
+{
+    const Vec4i& elem = _mesh->element(_element);
+    return &_mesh->particle(elem[index]);
 }
 
 Real TetElementEnergy::energy() const
@@ -76,7 +82,7 @@ Mat3r TetElementEnergy::hessian(int index) const
         for (int k = 0; k < 3; k++)
         {
             hyd_hess -= _lambda * detF_grad_full.col(k) * detF_grad_full.col(k).transpose();
-            dev_hess -= _mu * Q.row(index).squaredNorm() * Mat3r::Identity();
+            dev_hess -= _mu * Q.row(k).squaredNorm() * Mat3r::Identity();
         }
 
         return hyd_hess + dev_hess;

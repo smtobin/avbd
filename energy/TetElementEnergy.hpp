@@ -2,30 +2,36 @@
 
 #include "energy/EnergyBase.hpp"
 #include "common/Particle.hpp"
-#include "common/mesh/TetMesh.hpp"
+#include "common/mesh/ParticleTetMesh.hpp"
 
 #include <array>
 
 namespace Energy
 {
 
-class TetElementEnergy
+class TetElementEnergy : public Energy_Base
 {
 public:
-    TetElementEnergy(const TetMesh* mesh, int element_index, Real lambda, Real mu);
+    TetElementEnergy(const ParticleTetMesh* mesh, int element_index, Real lambda, Real mu);
     
+    /** Number of particles affected by the energy expression. */
+    virtual int numParticles() const override { return 4; }
+
+    /** The i'th particle affected by the energy expression. */
+    virtual const Particle* particle(int index) const override;
+
     /** Returns the current energy given the current state. */
-    Real energy() const override;
+    virtual Real energy() const override;
 
     /** Computes the gradient of the energy with respect to a particular particle. */
-    Vec3r gradient(int index) const override;
+    virtual Vec3r gradient(int index) const override;
 
     /** Computes the Hessian of the energy function with respect to a particular particle. */
-    Mat3r hessian(int index) const override; 
+    virtual Mat3r hessian(int index) const override; 
 
 protected:
     /** Pointer to the mesh that owns this element */
-    const TetMesh* _mesh;
+    const ParticleTetMesh* _mesh;
     /** Element index in the tet mesh */
     int _element;
 

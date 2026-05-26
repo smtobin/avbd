@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/Particle.hpp"
 #include "common/VariadicVectorContainer.hpp"
 #include "common/TombstoneVector.hpp"
 #include "common/AABB.hpp"
@@ -81,38 +82,28 @@ struct FaceHash
     }
 };
 
-/** A class for a surface mesh which consists of a set of vertices and a set of faces connecting those vertices.
+/** A class for a surface mesh which consists of a set of particles as vertices, and a set of faces connecting those vertices.
  * The vertices are specified as 3-vectors of vertex coordinates.
  * The faces are specified as 3-vectors of vertex indices.
  * No face normal checking is performed - this class assumes all face normals are pointed correctly outwards from the interior of the mesh.
  */
-class Mesh
+class ParticleMesh
 {
     // public typedefs
 public:
-    // typedef Eigen::Matrix<Real, 3, -1, Eigen::ColMajor> VerticesMat; // vertex matrix type
-    // typedef Eigen::Matrix<int, 3, -1, Eigen::ColMajor> FacesMat;     // faces matrix type
-    // typedef Eigen::Matrix<int, 4, -1, Eigen::ColMajor> ElementsMat;  // elements matrix type (used by tetrahedral meshes)
-    using vertices_vec_type = TombstoneVector<Vec3r>;
+    using vertices_vec_type = TombstoneVector<Particle>;
     using faces_vec_type = TombstoneVector<Vec3i>;
     using elements_vec_type = TombstoneVector<Vec4i>;
 
 public:
-    Mesh() = default; // required for deserialization
+    ParticleMesh() = default; // required for deserialization
 
     /** Constructs a mesh from a set of vertices and faces.
      * This is usually done using helper methods in the MeshUtils library.
      */
-    Mesh(const std::vector<Vec3r> &vertices, const std::vector<Vec3i> &faces);
+    ParticleMesh(const std::vector<Vec3r> &vertices, const std::vector<Vec3i> &faces);
 
-    Mesh(const Mesh &other);
-
-    Mesh(Mesh &&other);
-
-    Mesh& operator=(const Mesh& other);
-    Mesh& operator=(Mesh&& other);
-
-    virtual ~Mesh() = default;
+    virtual ~ParticleMesh() = default;
 
     /** Returns the latest topology version of the mesh. This gets updated every time the mesh topology is edited (element removed, refined, etc.). */
     unsigned long topologyVersion() const { return _topology_version; }
@@ -148,7 +139,9 @@ public:
     /** Returns a single vertex as an Eigen 3-vector, given the vertex index.
      * This assumes that the index used is a valid index (i.e. the vertex we are trying to access has not been removed).
      */
-    Vec3r vertex(const int index) const { return _vertices[index]; }
+    const Vec3r& vertex(int index) const { return _vertices[index].position; }
+
+    const Particle& particle(int index) const { return _vertices[index]; }
 
     /** Returns whether not the index corresponds to a valid vertex. */
     bool vertexValid(int index) const { return _vertices.indexValid(index); }
@@ -156,15 +149,8 @@ public:
     /** Returns whether or not the vertex is on the surface of the mesh. */
     bool vertexOnSurface(int index) const { const auto& prop = getVertexProperty<bool>("surface"); return prop.get(index); }
 
-    /** Returns a pointer to the vertex data in memory, given the vertex index.
-     * This is useful to avoid multiple pointer dereferences in critical code sections (i.e. the Constraint projection)
-     */
-    Real *vertexPointer(const int index) const;
-
     /** Sets the vertex at the specified to a new position. */
-    void setVertex(int index, const Vec3r &new_pos) { _vertices.at(index) = new_pos; }
-
-    void displaceVertex(int index, const Vec3r &offset) { _vertices.at(index) += offset; }
+    void setVertex(int index, const Vec3r &new_pos) { _vertices.at(index).position = new_pos; }
 
     const std::unordered_set<int>& vertexAdjacentVertices(int index) const { return _vertex_adjacent_vertices[index]; }
 
@@ -191,30 +177,6 @@ public:
      * This does not change when the mesh rotates - only when the mesh is resized.
      */
     Vec3r unrotatedSize() const { return _unrotated_size_xyz; }
-
-    /** Returns the number of edges along with the average edge length in the faces of the mesh. */
-    std::pair<int, Real> averageFaceEdgeLength() const;
-
-    /** Finds the closest vertex to the specified (x,y,z) points, and returns the row index in the _vertices matrix.
-     * For now, just does an O(n) brute-force search through the vertices.
-     * @param p : the point for which to find the closest vertex in the mesh
-     * @returns the index of the closest vertex to (x,y,z)
-     */
-    int getClosestVertex(const Vec3r &p) const;
-
-    /** Returns a list of vertex indices for vertices with the specified x-coordinate. */
-    std::vector<int> getVerticesWithX(Real x) const;
-
-    /** Returns a list of vertex indices for vertices with the specified y-coordinate. */
-    std::vector<int> getVerticesWithY(Real y) const;
-
-    /** Returns a list of vertex indices for vertices with the specified z-coordinate. */
-    std::vector<int> getVerticesWithZ(Real z) const;
-
-    /** Resizes the mesh such that its maximum dimension is no larger than the specified size.
-     * @param size_of_max_dim : the new size of the largest dimension of the mesh
-     */
-    void resize(const Real size_of_max_dim);
 
     /** Resizes the mesh to the specified x, y, and z sizes, with a Eigen::Vector3 as an input.
      * @param size : the Vec3r describing the new size of the mesh

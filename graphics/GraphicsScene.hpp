@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/mesh/Mesh.hpp"
+#include "common/mesh/ParticleMesh.hpp"
 
 
 #include "config/SimulationRenderConfig.hpp"
@@ -59,7 +59,7 @@ private:
      * 
      * Store in a deque so that pointers to meshes are valid upon resize
      */
-    std::deque<Mesh> _graphics_meshes;
+    // std::deque<Mesh> _graphics_meshes;
 
     std::atomic<bool> _should_render;
 

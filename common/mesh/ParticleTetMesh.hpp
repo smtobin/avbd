@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/mesh/Mesh.hpp"
+#include "common/mesh/ParticleMesh.hpp"
 
 #include <unordered_map>
 
@@ -9,7 +9,7 @@
  *  - These faces are only SURFACE faces - this is useful for things like visualization and collision detection.
  * The elements are specified as 4-vectors of element indices.
  */
-class TetMesh : public Mesh
+class ParticleTetMesh : public ParticleMesh
 {
     public:
 
@@ -47,14 +47,14 @@ class TetMesh : public Mesh
         // }
     };
 
-    TetMesh() = default; // required for deserialization
+    ParticleTetMesh() = default; // required for deserialization
 
     /** Constructs a tetrahedral mesh from a set of vertices, faces, and elements.
      * This is usually done using the helper methods in the MeshUtils library.
      */
-    TetMesh(const std::vector<Vec3r>& vertices, const std::vector<Vec3i>& faces, const std::vector<Vec4i>& elements);
+    ParticleTetMesh(const std::vector<Vec3r>& vertices, const std::vector<Vec3i>& faces, const std::vector<Vec4i>& elements);
 
-    virtual ~TetMesh() = default;
+    virtual ~ParticleTetMesh() = default;
 
     /** Essentially "sets up" the mesh - treats the current state as the initial, undeformed state of the mesh.
      * This should be called after performing the initial translations and rotations setting up the mesh.
