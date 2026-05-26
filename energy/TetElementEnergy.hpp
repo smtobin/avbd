@@ -1,8 +1,8 @@
 #pragma once
 
 #include "energy/EnergyBase.hpp"
-
 #include "common/Particle.hpp"
+#include "common/mesh/TetMesh.hpp"
 
 #include <array>
 
@@ -12,7 +12,7 @@ namespace Energy
 class TetElementEnergy
 {
 public:
-    TetElementEnergy(const std::array<const Particle*, 4>& element_particles);
+    TetElementEnergy(const TetMesh* mesh, int element_index, Real lambda, Real mu);
     
     /** Returns the current energy given the current state. */
     Real energy() const override;
@@ -24,7 +24,14 @@ public:
     Mat3r hessian(int index) const override; 
 
 protected:
-    std::array<const Particle*, 4> _particles;
+    /** Pointer to the mesh that owns this element */
+    const TetMesh* _mesh;
+    /** Element index in the tet mesh */
+    int _element;
+
+    /** Element material properties (Lame params) */
+    Real _lambda;
+    Real _mu;
 };
 
 
