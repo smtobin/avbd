@@ -1,0 +1,22 @@
+name: "MeshSim"
+# sim-mode: "Frame-by-frame"
+# sim-mode: "AFAP"
+time-step: 1e-2
+end-time: 100
+
+# logging: True
+# logging-output-folder: "../output/convergence"
+# logging-interval: 10
+# log-residuals: True
+
+hdr-image-filename: "../resource/studio_1k.hdr"
+create-skybox: True
+hdr-scaling: 0.2
+
+ground-plane: True
+
+objects:
+  - 
+    type: "TetMeshObject"
+    name: "test"
+    filename: "../resource/stanford_bunny_lowpoly.msh"

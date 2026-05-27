@@ -1,8 +1,12 @@
 #include "simulation/Simulation.hpp"
 
+#include <gmsh.h>
+
 
 int main(int argc, char **argv) 
 {
+    gmsh::initialize();
+
     if (argc > 1)
     {
         std::string config_filename(argv[1]);
