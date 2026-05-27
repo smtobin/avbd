@@ -2,7 +2,7 @@
 #include "graphics/CustomVTKInteractorStyle.hpp"
 
 #include "simulation/Simulation.hpp"
-// #include "graphics/MeshGraphicsObject.hpp"
+#include "graphics/MeshGraphicsObject.hpp"
 
 #include <vtkActor.h>
 #include <vtkCamera.h>
@@ -243,9 +243,16 @@ void GraphicsScene::update()
     _should_render.store(true);
 }
 
-void GraphicsScene::addObject(const SimObject::TetMeshObject* mesh_obj, const Config::ObjectRenderConfig& render_config)
+void GraphicsScene::addObject(const SimObject::TetMeshObject* mesh_obj, const Config::MeshRenderConfig& render_config)
 {
-    // TODO
+    std::unique_ptr<MeshGraphicsObject> mesh_go = std::make_unique<MeshGraphicsObject>(mesh_obj->mesh(), render_config);
+    _renderer->AddActor(mesh_go->actor());
+
+    // add the edges actor if enabled
+    if (render_config.drawEdges())
+        _renderer->AddActor(mesh_go->edgesActor());
+
+    _graphics_objects.push_back(std::move(mesh_go));
 }
 
 

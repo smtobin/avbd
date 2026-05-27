@@ -14,6 +14,9 @@ class TetMeshObject : public Object_Base
 public:
     TetMeshObject(const Config::TetMeshObjectConfig& config);
     
+    const ParticleTetMesh* mesh() const { return &_mesh; }
+    ParticleTetMesh* mesh() { return &_mesh; }
+
     virtual void setup() override;
 
     /** Provides a way to iterate through the particles owned by the object. */
