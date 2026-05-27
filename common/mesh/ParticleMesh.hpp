@@ -142,6 +142,7 @@ public:
     const Vec3r& vertex(int index) const { return _vertices[index].position; }
 
     const Particle& particle(int index) const { return _vertices[index]; }
+    Particle& particle(int index) { return _vertices[index]; }
 
     /** Returns whether not the index corresponds to a valid vertex. */
     bool vertexValid(int index) const { return _vertices.indexValid(index); }

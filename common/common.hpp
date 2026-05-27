@@ -40,3 +40,14 @@ using Mat3r = Eigen::Matrix<Real, 3, 3>;
 using Mat4r = Eigen::Matrix<Real, 4, 4>;
 using Mat6r = Eigen::Matrix<Real, 6, 6>;
 using MatXr = Eigen::Matrix<Real,-1,-1>;
+
+/** Forward declarations */
+namespace Energy
+{
+    class Energy_Base;
+}
+
+namespace SimObject
+{
+    class Object_Base;
+}

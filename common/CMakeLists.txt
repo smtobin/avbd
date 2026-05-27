@@ -26,4 +26,4 @@ install(TARGETS Common EXPORT Common-targets
     RUNTIME DESTINATION bin/${PROJECT_NAME}
     LIBRARY DESTINATION lib/${PROJECT_NAME})
 install(FILES ${COMMON_HEADERS}
-    DESTINATION include/${PROJECT_NAME}/graphics)
+    DESTINATION include/${PROJECT_NAME}/common)

@@ -61,9 +61,9 @@ target_link_libraries(Energy Eigen3::Eigen Common)
 # add_subdirectory("constraint")
 # target_link_libraries(Constraint Eigen3::Eigen Common SimObject)
 
-# add_library(SimObject)
-# add_subdirectory("simobject")
-# target_link_libraries(SimObject Eigen3::Eigen Common Constraint)
+add_library(SimObject)
+add_subdirectory("simobject")
+target_link_libraries(SimObject Eigen3::Eigen Common yaml-cpp)
 
 add_library(Graphics)
 add_subdirectory("graphics")
@@ -71,7 +71,7 @@ target_link_libraries(Graphics Eigen3::Eigen ${VTK_LIBRARIES} Common)
 
 add_library(Simulation)
 add_subdirectory("simulation")
-target_link_libraries(Simulation Eigen3::Eigen ${VTK_LIBRARIES} Common Energy Graphics yaml-cpp)
+target_link_libraries(Simulation Eigen3::Eigen ${VTK_LIBRARIES} Common SimObject Energy Graphics yaml-cpp)
 
 
 #####################################################
