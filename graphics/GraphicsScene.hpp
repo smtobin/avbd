@@ -42,6 +42,9 @@ class GraphicsScene
 
     void update();
 
+    void addObject(const SimObject::TetMeshObject* mesh_obj, const Config::ObjectRenderConfig& render_config);
+    void addObject(const SimObject::RigidSphere* /* sphere */, const Config::ObjectRenderConfig& /* render_config */) {}
+
     Vec3r cameraPosition() const;
     Vec3r cameraViewDirection() const;
     Vec3r cameraUpDirection() const;

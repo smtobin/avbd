@@ -1,6 +1,8 @@
 #pragma once
 
 #include "config/Config.hpp"
+#include "config/TetMeshObjectConfig.hpp"
+#include "config/RigidSphereConfig.hpp"
 
 namespace Config
 {
@@ -62,11 +64,15 @@ class SimulationConfig : public Config_Base
                 continue;
             }
 
-            // else
-            // {
-            //     std::cerr << "Unknown type of object! \"" << type << "\" is not a type of simulation object." << std::endl;
-            //     assert(0);
-            // }
+            if (type == "TetMeshObject")
+            {
+                _object_configs.template emplace_back<TetMeshObjectConfig>(obj_node);
+            }
+            else
+            {
+                std::cerr << "Unknown type of object! \"" << type << "\" is not a type of simulation object." << std::endl;
+                assert(0);
+            }
         }
     }
 
@@ -100,7 +106,7 @@ class SimulationConfig : public Config_Base
     Real loggingInterval() const { return _logging_interval.value; }
     bool logResiduals() const { return _log_residuals.value; }
 
-    // const XPBDObjectConfigs_Container& objectConfigs() const { return _object_configs; }
+    const ObjectConfigs_Container& objectConfigs() const { return _object_configs; }
 
     // const XPBDJointConfigs_Container& jointConfigs() const { return _joint_configs; }
 
@@ -123,7 +129,7 @@ class SimulationConfig : public Config_Base
     ConfigParameter<int> _solver_iters = ConfigParameter<int>(1);
 
 
-    // XPBDObjectConfigs_Container _object_configs;
+    ObjectConfigs_Container _object_configs;
     // XPBDJointConfigs_Container _joint_configs;
 
     SimulationRenderConfig _render_config;

@@ -55,6 +55,12 @@ void Simulation::setup()
 
         _logger->addOutput("time", &_time);
     }
+
+    // create objects
+    const ObjectConfigs_Container& obj_configs = _config.objectConfigs();
+    obj_configs.for_each_element([&](const auto& obj_config){
+        _addObjectFromConfig(obj_config); 
+    });
     
     
 }

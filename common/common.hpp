@@ -9,6 +9,27 @@
 #include "common/TypeList.hpp"
 // #include "common/VariadicVectorContainer.hpp"
 
+/** Forward declaration of VariadicVectorContainer */
+template<class L, class... R> class VariadicVectorContainer;
+
+//////////////////////////////////////////////////////////////////////////
+// Construct VariadicVectorContainer from TypeList
+//////////////////////////////////////////////////////////////////////////
+
+template<typename List>
+struct VariadicVectorContainerFromTypeList;
+
+template<typename... Types>
+struct VariadicVectorContainerFromTypeList<TypeList<Types...>>
+{
+    using type = VariadicVectorContainer<Types...>;
+    using unique_ptr_type = VariadicVectorContainer<std::unique_ptr<Types>...>;
+    using ptr_type = VariadicVectorContainer<Types*...>;
+    using const_ptr_type = VariadicVectorContainer<const Types*...>;
+    // using vector_handle_type = VariadicVectorContainer<VectorHandle<Types>...>;
+    // using const_vector_handle_type = VariadicVectorContainer<ConstVectorHandle<Types>...>;
+};
+
 
 /** Escape sequences to set print colors */
 #define RST  "\x1B[0m"
@@ -50,4 +71,21 @@ namespace Energy
 namespace SimObject
 {
     class Object_Base;
+    class TetMeshObject;
+    class RigidSphere;
 }
+
+namespace Config
+{
+    class Config;
+    class ObjectConfig;
+    class TetMeshObjectConfig;
+    class RigidSphereConfig;
+}
+
+using ObjectConfigs_TypeList = TypeList<
+    Config::RigidSphereConfig,
+    Config::TetMeshObjectConfig
+>;
+
+using ObjectConfigs_Container = VariadicVectorContainerFromTypeList<ObjectConfigs_TypeList>::type;

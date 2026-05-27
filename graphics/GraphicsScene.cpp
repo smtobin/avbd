@@ -243,6 +243,12 @@ void GraphicsScene::update()
     _should_render.store(true);
 }
 
+void GraphicsScene::addObject(const SimObject::TetMeshObject* mesh_obj, const Config::ObjectRenderConfig& render_config)
+{
+    // TODO
+}
+
+
 Vec3r GraphicsScene::cameraPosition() const
 {
     double px, py, pz;

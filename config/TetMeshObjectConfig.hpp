@@ -8,6 +8,8 @@ namespace Config
 class TetMeshObjectConfig : public ObjectConfig
 {
 public:
+    using SimObjectType = SimObject::TetMeshObject;
+
     explicit TetMeshObjectConfig()
         : ObjectConfig()
     {}
