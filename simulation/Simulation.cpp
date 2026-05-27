@@ -173,6 +173,30 @@ void Simulation::notifyLeftMouseButtonReleased()
 
 void Simulation::_timeStep()
 {
+    // initialize particles and compute their inertial positions
+    for (auto& obj : _objects)
+    {
+        obj->for_each_particle([&] (Particle* particle) {
+            particle->inertialUpdate(_dt, Vec3r(0,-9.81,0));
+        });
+    }
+
+    // solve each individual vertex block
+    for (auto& obj : _objects)
+    {
+        obj->for_each_particle([&] (Particle* particle) {
+            particle->solveParticle(_dt);
+        }); 
+    }
+
+    // update particle velocities
+    for (auto& obj : _objects)
+    {
+        obj->for_each_particle([&] (Particle* particle) {
+            particle->velocityUpdate(_dt);
+        });
+    }
+
     // log quantities
     if (_logger)
     {
