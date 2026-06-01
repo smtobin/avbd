@@ -31,6 +31,9 @@ private:
     /** Actor  for drawing edges of the mesh */
     vtkSmartPointer<vtkActor> _edges_vtk_actor;
 
+    /** Poly data for the mesh */
+    vtkSmartPointer<vtkPolyData> _vtk_poly_data;
+
     /** Transform for the mesh COM */
     vtkSmartPointer<vtkTransform> _vtk_transform;
 };

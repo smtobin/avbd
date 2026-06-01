@@ -28,7 +28,7 @@ MeshGraphicsObject::MeshGraphicsObject(const ParticleMesh* mesh, const Config::M
     : GraphicsObject(render_config), _mesh(mesh)
 {
 
-    vtkNew<vtkPolyData> poly_data;
+    _vtk_poly_data = vtkSmartPointer<vtkPolyData>::New();
 
     // create points
     vtkNew<vtkPoints> vtk_points;
@@ -49,14 +49,14 @@ MeshGraphicsObject::MeshGraphicsObject(const ParticleMesh* mesh, const Config::M
         vtk_faces->InsertNextCell(tri);
     }
 
-    poly_data->SetPoints(vtk_points);
-    poly_data->SetPolys(vtk_faces);
+    _vtk_poly_data->SetPoints(vtk_points);
+    _vtk_poly_data->SetPolys(vtk_faces);
 
     if (render_config.drawEdges())
     {
         
         vtkNew<vtkExtractEdges> edge_extractor;
-        edge_extractor->SetInputData(poly_data);
+        edge_extractor->SetInputData(_vtk_poly_data);
         edge_extractor->Update();
 
         vtkNew<vtkPolyDataMapper> edge_mapper;
@@ -74,13 +74,13 @@ MeshGraphicsObject::MeshGraphicsObject(const ParticleMesh* mesh, const Config::M
     if (render_config.drawFaces())
     {
         vtkNew<vtkPolyDataMapper> mapper;
-        mapper->SetInputData(poly_data);
+        mapper->SetInputData(_vtk_poly_data);
 
         if (render_config.smoothNormals())
         {
             // smooth normals
             vtkNew<vtkPolyDataNormals> normal_generator;
-            normal_generator->SetInputData(poly_data);
+            normal_generator->SetInputData(_vtk_poly_data);
             normal_generator->SetFeatureAngle(30.0);
             normal_generator->SplittingOff();
             normal_generator->ConsistencyOn();
@@ -96,7 +96,7 @@ MeshGraphicsObject::MeshGraphicsObject(const ParticleMesh* mesh, const Config::M
         }
         else
         {
-            mapper->SetInputData(poly_data);
+            mapper->SetInputData(_vtk_poly_data);
         }
 
         _vtk_actor = vtkSmartPointer<vtkActor>::New();
@@ -109,7 +109,17 @@ MeshGraphicsObject::MeshGraphicsObject(const ParticleMesh* mesh, const Config::M
 
 void MeshGraphicsObject::update()
 {
+    // update points
+    vtkPoints* points = _vtk_poly_data->GetPoints();
 
+    for (size_t i = 0; i < _mesh->vertices().totalSize(); i++)
+    {
+        // p[3*i]     = rmesh->vertices[i][0];
+        // p[3*i + 1] = rmesh->vertices[i][1];
+        // p[3*i + 2] = rmesh->vertices[i][2];
+        points->SetPoint(i, _mesh->vertices()[i].position[0], _mesh->vertices()[i].position[1], _mesh->vertices()[i].position[2]);
+    }
+    points->Modified();
 }
 
 
