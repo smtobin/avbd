@@ -21,8 +21,8 @@ void TetMeshObject::setup()
     _mesh.setCurrentStateAsUndeformedState();
 
     // hard-coded material for now
-    Real _E = 1e2;
-    Real _nu = 0.45;
+    Real _E = 1e6;
+    Real _nu = 0.3;
     Real _mu = _E / (2 * (1 + _nu));
     Real _lambda = (_E*_nu) / ( (1 + _nu) * (1 - 2*_nu) );
 

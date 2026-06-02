@@ -23,24 +23,27 @@ public:
 
     virtual Real energy() const override
     {
-        ConstraintVecType C = evaluateConstraint() - 0.95*_last_C;
+        ConstraintVecType C = evaluateConstraint();
         return (0.5 * C.transpose() * _k_cur.asDiagonal() * C).value();
     }
 
     /** Resets the constraint stiffness to starting k
      * Should be called before the first iteration at each time step.
      */
-    virtual void reset() override { _k_cur = _k_start; }
+    virtual void reset() override 
+    { 
+        // _k_cur = _k_start.array().max(STIFFNESS_GAMMA*_k_cur.array());
+     }
 
     /** Update the constraint stiffness */
     virtual void updateAfterIteration() override
     {
-        ConstraintVecType C = evaluateConstraint();
+        // ConstraintVecType C = evaluateConstraint();
         // _k_cur += STIFFNESS_BETA * C.cwiseAbs();
-        _k_cur *= STIFFNESS_BETA;
-        _k_cur = _k_cur.array().min(_k_max.array());
+        // // _k_cur *= STIFFNESS_BETA;
+        // _k_cur = _k_cur.array().min(_k_max.array());
 
-        _last_C = C;
+        // _last_C = C;
 
         // std::cout << "New k: " << _k_cur.value() << std::endl;
     }

@@ -32,6 +32,7 @@ Vec3r TetElementEnergy::gradient(int index) const
 {
     Mat3r F = _mesh->elementDeformationGradient(_element);
     Mat3r Q = _mesh->elementInvUndeformedBasis(_element);
+    Real V = _mesh->elementRestVolume(_element);
 
     // gradient of hydrostatic part
     Real gamma = 1 + _mu / _lambda; 
@@ -41,10 +42,10 @@ Vec3r TetElementEnergy::gradient(int index) const
     F_cross.col(1) = F.col(2).cross(F.col(0));
     F_cross.col(2) = F.col(0).cross(F.col(1));
 
-    Mat3r hyd_grad_full = _lambda * (F.determinant() - gamma) * F_cross * Q.transpose();
+    Mat3r hyd_grad_full = V*_lambda * (F.determinant() - gamma) * F_cross * Q.transpose();
     
     // gradient of deviatoric part
-    Mat3r dev_grad_full = _mu * F * Q.transpose();
+    Mat3r dev_grad_full = V*_mu * F * Q.transpose();
 
     if (index < 3)
     {
@@ -64,6 +65,7 @@ Mat3r TetElementEnergy::hessian(int index) const
 {
     Mat3r F = _mesh->elementDeformationGradient(_element);
     Mat3r Q = _mesh->elementInvUndeformedBasis(_element);
+    Real V = _mesh->elementRestVolume(_element);
 
     // hessian of hydrostatic part
     Mat3r F_cross;
@@ -75,8 +77,8 @@ Mat3r TetElementEnergy::hessian(int index) const
     
     if (index < 3)
     {
-        Mat3r hyd_hess = _lambda * detF_grad_full.col(index) * detF_grad_full.col(index).transpose();
-        Mat3r dev_hess = _mu * Q.row(index).squaredNorm() * Mat3r::Identity();
+        Mat3r hyd_hess = V*_lambda * detF_grad_full.col(index) * detF_grad_full.col(index).transpose();
+        Mat3r dev_hess = V*_mu * Q.row(index).squaredNorm() * Mat3r::Identity();
 
         return hyd_hess + dev_hess;
     }
