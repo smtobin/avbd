@@ -182,11 +182,15 @@ void Simulation::_timeStep()
     }
 
     // solve each individual vertex block
-    for (auto& obj : _objects)
+    int num_iter = 100;
+    for (int i = 0; i < num_iter; i++)
     {
-        obj->for_each_particle([&] (Particle* particle) {
-            particle->solveParticle(_dt);
-        }); 
+        for (auto& obj : _objects)
+        {
+            obj->for_each_particle([&] (Particle* particle) {
+                particle->solveParticle(_dt);
+            }); 
+        }
     }
 
     // update particle velocities

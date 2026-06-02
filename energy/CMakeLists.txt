@@ -6,11 +6,13 @@ set(ENERGY_DIR "./")
 set(ENERGY_HEADERS
     ${ENERGY_DIR}/EnergyBase.hpp
     ${ENERGY_DIR}/TetElementEnergy.hpp
+    ${ENERGY_DIR}/GroundCollisionEnergy.hpp
 )
 
 set(ENERGY_SOURCES
     ${ENERGY_DIR}/EnergyBase.cpp
     ${ENERGY_DIR}/TetElementEnergy.cpp
+    ${ENERGY_DIR}/GroundCollisionEnergy.cpp
 )
 
 target_sources(Energy

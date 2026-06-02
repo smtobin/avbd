@@ -5,6 +5,7 @@
 
 #include "common/mesh/ParticleTetMesh.hpp"
 #include "energy/TetElementEnergy.hpp"
+#include "energy/GroundCollisionEnergy.hpp"
 
 namespace SimObject
 {
@@ -28,6 +29,12 @@ protected:
 
     ParticleTetMesh _mesh;
     std::vector<Energy::TetElementEnergy> _element_energies;
+
+    /** TODO: move this somewhere else. */
+    std::vector<Energy::GroundCollisionEnergy> _collision_energies;
+
+private:
+    Config::TetMeshObjectConfig _config;
 };
 
 } // namespace SimObject

@@ -77,6 +77,13 @@ void ParticleMesh::setCurrentStateAsUndeformedState()
     _computeAdjacentVertices();
     updateVertexNormals();
 
+    // set the previous position of the vertices
+    for (auto& vertex : _vertices)
+    {
+        vertex.prev_position = vertex.position;
+        vertex.prev_velocity = vertex.velocity;
+    }
+
     // set the initial vertices
     _initial_vertices.resize(_vertices.totalSize());
     for (unsigned i = 0; i < _vertices.totalSize(); i++)

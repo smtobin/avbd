@@ -17,10 +17,13 @@ const Particle* TetElementEnergy::particle(int index) const
 
 Real TetElementEnergy::energy() const
 {
+
+    Real gamma = 1 + _mu / _lambda; 
+
     Mat3r F = _mesh->elementDeformationGradient(_element);
     Real V = _mesh->elementRestVolume(_element);
 
-    Real detF_min1 = F.determinant() - 1;
+    Real detF_min1 = F.determinant() - gamma;
     Mat3r FTF = F.transpose() * F;
     return V * (_lambda/2 * detF_min1 * detF_min1 + _mu/2 * (FTF.trace() - 3));
 }
@@ -31,12 +34,14 @@ Vec3r TetElementEnergy::gradient(int index) const
     Mat3r Q = _mesh->elementInvUndeformedBasis(_element);
 
     // gradient of hydrostatic part
+    Real gamma = 1 + _mu / _lambda; 
+
     Mat3r F_cross;
     F_cross.col(0) = F.col(1).cross(F.col(2));
     F_cross.col(1) = F.col(2).cross(F.col(0));
     F_cross.col(2) = F.col(0).cross(F.col(1));
 
-    Mat3r hyd_grad_full = _lambda * (F.determinant() - 1) * F_cross * Q.transpose();
+    Mat3r hyd_grad_full = _lambda * (F.determinant() - gamma) * F_cross * Q.transpose();
     
     // gradient of deviatoric part
     Mat3r dev_grad_full = _mu * F * Q.transpose();

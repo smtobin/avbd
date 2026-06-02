@@ -1,8 +1,10 @@
 name: "MeshSim"
-sim-mode: "Frame-by-frame"
+# sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
-time-step: 1e-3
-end-time: 100
+time-step: 1e-2
+end-time: 10
+
+camera-position: [10, 10, 10]
 
 # logging: True
 # logging-output-folder: "../output/convergence"
@@ -19,4 +21,5 @@ objects:
   - 
     type: "TetMeshObject"
     name: "test"
-    filename: "../resource/stanford_bunny_lowpoly.msh"
+    filename: "../resource/cube8.msh"
+    position: [0, 0.5, 0]
