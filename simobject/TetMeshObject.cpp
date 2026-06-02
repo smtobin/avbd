@@ -81,4 +81,35 @@ void TetMeshObject::for_each_particle(std::function<void(const Particle*)> func)
     }
 }
 
+void TetMeshObject::for_each_energy(std::function<void(Energy::Energy_Base*)> func)
+{
+    for (auto& energy : _element_energies)
+        func(&energy);
+
+    for (auto& energy : _collision_energies)
+        func(&energy);
+}
+
+void TetMeshObject::for_each_energy(std::function<void(const Energy::Energy_Base*)> func) const
+{
+    for (const auto& energy : _element_energies)
+        func(&energy);
+        
+    for (const auto& energy : _collision_energies)
+        func(&energy);
+}
+
+/** Provides a way to iterate through all QUADRATIC energies owned by the object. */
+// void TetMeshObject::for_each_quadratic_energy(std::function<void(QuadraticEnergy*)> func)
+// {       
+//     for (auto& energy : _collision_energies)
+//         func(&energy);
+// }
+
+// void TetMeshObject::for_each_quadratic_energy(std::function<void(QuadraticEnergy*)> func) const
+// {
+//     for (const auto& energy : _collision_energies)
+//         func(&energy);
+// }
+
 } // namespace SimObject

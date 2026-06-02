@@ -4,8 +4,8 @@ namespace Energy
 {
 
 GroundCollisionEnergy::GroundCollisionEnergy(const Particle* particle)
-    : Energy_Base(),
-    _particle(particle), _k(1e10)
+    : QuadraticEnergy(1e10*ConstraintVecType::Ones()),
+    _particle(particle)
 {
 
 }
@@ -15,11 +15,11 @@ const Particle* GroundCollisionEnergy::particle(int index) const
     return _particle;
 }
 
-/** Returns the current energy given the current state. */
-Real GroundCollisionEnergy::energy() const
+GroundCollisionEnergy::ConstraintVecType GroundCollisionEnergy::evaluateConstraint() const
 {
-    Real dist = std::max(Real(0), -_particle->position[1]);
-    return 0.5*_k*dist*dist;
+    ConstraintVecType C;
+    C[0] = std::max(Real(0), -_particle->position[1]);
+    return C;
 }
 
 /** Computes the gradient of the energy with respect to a particular particle. */
@@ -29,7 +29,7 @@ Vec3r GroundCollisionEnergy::gradient(int index) const
         return Vec3r::Zero();
     else
     {
-        return Vec3r(0, -0.5*_k*_particle->position[1], 0);
+        return Vec3r(0, -_k_cur[0]*_particle->position[1], 0);
     }
 }
 
@@ -41,7 +41,7 @@ Mat3r GroundCollisionEnergy::hessian(int index) const
     else
     {
         Mat3r hess = Mat3r::Zero();
-        hess(1, 1) = -0.5*_k;
+        hess(1, 1) = -_k_cur[0];
         return hess;
     }
 }

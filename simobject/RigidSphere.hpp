@@ -13,8 +13,16 @@ public:
     {}
 
     virtual void setup() override {}
-    virtual void for_each_particle(std::function<void(Particle*)> func) override {}
-    virtual void for_each_particle(std::function<void(const Particle*)> func) const override {}
+    virtual void for_each_particle(std::function<void(Particle*)>) override {}
+    virtual void for_each_particle(std::function<void(const Particle*)>) const override {}
+
+    /** Provides a way to iterate through all energies owned by the object. */
+    virtual void for_each_energy(std::function<void(Energy::Energy_Base*)>) override {}
+    virtual void for_each_energy(std::function<void(const Energy::Energy_Base*)>) const override {}
+
+    /** Provides a way to iterate through all QUADRATIC energies owned by the object. */
+    // virtual void for_each_quadratic_energy(std::function<void(QuadraticEnergy*)>) override {}
+    // virtual void for_each_quadratic_energy(std::function<void(QuadraticEnergy*)>) const override {}
 };
 
 } // namespace SimObject

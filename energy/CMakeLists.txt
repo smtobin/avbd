@@ -5,6 +5,7 @@ set(ENERGY_DIR "./")
 
 set(ENERGY_HEADERS
     ${ENERGY_DIR}/EnergyBase.hpp
+    ${ENERGY_DIR}/QuadraticEnergy.hpp
     ${ENERGY_DIR}/TetElementEnergy.hpp
     ${ENERGY_DIR}/GroundCollisionEnergy.hpp
 )

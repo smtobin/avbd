@@ -21,6 +21,14 @@ public:
     /** The i'th particle affected by the energy expression. */
     virtual const Particle* particle(int index) const = 0;
 
+    /** Resets the energy for a new time step */
+    virtual void reset() {}
+
+    /** Updates the energy after an iteration.
+     * E.g. increases the stiffness, updates Lagrange multipliers, etc.
+     */
+    virtual void updateAfterIteration() {}
+
     /** Returns the current energy given the current state. */
     virtual Real energy() const = 0;
 

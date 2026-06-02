@@ -179,10 +179,14 @@ void Simulation::_timeStep()
         obj->for_each_particle([&] (Particle* particle) {
             particle->inertialUpdate(_dt, Vec3r(0,-9.81,0));
         });
+
+        obj->for_each_energy([&] (Energy::Energy_Base* energy) {
+            energy->reset();
+        });
     }
 
     // solve each individual vertex block
-    int num_iter = 100;
+    int num_iter = 10;
     for (int i = 0; i < num_iter; i++)
     {
         for (auto& obj : _objects)
@@ -190,6 +194,13 @@ void Simulation::_timeStep()
             obj->for_each_particle([&] (Particle* particle) {
                 particle->solveParticle(_dt);
             }); 
+        }
+
+        for (auto& obj : _objects)
+        {
+            obj->for_each_energy([&] (Energy::Energy_Base* energy) {
+                energy->updateAfterIteration();
+            });
         }
     }
 

@@ -9,6 +9,8 @@
 #include "common/TypeList.hpp"
 // #include "common/VariadicVectorContainer.hpp"
 
+#define STIFFNESS_BETA 10
+
 /** Forward declaration of VariadicVectorContainer */
 template<class L, class... R> class VariadicVectorContainer;
 
