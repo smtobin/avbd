@@ -28,6 +28,8 @@ void Particle::inertialUpdate(Real dt, const Vec3r& a_ext)
 
 void Particle::solveParticle(Real dt)
 {
+    Real kd = 1e-4;
+
     // iterate through energies, and sum up force and Hessian contributions
     Vec3r energy_force = Vec3r::Zero();
     Mat3r energy_hess = Mat3r::Zero();
@@ -36,8 +38,10 @@ void Particle::solveParticle(Real dt)
         const auto& energy = pair.first;
         int index = pair.second;
 
-        energy_force += energy->gradient(index);
-        energy_hess += energy->hessian(index);
+
+        Mat3r this_hess = energy->hessian(index);
+        energy_force += energy->gradient(index) + kd/dt * this_hess * (position - prev_position);
+        energy_hess += (1 + kd/dt) * this_hess;
     }
 
     // assemble LHS and RHS of single-particle system

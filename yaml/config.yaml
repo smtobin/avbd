@@ -3,7 +3,7 @@ sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
 time-step: 1e-3
 end-time: 10
-solver-iters: 100
+solver-iters: 10
 
 camera-position: [5, 5, 5]
 
@@ -23,10 +23,10 @@ objects:
     type: "TetMeshObject"
     name: "test"
     filename: "../resource/cube8.msh"
-    position: [0, 1, 0]
+    position: [0, 0.5, 0]
     scaling: [1, 1, 1]
     # material parameters
-    E: 70
+    E: 0.07
     nu: 0.45
     density: 1e-6
 
