@@ -169,31 +169,33 @@ void ParticleMesh::resize(const Vec3r& new_size)
     Real scaling_factor_y = (size(1) != 0) ? new_size(1) / size(1) : 1;
     Real scaling_factor_z = (size(2) != 0) ? new_size(2) / size(2) : 1;
 
-    // move all vertices to be centered around (0,0,0), apply the scaling, then move them back
-    // moveTogether(-aabb.center());
+    scale(Vec3r(scaling_factor_x, scaling_factor_y, scaling_factor_z));
+}
+
+void ParticleMesh::scale(const Vec3r& scaling)
+{
     for (auto& v : _vertices)
     {
-        v.position[0] *= scaling_factor_x;
-        v.position[1] *= scaling_factor_y;
-        v.position[2] *= scaling_factor_z;
+        v.position[0] *= scaling[0];
+        v.position[1] *= scaling[1];
+        v.position[2] *= scaling[2];
     }
 
     for (auto& v : _initial_vertices)
     {
-        v[0] *= scaling_factor_x;
-        v[1] *= scaling_factor_y;
-        v[2] *= scaling_factor_z;
+        v[0] *= scaling[0];
+        v[1] *= scaling[1];
+        v[2] *= scaling[2];
     }
 
-    _mesh_origin[0] *= scaling_factor_x;
-    _mesh_origin[1] *= scaling_factor_y;
-    _mesh_origin[2] *= scaling_factor_z;
-    // moveTogether(aabb.center());
+    _mesh_origin[0] *= scaling[0];
+    _mesh_origin[1] *= scaling[1];
+    _mesh_origin[2] *= scaling[2];
 
     // scale the unrotated size
-    _unrotated_size_xyz[0] *= scaling_factor_x;
-    _unrotated_size_xyz[1] *= scaling_factor_y;
-    _unrotated_size_xyz[2] *= scaling_factor_z;
+    _unrotated_size_xyz[0] *= scaling[0];
+    _unrotated_size_xyz[1] *= scaling[1];
+    _unrotated_size_xyz[2] *= scaling[2];
 }
 
 void ParticleMesh::moveTogether(const Vec3r& delta)

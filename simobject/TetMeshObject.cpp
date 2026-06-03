@@ -8,6 +8,9 @@ namespace SimObject
 TetMeshObject::TetMeshObject(const Config::TetMeshObjectConfig& config)
     : Object_Base(config),
     _filename(config.filename()),
+    _E(config.E()),
+    _nu(config.nu()),
+    _density(config.density()),
     _config(config)
 {
 
@@ -17,19 +20,21 @@ void TetMeshObject::setup()
 {
     // load mesh from file
     _mesh = MeshUtils::loadTetMeshFromGmshFile(_filename);
+    
+    // scale the mesh according to the requested scaling
+    _mesh.scale(_config.scaling());
+
+    // rotate the mesh to the initial rotation
+    _mesh.rotateAbout(Vec3r::Zero(), _config.initialRotation());
+
+    // move the mesh to the initial position
     _mesh.moveTo(_config.initialPosition());
+
+    // set the mesh state as the undeformed state
     _mesh.setCurrentStateAsUndeformedState();
 
-    // hard-coded material for now
-    Real _E = 1e5;
-    Real _nu = 0.4;
-    Real _mu = _E / (2 * (1 + _nu));
-    Real _lambda = (_E*_nu) / ( (1 + _nu) * (1 - 2*_nu) );
-
-    std::cout << "mu: " << _mu << std::endl;
-    std::cout << "lambda: " << _lambda << std::endl;
-
-    Real _density = 1000;
+    Real mu = _E / (2 * (1 + _nu));
+    Real lambda = (_E*_nu) / ( (1 + _nu) * (1 - 2*_nu) );
 
     for (auto& vertex : _mesh.vertices())
     {
@@ -40,7 +45,7 @@ void TetMeshObject::setup()
     _element_energies.reserve(_mesh.numElements());
     for (const auto& elem_index : _mesh.elements().validIndices())
     {
-        auto& new_energy = _element_energies.emplace_back(&_mesh, elem_index, _lambda, _mu);
+        auto& new_energy = _element_energies.emplace_back(&_mesh, elem_index, lambda, mu);
 
         // add newly created energy to each particle in this element
         const Vec4i& elem = _mesh.element(elem_index);

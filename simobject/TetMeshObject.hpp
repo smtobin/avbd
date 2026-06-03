@@ -41,6 +41,11 @@ protected:
     /** TODO: move this somewhere else. */
     std::vector<Energy::GroundCollisionEnergy> _collision_energies;
 
+    /** Material properties */
+    Real _E;
+    Real _nu;
+    Real _density;
+
 private:
     Config::TetMeshObjectConfig _config;
 };

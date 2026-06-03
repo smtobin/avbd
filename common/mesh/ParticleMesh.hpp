@@ -184,6 +184,9 @@ public:
      */
     void resize(const Vec3r &size);
 
+    /** Scales the mesh according to the given scaling values in the x, y, and z directions. */
+    void scale(const Vec3r& scaling);
+
     /** Moves each vertex in the mesh by the same amount. */
     void moveTogether(const Vec3r &delta);
 
