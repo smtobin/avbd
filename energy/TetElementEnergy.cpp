@@ -95,10 +95,10 @@ Mat3r TetElementEnergy::hessian(int index) const
             -Q.row(2).transpose();
 
         Mat3r hyd_hess =
-            _lambda * a3 * a3.transpose();
+            V*_lambda * a3 * a3.transpose();
 
         Mat3r dev_hess =
-            _mu * q3.squaredNorm() * Mat3r::Identity();
+            V*_mu * q3.squaredNorm() * Mat3r::Identity();
 
         return hyd_hess + dev_hess;
     }

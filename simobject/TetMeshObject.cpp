@@ -21,10 +21,13 @@ void TetMeshObject::setup()
     _mesh.setCurrentStateAsUndeformedState();
 
     // hard-coded material for now
-    Real _E = 1e6;
-    Real _nu = 0.3;
+    Real _E = 1e5;
+    Real _nu = 0.4;
     Real _mu = _E / (2 * (1 + _nu));
     Real _lambda = (_E*_nu) / ( (1 + _nu) * (1 - 2*_nu) );
+
+    std::cout << "mu: " << _mu << std::endl;
+    std::cout << "lambda: " << _lambda << std::endl;
 
     Real _density = 1000;
 

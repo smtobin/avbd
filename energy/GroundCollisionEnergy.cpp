@@ -29,7 +29,7 @@ Vec3r GroundCollisionEnergy::gradient(int index) const
         return Vec3r::Zero();
     else
     {
-        return Vec3r(0, -_k_cur[0]*_particle->position[1], 0);
+        return Vec3r(0, _k_cur[0]*_particle->position[1], 0);
     }
 }
 
@@ -41,7 +41,7 @@ Mat3r GroundCollisionEnergy::hessian(int index) const
     else
     {
         Mat3r hess = Mat3r::Zero();
-        hess(1, 1) = -_k_cur[0];
+        hess(1, 1) = _k_cur[0];
         return hess;
     }
 }

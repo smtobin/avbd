@@ -183,6 +183,12 @@ Mat3r ParticleTetMesh::elementDeformationGradient(int index) const
     deformed_basis.col(1) = (v2 - v4);
     deformed_basis.col(2) = (v3 - v4);
 
+    // std::cout << "v1: " << v1.transpose() << std::endl;
+    // std::cout << "v2: " << v2.transpose() << std::endl;
+    // std::cout << "v3: " << v3.transpose() << std::endl;
+    // std::cout << "v4: " << v4.transpose() << std::endl;
+    // std::cout << "Deformed basis:\n" << deformed_basis << std::endl;
+
     return deformed_basis * _element_inv_undeformed_basis[index];
 }
 
