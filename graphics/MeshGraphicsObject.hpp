@@ -20,22 +20,17 @@ class MeshGraphicsObject : public GraphicsObject
 public:
     explicit MeshGraphicsObject(const ParticleMesh* mesh, const Config::MeshRenderConfig& render_config);
 
-    vtkSmartPointer<vtkActor> edgesActor() { return _edges_vtk_actor; }
-
     virtual void update() override;
 
 private:
     /** The mesh geometry */
     const ParticleMesh* _mesh;
 
-    /** Actor  for drawing edges of the mesh */
-    vtkSmartPointer<vtkActor> _edges_vtk_actor;
-
     /** Poly data for the mesh */
     vtkSmartPointer<vtkPolyData> _vtk_poly_data;
 
-    /** Transform for the mesh COM */
-    vtkSmartPointer<vtkTransform> _vtk_transform;
+    /** Normals filter */
+    vtkSmartPointer<vtkPolyDataNormals> _vtk_normals;
 };
 
 } // namespace Graphics

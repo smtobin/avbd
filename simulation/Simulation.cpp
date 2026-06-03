@@ -36,6 +36,11 @@ void Simulation::setup()
     // setup the graphics scene
     _graphics_scene.setup(this);
 
+    if (_config.groundPlane())
+    {
+        _graphics_scene.addGroundPlane();
+    }
+
     // set up the logger (when applicable)
     if (_config.logging())
     {

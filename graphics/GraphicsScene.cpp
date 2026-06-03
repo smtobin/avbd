@@ -3,6 +3,7 @@
 
 #include "simulation/Simulation.hpp"
 #include "graphics/MeshGraphicsObject.hpp"
+#include "graphics/PlaneGraphicsObject.hpp"
 
 #include <vtkActor.h>
 #include <vtkCamera.h>
@@ -248,13 +249,16 @@ void GraphicsScene::addObject(const SimObject::TetMeshObject* mesh_obj, const Co
     std::unique_ptr<MeshGraphicsObject> mesh_go = std::make_unique<MeshGraphicsObject>(mesh_obj->mesh(), render_config);
     _renderer->AddActor(mesh_go->actor());
 
-    // add the edges actor if enabled
-    if (render_config.drawEdges())
-        _renderer->AddActor(mesh_go->edgesActor());
-
     _graphics_objects.push_back(std::move(mesh_go));
 }
 
+void GraphicsScene::addGroundPlane()
+{
+    std::unique_ptr<PlaneGraphicsObject> plane_go = std::make_unique<PlaneGraphicsObject>(Vec3r::Zero(), Vec3r(0,1,0), 1000, 1000, Config::ObjectRenderConfig{});
+    _renderer->AddActor(plane_go->actor());
+
+    _graphics_objects.push_back(std::move(plane_go));
+}
 
 Vec3r GraphicsScene::cameraPosition() const
 {

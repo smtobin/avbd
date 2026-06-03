@@ -52,57 +52,46 @@ MeshGraphicsObject::MeshGraphicsObject(const ParticleMesh* mesh, const Config::M
     _vtk_poly_data->SetPoints(vtk_points);
     _vtk_poly_data->SetPolys(vtk_faces);
 
-    if (render_config.drawEdges())
+    vtkNew<vtkPolyDataMapper> mapper;
+    mapper->SetInputData(_vtk_poly_data);
+
+    if (render_config.smoothNormals())
     {
-        
-        vtkNew<vtkExtractEdges> edge_extractor;
-        edge_extractor->SetInputData(_vtk_poly_data);
-        edge_extractor->Update();
+        // smooth normals
+        vtkNew<vtkPolyDataNormals> normal_generator;
+        normal_generator->SetInputData(_vtk_poly_data);
+        normal_generator->SetFeatureAngle(30.0);
+        normal_generator->SplittingOff();
+        normal_generator->ConsistencyOn();
+        normal_generator->ComputePointNormalsOn();
+        normal_generator->ComputeCellNormalsOff();
+        normal_generator->Update();
 
-        vtkNew<vtkPolyDataMapper> edge_mapper;
-        edge_mapper->SetInputConnection(edge_extractor->GetOutputPort());
+        // vtkNew<vtkPolyDataTangents> tangents;
+        // tangents->SetInputConnection(normal_generator->GetOutputPort());
+        // tangents->Update();
 
-        _edges_vtk_actor = vtkSmartPointer<vtkActor>::New();
-        _edges_vtk_actor->SetMapper(edge_mapper);
-
-        _edges_vtk_actor->GetProperty()->SetColor(0.0, 0.0, 0.0);
-        _edges_vtk_actor->GetProperty()->LightingOff();
-
-        _edges_vtk_actor->SetUserTransform(_vtk_transform);
+        mapper->SetInputConnection(normal_generator->GetOutputPort());
+    }
+    else
+    {
+        mapper->SetInputData(_vtk_poly_data);
     }
 
-    if (render_config.drawFaces())
+    _vtk_actor = vtkSmartPointer<vtkActor>::New();
+    _vtk_actor->SetMapper(mapper);
+
+    VTKUtils::setupActorFromRenderConfig(_vtk_actor.Get(), render_config);
+
+    if (!render_config.drawFaces() && render_config.drawEdges())
     {
-        vtkNew<vtkPolyDataMapper> mapper;
-        mapper->SetInputData(_vtk_poly_data);
-
-        if (render_config.smoothNormals())
-        {
-            // smooth normals
-            vtkNew<vtkPolyDataNormals> normal_generator;
-            normal_generator->SetInputData(_vtk_poly_data);
-            normal_generator->SetFeatureAngle(30.0);
-            normal_generator->SplittingOff();
-            normal_generator->ConsistencyOn();
-            normal_generator->ComputePointNormalsOn();
-            normal_generator->ComputeCellNormalsOff();
-            normal_generator->Update();
-
-            // vtkNew<vtkPolyDataTangents> tangents;
-            // tangents->SetInputConnection(normal_generator->GetOutputPort());
-            // tangents->Update();
-
-            mapper->SetInputConnection(normal_generator->GetOutputPort());
-        }
-        else
-        {
-            mapper->SetInputData(_vtk_poly_data);
-        }
-
-        _vtk_actor = vtkSmartPointer<vtkActor>::New();
-        _vtk_actor->SetMapper(mapper);
-
-        VTKUtils::setupActorFromRenderConfig(_vtk_actor.Get(), render_config);
+        _vtk_actor->GetProperty()->SetRepresentationToWireframe();
+        _vtk_actor->GetProperty()->SetColor(0,0,0);
+    }
+    else if (render_config.drawFaces() && render_config.drawEdges())
+    {
+        _vtk_actor->GetProperty()->EdgeVisibilityOn();
+        _vtk_actor->GetProperty()->SetEdgeColor(0,0,0);
     }
     
 }
@@ -120,6 +109,8 @@ void MeshGraphicsObject::update()
         points->SetPoint(i, _mesh->vertices()[i].position[0], _mesh->vertices()[i].position[1], _mesh->vertices()[i].position[2]);
     }
     points->Modified();
+    _vtk_poly_data->Modified();
+    _vtk_actor->Modified();
 }
 
 

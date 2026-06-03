@@ -6,12 +6,14 @@ set(GRAPHICS_DIR "./")
 set(GRAPHICS_HEADERS
     ${GRAPHICS_DIR}/GraphicsObject.hpp
     ${GRAPHICS_DIR}/MeshGraphicsObject.hpp
+    ${GRAPHICS_DIR}/PlaneGraphicsObject.hpp
     ${GRAPHICS_DIR}/GraphicsScene.hpp
     ${GRAPHICS_DIR}/CustomVTKInteractorStyle.hpp
 )
 
 set(GRAPHICS_SOURCES
     ${GRAPHICS_DIR}/MeshGraphicsObject.cpp
+    ${GRAPHICS_DIR}/PlaneGraphicsObject.cpp
     ${GRAPHICS_DIR}/GraphicsScene.cpp
     ${GRAPHICS_DIR}/CustomVTKInteractorStyle.cpp
 )
