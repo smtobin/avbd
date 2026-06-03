@@ -178,11 +178,12 @@ void Simulation::notifyLeftMouseButtonReleased()
 
 void Simulation::_timeStep()
 {
+    std::cout << "t=" << _time << std::endl;
     // initialize particles and compute their inertial positions
     for (auto& obj : _objects)
     {
         obj->for_each_particle([&] (Particle* particle) {
-            particle->inertialUpdate(_dt, Vec3r(0,-9.81,0));
+            particle->inertialUpdate(_dt, Vec3r(0,-9.81e3,0));
         });
 
         obj->for_each_energy([&] (Energy::Energy_Base* energy) {
@@ -191,8 +192,7 @@ void Simulation::_timeStep()
     }
 
     // solve each individual vertex block
-    int num_iter = 10;
-    for (int i = 0; i < num_iter; i++)
+    for (int i = 0; i < _solver_iters; i++)
     {
         for (auto& obj : _objects)
         {
