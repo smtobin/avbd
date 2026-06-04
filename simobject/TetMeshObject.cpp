@@ -39,6 +39,7 @@ void TetMeshObject::setup()
     for (auto& vertex : _mesh.vertices())
     {
         vertex.mass = 0;
+        vertex.kd = _config.dampingCoefficient();
     }
 
     // create energies for each element

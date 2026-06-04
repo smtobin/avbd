@@ -24,6 +24,8 @@ public:
         _extractParameter("nu", node, _nu);
         _extractParameter("density", node, _density);
 
+        _extractParameter("damping-coeff", node, _damping_coeff);
+
         _extractParameter("scaling", node, _scaling);
     }
 
@@ -33,6 +35,8 @@ public:
     Real E() const { return _E.value; }
     Real nu() const { return _nu.value; }
     Real density() const { return _density.value; }
+
+    Real dampingCoefficient() const { return _damping_coeff.value; }
 
     const MeshRenderConfig& meshRenderConfig() const { return _mesh_render_config; }
 
@@ -44,6 +48,8 @@ protected:
     ConfigParameter<Real> _E = ConfigParameter<Real>(1e6);
     ConfigParameter<Real> _nu = ConfigParameter<Real>(0.4);
     ConfigParameter<Real> _density = ConfigParameter<Real>(1000);
+
+    ConfigParameter<Real> _damping_coeff = ConfigParameter<Real>(0);
 
     MeshRenderConfig _mesh_render_config;
 };

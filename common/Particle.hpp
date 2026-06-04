@@ -21,17 +21,19 @@ struct Particle
     Vec3r prev_velocity;    // previous velocity (from the end of two time steps ago)
     bool fixed=false;             // if true, the particle is "fixed" and should not move
 
+    Real kd=0;          // coefficient of damping for this particle
+
     // energy expressions affecting this particle
     // stored as (energy ptr, index) pairs where the index is the index of this particle in the energy expression
     std::vector<std::pair<const Energy::Energy_Base*, int>> energies;
 
-    Particle(const Vec3r& position_, const Vec3r& velocity_, Real mass_, bool fixed_)
-        : position(position_), velocity(velocity_), mass(mass_), prev_position(position_), prev_velocity(velocity_), fixed(fixed_)
+    Particle(const Vec3r& position_, const Vec3r& velocity_, Real mass_, bool fixed_, Real kd_)
+        : position(position_), velocity(velocity_), mass(mass_), prev_position(position_), prev_velocity(velocity_), fixed(fixed_), kd(kd_)
     {
     }
 
     Particle(const Vec3r& position_)
-        : position(position_), velocity(0,0,0), mass(1), prev_position(position_), prev_velocity(velocity), fixed(false)
+        : position(position_), velocity(0,0,0), mass(1), prev_position(position_), prev_velocity(velocity), fixed(false), kd(0)
     {
     }
 

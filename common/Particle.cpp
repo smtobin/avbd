@@ -28,8 +28,6 @@ void Particle::inertialUpdate(Real dt, const Vec3r& a_ext)
 
 void Particle::solveParticle(Real dt)
 {
-    Real kd = 1e-4;
-
     // iterate through energies, and sum up force and Hessian contributions
     Vec3r energy_force = Vec3r::Zero();
     Mat3r energy_hess = Mat3r::Zero();
