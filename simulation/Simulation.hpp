@@ -145,6 +145,8 @@ class Simulation
 
 
     int _solver_iters = 1;
+    /** Acceleration parameter "rho" for Chebyshev acceleration. VBD eqn (18) */
+    Real _iter_acceleration;
 
     std::deque<std::function<void()>> _callback_queue;
 

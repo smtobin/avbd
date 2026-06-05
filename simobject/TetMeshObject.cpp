@@ -39,14 +39,14 @@ void TetMeshObject::setup()
     for (auto& vertex : _mesh.vertices())
     {
         vertex.mass = 0;
-        vertex.kd = _config.dampingCoefficient();
+        // vertex.kd = _config.dampingCoefficient();
     }
 
     // create energies for each element
     _element_energies.reserve(_mesh.numElements());
     for (const auto& elem_index : _mesh.elements().validIndices())
     {
-        auto& new_energy = _element_energies.emplace_back(&_mesh, elem_index, lambda, mu);
+        auto& new_energy = _element_energies.emplace_back(&_mesh, elem_index, lambda, mu, _config.dampingCoefficient());
 
         // add newly created energy to each particle in this element
         const Vec4i& elem = _mesh.element(elem_index);

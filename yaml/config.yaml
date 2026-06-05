@@ -4,8 +4,9 @@ sim-mode: "Frame-by-frame"
 time-step: 1e-3
 end-time: 10
 solver-iters: 10
+iter-acceleration: 0.95
 
-camera-position: [5, 5, 5]
+camera-position: [25, 25, 25]
 
 # logging: True
 # logging-output-folder: "../output/convergence"
@@ -23,13 +24,13 @@ objects:
     type: "TetMeshObject"
     name: "test"
     filename: "../resource/cube8.msh"
-    position: [0, 0.5, 0]
-    scaling: [1, 1, 1]
+    position: [0, 4, 0]
+    scaling: [5, 5, 5]
     # material parameters
-    E: 0.07
+    E: 70 # kPa
     nu: 0.45
-    density: 1e-6
-    damping-coeff: 1e-5
+    density: 1e-6 # kg / mm^3
+    damping-coeff: 1e-6 # ?
 
     # render settings
     smooth-normals: False

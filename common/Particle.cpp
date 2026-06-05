@@ -37,8 +37,8 @@ void Particle::solveParticle(Real dt)
         int index = pair.second;
 
 
-        Mat3r this_hess = energy->hessian(index);
-        energy_force += energy->gradient(index) + kd/dt * this_hess * (position - prev_position);
+        Mat3r this_hess = energy->hessian(index, dt);
+        energy_force += energy->gradient(index, dt) + kd/dt * this_hess * (position - prev_position);
         energy_hess += (1 + kd/dt) * this_hess;
     }
 

@@ -95,6 +95,9 @@ class ParticleTetMesh : public ParticleMesh
      */
     Mat3r elementDeformationGradient(int index) const;
 
+    /** Returns the deformation gradient for the specified element at the end of the previous time step. */
+    Mat3r elementPreviousDeformationGradient(int index) const;
+
     /** Returns the current centroid of the element. */
     Vec3r elementCentroid(int elem_index) const;
 

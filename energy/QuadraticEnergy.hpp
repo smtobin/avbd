@@ -13,7 +13,7 @@ class QuadraticEnergy : public Energy_Base
 public:
     using ConstraintVecType = Eigen::Vector<Real, ConstraintDim>;
 
-    QuadraticEnergy(const ConstraintVecType& K_max, const ConstraintVecType& K_init = 1e8*ConstraintVecType::Ones())
+    QuadraticEnergy(const ConstraintVecType& K_max, const ConstraintVecType& K_init = 1e10*ConstraintVecType::Ones())
         : _k_cur(K_init), _k_max(K_max), _k_start(K_init)
     {
         _last_C = ConstraintVecType::Zero();
@@ -21,7 +21,7 @@ public:
 
     virtual ~QuadraticEnergy() = default;
 
-    virtual Real energy() const override
+    virtual Real energy(Real /* dt */) const override
     {
         ConstraintVecType C = evaluateConstraint();
         return (0.5 * C.transpose() * _k_cur.asDiagonal() * C).value();

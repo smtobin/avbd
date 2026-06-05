@@ -140,6 +140,7 @@ public:
      * This assumes that the index used is a valid index (i.e. the vertex we are trying to access has not been removed).
      */
     const Vec3r& vertex(int index) const { return _vertices[index].position; }
+    const Vec3r& previousVertex(int index) const { return _vertices[index].prev_position; }
 
     const Particle& particle(int index) const { return _vertices[index]; }
     Particle& particle(int index) { return _vertices[index]; }

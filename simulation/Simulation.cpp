@@ -13,6 +13,7 @@ Simulation::Simulation()
       _time(0), _dt(1e-3), _end_time(10),
       _g_accel(9.81), _viewer_refresh_time_ms(1000.0/30.0),
       _solver_iters(1),
+      _iter_acceleration(0),
       _graphics_scene()
 {
     _last_collision_check_time = std::numeric_limits<Real>::lowest();
@@ -23,6 +24,7 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     _dt(sim_config.timeStep()), _end_time(sim_config.endTime()), _g_accel(sim_config.gAccel()),
     _viewer_refresh_time_ms(1000.0/30.0),
     _solver_iters(sim_config.solverIters()),
+    _iter_acceleration(sim_config.iterAcceleration()),
     _graphics_scene(sim_config.renderConfig()),
     _config(sim_config)
 {
@@ -184,6 +186,10 @@ void Simulation::_timeStep()
     {
         obj->for_each_particle([&] (Particle* particle) {
             particle->inertialUpdate(_dt, Vec3r(0,-9.81e3,0));
+
+            // initialize the previous iteration positions as the inertial guess
+            particle->last_iter_position = particle->position;
+            particle->last_last_iter_position = particle->position;
         });
 
         obj->for_each_energy([&] (Energy::Energy_Base* energy) {
@@ -192,8 +198,16 @@ void Simulation::_timeStep()
     }
 
     // solve each individual vertex block
+    Real omega = 1;
     for (int i = 0; i < _solver_iters; i++)
     {
+        if (i > 2)
+            omega = 4 / (4 - _iter_acceleration*_iter_acceleration*omega);
+        else if (i == 2)
+            omega = 2 / (2 - _iter_acceleration*_iter_acceleration);
+        else
+            omega = 1;
+
         for (auto& obj : _objects)
         {
             obj->for_each_particle([&] (Particle* particle) {
@@ -203,6 +217,16 @@ void Simulation::_timeStep()
 
         for (auto& obj : _objects)
         {
+            // Chebyshev acceleration
+            obj->for_each_particle([&] (Particle* particle) {
+                // only do Chebyshev acceleration for particles not in collision
+                if (!particle->in_collision)
+                    particle->position = omega * (particle->position - particle->last_last_iter_position) + particle->last_last_iter_position;
+
+                particle->last_last_iter_position = particle->last_iter_position;
+                particle->last_iter_position = particle->position;
+            });
+
             obj->for_each_energy([&] (Energy::Energy_Base* energy) {
                 energy->updateAfterIteration();
             });

@@ -25,10 +25,10 @@ public:
     virtual const Particle* particle(int index) const override;
 
     /** Computes the gradient of the energy with respect to a particular particle. */
-    virtual Vec3r gradient(int index) const override;
+    virtual Vec3r gradient(int index, Real dt) const override;
 
     /** Computes the Hessian of the energy function with respect to a particular particle. */
-    virtual Mat3r hessian(int index) const override; 
+    virtual Mat3r hessian(int index, Real dt) const override; 
 
     /** Evaluate C(x) */
     virtual ConstraintVecType evaluateConstraint() const override;

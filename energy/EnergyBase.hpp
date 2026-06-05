@@ -30,13 +30,13 @@ public:
     virtual void updateAfterIteration() {}
 
     /** Returns the current energy given the current state. */
-    virtual Real energy() const = 0;
+    virtual Real energy(Real dt) const = 0;
 
     /** Computes the gradient of the energy with respect to a particular particle. */
-    virtual Vec3r gradient(int index) const = 0;
+    virtual Vec3r gradient(int index, Real dt) const = 0;
 
     /** Computes the Hessian of the energy function with respect to a particular particle. */
-    virtual Mat3r hessian(int index) const = 0;
+    virtual Mat3r hessian(int index, Real dt) const = 0;
 
 protected:
 };

@@ -23,17 +23,33 @@ struct Particle
 
     Real kd=0;          // coefficient of damping for this particle
 
+    Vec3r last_iter_position;       // position at the end of the previous iteration
+    Vec3r last_last_iter_position;  // position at the end of 2 iterations ago
+
+    // whether the particle is actively in collision
+    // particles in collision should be Chebyshev-acclerated
+    // (mutable because we set this from inside energy evaluations, which are const -> TODO: is this a code smell?)
+    mutable bool in_collision = false;  
+
+    
+
     // energy expressions affecting this particle
     // stored as (energy ptr, index) pairs where the index is the index of this particle in the energy expression
     std::vector<std::pair<const Energy::Energy_Base*, int>> energies;
 
     Particle(const Vec3r& position_, const Vec3r& velocity_, Real mass_, bool fixed_, Real kd_)
-        : position(position_), velocity(velocity_), mass(mass_), prev_position(position_), prev_velocity(velocity_), fixed(fixed_), kd(kd_)
+        : position(position_), velocity(velocity_), mass(mass_),
+         prev_position(position_), prev_velocity(velocity_), fixed(fixed_), kd(kd_),
+         last_iter_position(position_), last_last_iter_position(position_),
+         in_collision(false)
     {
     }
 
     Particle(const Vec3r& position_)
-        : position(position_), velocity(0,0,0), mass(1), prev_position(position_), prev_velocity(velocity), fixed(false), kd(0)
+        : position(position_), velocity(0,0,0), mass(1),
+         prev_position(position_), prev_velocity(velocity), fixed(false), kd(0),
+         last_iter_position(position_), last_last_iter_position(position_),
+         in_collision(false)
     {
     }
 

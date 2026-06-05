@@ -48,6 +48,7 @@ class SimulationConfig : public Config_Base
         _extractParameter("logging-interval", node, _logging_interval);
         _extractParameter("log-residuals", node, _log_residuals);
         _extractParameter("solver-iters", node, _solver_iters);
+        _extractParameter("iter-acceleration", node, _iter_acceleration);
 
         for (const auto& obj_node : node["objects"])
         {
@@ -100,6 +101,7 @@ class SimulationConfig : public Config_Base
     Real gAccel() const { return _g_accel.value; }
     bool groundPlane() const { return _ground_plane.value; }
     int solverIters() const { return _solver_iters.value; }
+    Real iterAcceleration() const { return _iter_acceleration.value; }
 
     bool logging() const { return _logging.value; }
     std::string loggingOutputDir() const { return _logging_output_dir.value; }
@@ -127,7 +129,7 @@ class SimulationConfig : public Config_Base
     ConfigParameter<bool> _log_residuals = ConfigParameter<bool>(false);
 
     ConfigParameter<int> _solver_iters = ConfigParameter<int>(1);
-
+    ConfigParameter<Real> _iter_acceleration = ConfigParameter<Real>(0.5);
 
     ObjectConfigs_Container _object_configs;
     // XPBDJointConfigs_Container _joint_configs;
