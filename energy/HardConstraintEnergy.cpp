@@ -6,7 +6,7 @@ namespace Energy
 HardConstraintEnergy::HardConstraintEnergy(const Constraint_Base* constraint, Real k_start)
     : Energy_Base(),
     _constraint(constraint),
-    _k(0), _k_start(k_start),
+    _k(k_start), _k_start(k_start),
     _lambda(0)
 {
 

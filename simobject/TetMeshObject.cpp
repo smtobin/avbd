@@ -65,6 +65,12 @@ void TetMeshObject::setup()
         vertex.energies.emplace_back(std::make_pair(&new_energy, 0));
     }
 
+
+    int fix_vertex = _mesh.face(0)[0];
+    auto& new_constraint = _attachment_constraints.emplace_back(&_mesh.particle(fix_vertex), _mesh.particle(fix_vertex).position);
+    auto& new_energy = _constraint_energies.emplace_back(&new_constraint, 1e1);
+    _mesh.particle(fix_vertex).energies.emplace_back(std::make_pair(&new_energy, 0));
+
     
     // Real total_mass = 0;
     // for (const auto& vertex : _mesh.vertices())
@@ -97,6 +103,9 @@ void TetMeshObject::for_each_energy(std::function<void(Energy::Energy_Base*)> fu
 
     for (auto& energy : _collision_energies)
         func(&energy);
+
+    for (auto& energy : _constraint_energies)
+        func(&energy);
 }
 
 void TetMeshObject::for_each_energy(std::function<void(const Energy::Energy_Base*)> func) const
@@ -105,6 +114,9 @@ void TetMeshObject::for_each_energy(std::function<void(const Energy::Energy_Base
         func(&energy);
         
     for (const auto& energy : _collision_energies)
+        func(&energy);
+
+    for (const auto& energy : _constraint_energies)
         func(&energy);
 }
 

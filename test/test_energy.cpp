@@ -1,6 +1,9 @@
 #include "energy/EnergyBase.hpp"
 #include "energy/TetElementEnergy.hpp"
 #include "energy/GroundCollisionEnergy.hpp"
+#include "energy/HardConstraintEnergy.hpp"
+
+#include "energy/constraint/AttachmentConstraint.hpp"
 
 #include "common/mesh/MeshUtils.hpp"
 
@@ -68,7 +71,7 @@ bool testEnergy(const Energy::Energy_Base* energy)
         Vec3r gradient = energy->gradient(pi, DT);
         Vec3r diff = gradient - numerical_gradients[pi];
 
-        if (diff.norm() > 1e-4)
+        // if (diff.norm() > 1e-12)
         {
             std::cout << "Gradient mismatch for particle " << pi << ":\n  " << "Numerical gradient: " << numerical_gradients[pi].transpose() << "\n  " <<
                 "Analytical gradient: " << gradient.transpose() << std::endl;
@@ -76,7 +79,7 @@ bool testEnergy(const Energy::Energy_Base* energy)
 
         Mat3r hessian = energy->hessian(pi, DT);
         Mat3r diff_hess = hessian - numerical_hessians[pi];
-        if (diff_hess.norm() > 1e-4)
+        // if (diff_hess.norm() > 1e-12)
         {
             std::cout << "Hessian mismatch for particle " << pi << ":\n  " << "Numerical hessian:\n" << numerical_hessians[pi] << "\n  " <<
                 "Analytical hessian:\n" << hessian << std::endl;
@@ -114,6 +117,10 @@ int main()
 
     // Energy::GroundCollisionEnergy ground_collision_energy(&mesh.particle(0));
     // testEnergy(&ground_collision_energy);
+
+    Energy::AttachmentConstraint attach_constraint(&mesh.particle(0), Vec3r(100,100,100));
+    Energy::HardConstraintEnergy attach_energy(&attach_constraint, 1e2);
+    testEnergy(&attach_energy);
 
 
 }

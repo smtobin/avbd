@@ -7,6 +7,9 @@
 #include "energy/TetElementEnergy.hpp"
 #include "energy/GroundCollisionEnergy.hpp"
 
+#include "energy/HardConstraintEnergy.hpp"
+#include "energy/constraint/AttachmentConstraint.hpp"
+
 namespace SimObject
 {
 
@@ -40,6 +43,10 @@ protected:
 
     /** TODO: move this somewhere else. */
     std::vector<Energy::GroundCollisionEnergy> _collision_energies;
+
+    /** TODO: temporary */
+    std::vector<Energy::AttachmentConstraint> _attachment_constraints;
+    std::vector<Energy::HardConstraintEnergy> _constraint_energies;
 
     /** Material properties */
     Real _E;

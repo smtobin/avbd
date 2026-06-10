@@ -12,30 +12,17 @@ AttachmentConstraint::AttachmentConstraint(const Particle* particle, const Vec3r
 
 Real AttachmentConstraint::evaluate() const
 {
-    return (_particle->position - _attachment_pos).norm();
+    return 0.5*(_particle->position - _attachment_pos).squaredNorm();
 }
 
 Vec3r AttachmentConstraint::gradient(int /* index */) const
 {
-    Vec3r diff = _particle->position - _attachment_pos;
-    Real norm = diff.norm();
-
-    if (std::abs(norm) > 1e-12)
-        return diff / norm;
-    else
-        return Vec3r(0,0,1);
+    return _particle->position - _attachment_pos;
 }
 
 Mat3r AttachmentConstraint::hessian(int /* index */) const
 {
-    Vec3r diff = _particle->position - _attachment_pos;
-    Real norm = diff.norm();
-
-    if (std::abs(norm) < 1e-12)
-        return Mat3r::Identity();
-
-    Mat3r hess = Mat3r::Identity() / norm - (diff * diff.transpose()) / (norm*norm*norm);
-    return hess;
+    return Mat3r::Identity();
 }
     
 } // namespace Energy

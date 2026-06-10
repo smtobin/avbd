@@ -9,6 +9,7 @@ set(ENERGY_HEADERS
     ${ENERGY_DIR}/QuadraticEnergy.hpp
     ${ENERGY_DIR}/TetElementEnergy.hpp
     ${ENERGY_DIR}/GroundCollisionEnergy.hpp
+    ${ENERGY_DIR}/HardConstraintEnergy.hpp
 
     # constraints
     ${ENERGY_DIR}/constraint/ConstraintBase.hpp
@@ -20,6 +21,7 @@ set(ENERGY_SOURCES
     ${ENERGY_DIR}/EnergyBase.cpp
     ${ENERGY_DIR}/TetElementEnergy.cpp
     ${ENERGY_DIR}/GroundCollisionEnergy.cpp
+    ${ENERGY_DIR}/HardConstraintEnergy.cpp
 
     # constraints
     ${ENERGY_DIR}/constraint/AttachmentConstraint.cpp
