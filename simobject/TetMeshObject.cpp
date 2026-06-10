@@ -58,18 +58,21 @@ void TetMeshObject::setup()
     }
 
     // add ground constraints for each particle
-    _collision_energies.reserve(_mesh.numVertices());
+    // _collision_energies.reserve(_mesh.numVertices());
+    _ground_constraints.reserve(_mesh.numVertices());
+    _constraint_energies.reserve(2*_mesh.numVertices());
     for (auto& vertex : _mesh.vertices())
     {
-        auto& new_energy = _collision_energies.emplace_back(&vertex);
+        auto& new_constraint = _ground_constraints.emplace_back(&vertex);
+        auto& new_energy = _constraint_energies.emplace_back(&new_constraint, 1e1, 0);
         vertex.energies.emplace_back(std::make_pair(&new_energy, 0));
     }
 
 
-    int fix_vertex = _mesh.face(0)[0];
-    auto& new_constraint = _attachment_constraints.emplace_back(&_mesh.particle(fix_vertex), _mesh.particle(fix_vertex).position);
-    auto& new_energy = _constraint_energies.emplace_back(&new_constraint, 1e1);
-    _mesh.particle(fix_vertex).energies.emplace_back(std::make_pair(&new_energy, 0));
+    // int fix_vertex = _mesh.face(0)[0];
+    // auto& new_constraint = _attachment_constraints.emplace_back(&_mesh.particle(fix_vertex), _mesh.particle(fix_vertex).position);
+    // auto& new_energy = _constraint_energies.emplace_back(&new_constraint, 1e1);
+    // _mesh.particle(fix_vertex).energies.emplace_back(std::make_pair(&new_energy, 0));
 
     
     // Real total_mass = 0;

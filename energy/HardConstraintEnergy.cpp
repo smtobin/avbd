@@ -3,11 +3,11 @@
 namespace Energy
 {
 
-HardConstraintEnergy::HardConstraintEnergy(const Constraint_Base* constraint, Real k_start)
+HardConstraintEnergy::HardConstraintEnergy(const Constraint_Base* constraint, Real k_start, Real lambda_min, Real lambda_max)
     : Energy_Base(),
     _constraint(constraint),
     _k(k_start), _k_start(k_start),
-    _lambda(0)
+    _lambda(0), _lambda_min(lambda_min), _lambda_max(lambda_max)
 {
 
 }
@@ -24,8 +24,15 @@ void HardConstraintEnergy::updateAfterIteration()
 {
     Real C = _constraint->evaluate();
 
-    _lambda += _k * C;
-    _k += STIFFNESS_BETA * C;
+    std::cout << "HardConstraintEnergy C: " << C << std::endl;
+    std::cout << "  Lambda: " << _lambda << std::endl;
+    std::cout << "  k: " << _k << std::endl;
+
+    Real lambda_p = _k * C + _lambda;
+    _lambda = std::max(_lambda_min, std::min(_lambda_max, lambda_p));
+
+    if (lambda_p > _lambda_min && lambda_p < _lambda_max)
+        _k += STIFFNESS_BETA * C;
 }
 
 Real HardConstraintEnergy::energy(Real /* dt */) const
@@ -39,7 +46,10 @@ Vec3r HardConstraintEnergy::gradient(int index, Real /* dt */) const
     Real C = _constraint->evaluate();
     Vec3r gradC = _constraint->gradient(index);
 
-    return (_k * C + _lambda) * gradC;
+    Real lambda_p = std::max(_lambda_min, std::min(_lambda_max, _k*C + _lambda));
+    std::cout << "lambda_p: " << lambda_p << std::endl;
+
+    return lambda_p * gradC;
 }
 
 Mat3r HardConstraintEnergy::hessian(int index, Real /* dt */) const
@@ -48,7 +58,17 @@ Mat3r HardConstraintEnergy::hessian(int index, Real /* dt */) const
     Vec3r gradC = _constraint->gradient(index);
     Mat3r hessC = _constraint->hessian(index);
 
-    return (_k * C + _lambda) * hessC + _k * gradC * gradC.transpose();
+    Real lambda_p = _k*C + _lambda;
+
+    Real k_scaled = _k;
+    if (lambda_p < _lambda_min && std::abs(C) > 1e-12)
+        k_scaled = (_lambda_min - _lambda) / C;
+    else if (lambda_p > _lambda_max && std::abs(C) > 1e-12)
+        k_scaled = (_lambda_max - _lambda) / C;
+
+    Mat3r hess = (k_scaled * C + _lambda) * hessC + k_scaled * gradC * gradC.transpose();
+    std::cout << "hess:\n" << hess << std::endl;
+    return hess;
 }
 
 } // namespace Energy

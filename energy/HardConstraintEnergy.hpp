@@ -3,13 +3,16 @@
 #include "energy/EnergyBase.hpp"
 #include "energy/constraint/ConstraintBase.hpp"
 
+#include <numeric>
+
 namespace Energy
 {
 
 class HardConstraintEnergy : public Energy_Base
 {
 public:
-    HardConstraintEnergy(const Constraint_Base* constraint, Real k_start);
+    HardConstraintEnergy(const Constraint_Base* constraint, Real k_start, 
+        Real lambda_min=std::numeric_limits<Real>::lowest(), Real lambda_max=std::numeric_limits<Real>::max());
 
     /** Number of particles affected by the energy expression. */
     virtual int numParticles() const override { return _constraint->numParticles(); }
@@ -49,6 +52,10 @@ private:
 
     /** The current Lagrange multiplier. */
     Real _lambda;
+
+    /** Bounds on the Lagrange multiplier (useful for inequality constraints) */
+    Real _lambda_min;
+    Real _lambda_max;
 };
 
 } // namespace Energy

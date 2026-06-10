@@ -14,6 +14,7 @@ set(ENERGY_HEADERS
     # constraints
     ${ENERGY_DIR}/constraint/ConstraintBase.hpp
     ${ENERGY_DIR}/constraint/AttachmentConstraint.hpp
+    ${ENERGY_DIR}/constraint/GroundCollisionConstraint.hpp
 )
 
 set(ENERGY_SOURCES
@@ -25,6 +26,7 @@ set(ENERGY_SOURCES
 
     # constraints
     ${ENERGY_DIR}/constraint/AttachmentConstraint.cpp
+    ${ENERGY_DIR}/constraint/GroundCollisionConstraint.cpp
 )
 
 target_sources(Energy

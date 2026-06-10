@@ -201,6 +201,7 @@ void Simulation::_timeStep()
     Real omega = 1;
     for (int i = 0; i < _solver_iters; i++)
     {
+        std::cout << "=== Starting iter " << i << " === " << std::endl;
         if (i > 2)
             omega = 4 / (4 - _iter_acceleration*_iter_acceleration*omega);
         else if (i == 2)
