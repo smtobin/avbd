@@ -1,9 +1,9 @@
 name: "MeshSim"
 sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
-time-step: 1e-3
+time-step: 1e-2
 end-time: 10
-solver-iters: 10
+solver-iters: 20
 iter-acceleration: 0.95
 
 camera-position: [25, 25, 25]
@@ -23,9 +23,9 @@ objects:
   - 
     type: "TetMeshObject"
     name: "test"
-    filename: "../resource/cube8.msh"
-    position: [0, 4, 0]
-    scaling: [5, 5, 5]
+    filename: "../resource/tumor.msh"
+    position: [0, 15, 0]
+    scaling: [1, 1, 1]
     # material parameters
     E: 70 # kPa
     nu: 0.45
