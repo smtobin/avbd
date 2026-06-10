@@ -3,7 +3,7 @@ sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
 time-step: 3.33e-3
 end-time: 10
-solver-iters: 10
+solver-iters: 30
 iter-acceleration: 0.95
 
 camera-position: [25, 25, 25]
@@ -23,11 +23,11 @@ objects:
   - 
     type: "TetMeshObject"
     name: "test"
-    filename: "../resource/cube2.msh"
+    filename: "../resource/cube8.msh"
     position: [0, 30, 0]
     scaling: [10, 10, 10]
     # material parameters
-    E: 70 # kPa
+    E: 0.7 # kPa
     nu: 0.45
     density: 1e-6 # kg / mm^3
     damping-coeff: 1e-6 # ?

@@ -38,11 +38,16 @@ public:
     virtual Mat3r hessian(int index, Real dt) const override; 
 
 private:
+    Real _evaluateConstraint() const;
+
     /** Pointer to the constraint
      * 
      * TODO: should this class own the constraint and be a templated class?
      */
     const Constraint_Base* _constraint;
+
+    /** Store the constraint violation at the end of the previous time step */
+    Real _C_prev;
 
     /** The current stiffness of the hard constraint. */
     Real _k;
