@@ -1,12 +1,13 @@
 #include "simobject/TetMeshObject.hpp"
 
 #include "common/mesh/MeshUtils.hpp"
+#include "simulation/SimulationContext.hpp"
 
 namespace SimObject
 {
 
-TetMeshObject::TetMeshObject(const Config::TetMeshObjectConfig& config)
-    : Object_Base(config),
+TetMeshObject::TetMeshObject(Simulation::SimulationContext* ctx, const Config::TetMeshObjectConfig& config)
+    : Object_Base(ctx, config),
     _filename(config.filename()),
     _E(config.E()),
     _nu(config.nu()),
@@ -30,42 +31,60 @@ void TetMeshObject::setup()
     // move the mesh to the initial position
     _mesh.moveTo(_config.initialPosition());
 
-    // set the mesh state as the undeformed state
-    _mesh.setCurrentStateAsUndeformedState();
-
     Real mu = _E / (2 * (1 + _nu));
     Real lambda = (_E*_nu) / ( (1 + _nu) * (1 - 2*_nu) );
 
-    for (auto& vertex : _mesh.vertices())
+    for (const auto& v_idx : _mesh.vertices())
     {
-        vertex.mass = 0;
-        // vertex.kd = _config.dampingCoefficient();
+        // initialize masses to 0
+        _ctx->particles.masses[v_idx] = 0;
     }
 
-    // create energies for each element
-    _element_energies.reserve(_mesh.numElements());
-    for (const auto& elem_index : _mesh.elements().validIndices())
+    // create Neo-Hookean energies for each element
+    for (const auto& elem : _mesh.elements())
     {
-        auto& new_energy = _element_energies.emplace_back(&_mesh, elem_index, lambda, mu, _config.dampingCoefficient());
-
-        // add newly created energy to each particle in this element
-        const Vec4i& elem = _mesh.element(elem_index);
-        for (int k = 0; k < 4; k++)
+        // get indices of vertices in the particle pool
+        Vec4u pool_indices;
+        for (int i = 0; i < 4; i++)
         {
-            _mesh.particle(elem[k]).energies.emplace_back(std::make_pair(&new_energy, k));
-            _mesh.particle(elem[k]).mass += 0.25*_mesh.elementVolume(elem_index) * _density;
+            pool_indices[i] = _mesh.vertices().at(elem[i]);
+        }
+
+        // compute inverse undeformed basis
+        const Vec3r& v1 = vertex(elem[0]);
+        const Vec3r& v2 = vertex(elem[1]);
+        const Vec3r& v3 = vertex(elem[2]);
+        const Vec3r& v4 = vertex(elem[3]);
+        Mat3r X;
+        X.col(0) = (v1 - v4);
+        X.col(1) = (v2 - v4);
+        X.col(2) = (v3 - v4);
+        Mat3r Q = X.inverse();
+        Real rest_volume = std::abs(X.determinant() / 6.0);
+
+        // create the new energy
+        /** TODO: should I store this? */
+        _ctx->energies.neo_hookean.addEnergy(
+            pool_indices,
+            lambda,
+            mu,
+            _config.dampingCoefficient(),
+            Q,
+            rest_volume
+        );
+
+        // add mass to each particle in this element
+        const Vec4i& elem = _mesh.element(elem_index);
+        for (int i = 0; i < 4; i++)
+        {
+            _ctx->particles.masses[pool_indices[i]] += 0.25 * rest_volume * _density;
         }
     }
 
-    // add ground constraints for each particle
-    // _collision_energies.reserve(_mesh.numVertices());
-    _ground_constraints.reserve(_mesh.numVertices());
-    _constraint_energies.reserve(2*_mesh.numVertices());
-    for (auto& vertex : _mesh.vertices())
+    // add ground collision constraints for each particle
+    for (auto& v_idx : _mesh.vertices())
     {
-        auto& new_constraint = _ground_constraints.emplace_back(&vertex);
-        auto& new_energy = _constraint_energies.emplace_back(&new_constraint, 1e1, 0);
-        vertex.energies.emplace_back(std::make_pair(&new_energy, 0));
+        _ctx->energies.ground_collision.addEnergy(v_idx);
     }
 
 
@@ -83,45 +102,45 @@ void TetMeshObject::setup()
     // std::cout << "Total mass: " << total_mass << std::endl;
 }
 
-void TetMeshObject::for_each_particle(std::function<void(Particle*)> func)
-{
-    for (auto& particle : _mesh.vertices())
-    {
-        func(&particle);
-    }
-}
+// void TetMeshObject::for_each_particle(std::function<void(Particle*)> func)
+// {
+//     for (auto& particle : _mesh.vertices())
+//     {
+//         func(&particle);
+//     }
+// }
 
-void TetMeshObject::for_each_particle(std::function<void(const Particle*)> func) const
-{
-    for (const auto& particle : _mesh.vertices())
-    {
-        func(&particle);
-    }
-}
+// void TetMeshObject::for_each_particle(std::function<void(const Particle*)> func) const
+// {
+//     for (const auto& particle : _mesh.vertices())
+//     {
+//         func(&particle);
+//     }
+// }
 
-void TetMeshObject::for_each_energy(std::function<void(Energy::Energy_Base*)> func)
-{
-    for (auto& energy : _element_energies)
-        func(&energy);
+// void TetMeshObject::for_each_energy(std::function<void(Energy::Energy_Base*)> func)
+// {
+//     for (auto& energy : _element_energies)
+//         func(&energy);
 
-    for (auto& energy : _collision_energies)
-        func(&energy);
+//     for (auto& energy : _collision_energies)
+//         func(&energy);
 
-    for (auto& energy : _constraint_energies)
-        func(&energy);
-}
+//     for (auto& energy : _constraint_energies)
+//         func(&energy);
+// }
 
-void TetMeshObject::for_each_energy(std::function<void(const Energy::Energy_Base*)> func) const
-{
-    for (const auto& energy : _element_energies)
-        func(&energy);
+// void TetMeshObject::for_each_energy(std::function<void(const Energy::Energy_Base*)> func) const
+// {
+//     for (const auto& energy : _element_energies)
+//         func(&energy);
         
-    for (const auto& energy : _collision_energies)
-        func(&energy);
+//     for (const auto& energy : _collision_energies)
+//         func(&energy);
 
-    for (const auto& energy : _constraint_energies)
-        func(&energy);
-}
+//     for (const auto& energy : _constraint_energies)
+//         func(&energy);
+// }
 
 /** Provides a way to iterate through all QUADRATIC energies owned by the object. */
 // void TetMeshObject::for_each_quadratic_energy(std::function<void(QuadraticEnergy*)> func)

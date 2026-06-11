@@ -68,7 +68,7 @@ struct ParticlePool : TombstonePool
     */
     unsigned addParticle()
     {
-        addParticle(Vec3r::Zero(), 1);
+        addParticle(Vec3r::Zero(), 0);
     }
 
     /** Removes a particle from the pool.
