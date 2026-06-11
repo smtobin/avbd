@@ -6,6 +6,9 @@
 namespace Energy
 {
 
+/** Storage of all the energies in the sim.
+ * Stores the individual energy memory pools.
+ */
 struct EnergyRegistry
 {
     NeoHookeanEnergyPool neo_hookean;

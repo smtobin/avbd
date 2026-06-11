@@ -60,6 +60,9 @@ using VecXr = Eigen::Vector<Real, -1>;
 using Vec3i = Eigen::Vector<int, 3>;
 using Vec4i = Eigen::Vector<int, 4>;
 
+using Vec3u = Eigen::Vector<unsigned, 3>;
+using Vec4u = Eigen::Vector<unsigned, 4>;
+
 using Mat2r = Eigen::Matrix<Real, 2, 2>;
 using Mat3r = Eigen::Matrix<Real, 3, 3>;
 using Mat4r = Eigen::Matrix<Real, 4, 4>;

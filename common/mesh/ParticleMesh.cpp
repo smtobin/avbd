@@ -1,260 +1,63 @@
 #include "common/mesh/ParticleMesh.hpp"
 
-#include <set>
-#include <iostream>
-#include <fstream>
-
-std::ostream& operator<<(std::ostream& os, const Edge& edge) {
-    os << "(" << edge.index1 << ", " << edge.index2 << ")";
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const Face& face) {
-    os << "(" << face.index1 << ", " << face.index2 << ", " << face.index3 << ")";
-    return os;
-}
-
-ParticleMesh::ParticleMesh(const std::vector<Vec3r>& vertices, const std::vector<Vec3i>& faces)
-    : _faces(faces)
+ParticleMesh::ParticleMesh(ParticlePool& pool, const std::vector<Vec3r>& vertices, const std::vector<Vec3u>& faces)
+    : _particle_pool(pool), _faces(faces)
 {
     // create particles from vertices list
     for (const auto& vert : vertices)
     {
-        _vertices.emplace_back(vert);
-    }
-
-    // create surface vertex property
-    addVertexProperty<bool>("surface");
-    auto& surface_property = getVertexProperty<bool>("surface");
-    for (const auto& f : _faces)
-    {
-        surface_property.set(f[0], true);
-        surface_property.set(f[1], true);
-        surface_property.set(f[2], true);
+        unsigned idx = _particle_pool.addParticle(vert, 0);
+        _vertices.push_back(idx);
     }
 
     _mesh_origin = Vec3r::Zero();
-
-    setCurrentStateAsUndeformedState();
-}
-
-void ParticleMesh::_computeAdjacentVertices()
-{
-    _vertex_adjacent_vertices.resize(numVertices());
-    
-    // clear all the adjacency lists
-    for (int i = 0; i < numVertices(); i++)
-    {
-        _vertex_adjacent_vertices[i].clear();
-    }
-
-    // go through each of the faces and add adjacent vertices for each vertex in the face
-    for (const auto& cur_face : _faces)
-    {
-        std::unordered_set<int>& adj_verts0 = _vertex_adjacent_vertices[cur_face[0]];
-        std::unordered_set<int>& adj_verts1 = _vertex_adjacent_vertices[cur_face[1]];
-        std::unordered_set<int>& adj_verts2 = _vertex_adjacent_vertices[cur_face[2]];
-
-        // for v0
-        adj_verts0.insert(cur_face[1]);
-        adj_verts0.insert(cur_face[2]);
-
-        // for v1
-        adj_verts1.insert(cur_face[0]);
-        adj_verts1.insert(cur_face[2]);
-
-        // for v2
-        adj_verts2.insert(cur_face[0]);
-        adj_verts2.insert(cur_face[1]);
-    }
-}
-
-void ParticleMesh::setCurrentStateAsUndeformedState()
-{
-    AABB bbox = boundingBox();
-    _unrotated_size_xyz = bbox.size();
-
-    _computeAdjacentVertices();
-    updateVertexNormals();
-
-    // set the previous position of the vertices
-    for (auto& vertex : _vertices)
-    {
-        vertex.prev_position = vertex.position;
-        vertex.prev_velocity = vertex.velocity;
-    }
-
-    // set the initial vertices
-    _initial_vertices.resize(_vertices.totalSize());
-    for (unsigned i = 0; i < _vertices.totalSize(); i++)
-    {
-        _initial_vertices[i] = _vertices[i].position;
-    }
-}
-
-void ParticleMesh::updateVertexNormals()
-{
-    // make sure we have enough space
-    _vertex_normals.resize(_vertices.totalSize());
-
-    // zero out all normals
-    for (const auto& vert_index : _vertices.validIndices())
-    {
-        _vertex_normals[vert_index] = Vec3r::Zero();
-    }
-        
-    // iterate through faces and add normal contributions to vertices
-    for (const auto& f : _faces)
-    {
-        const Vec3r& v0 = vertex(f[0]);
-        const Vec3r& v1 = vertex(f[1]);
-        const Vec3r& v2 = vertex(f[2]);
-
-        // edge 0->1
-        const Vec3r e01 = v1 - v0;
-        // edge 1->2
-        const Vec3r e12 = v2 - v1;
-        // edge 2->0
-        const Vec3r e20 = v0 - v2;
-
-        // edge magnitudes
-        Real e01_mag = e01.norm();
-        Real e12_mag = e12.norm();
-        Real e20_mag = e20.norm();
-
-        // approximate angle at each vertex
-        Real w0 = 1.0 / (e01_mag * e20_mag + 1e-12);
-        Real w1 = 1.0 / (e12_mag * e01_mag + 1e-12);
-        Real w2 = 1.0 / (e20_mag * e12_mag + 1e-12);
-
-        // face normal
-        const Vec3r n = -e01.cross(e20);    // negative because using e20 here
-
-        _vertex_normals[f[0]] += w0 * n;
-        _vertex_normals[f[1]] += w1 * n;
-        _vertex_normals[f[2]] += w2 * n;
-    }
-
-    for (const auto& vert_index : _vertices.validIndices())
-    {
-        _vertex_normals[vert_index] = _vertex_normals[vert_index].normalized();
-    }
-}
-
-AABB ParticleMesh::boundingBox() const
-{
-    Vec3r min = Vec3r::Constant(std::numeric_limits<Real>::max());
-    Vec3r max = Vec3r::Constant(std::numeric_limits<Real>::lowest());
-    for (const auto& v : _vertices)
-    {
-        min[0] = std::min(v.position[0], min[0]);
-        min[1] = std::min(v.position[1], min[1]);
-        min[2] = std::min(v.position[2], min[2]);
-
-        max[0] = std::max(v.position[0], max[0]);
-        max[1] = std::max(v.position[1], max[1]);
-        max[2] = std::max(v.position[2], max[2]);
-    }
-    return AABB(min, max);
-}
-
-void ParticleMesh::resize(const Vec3r& new_size)
-{
-    // compute the AABB
-    const AABB aabb = boundingBox();
-    const Vec3r size = aabb.size();
-    // compute the scaling factors for each dimension
-    // compute the scaling factors for each dimension
-    Real scaling_factor_x = (size(0) != 0) ? new_size(0) / size(0) : 1;
-    Real scaling_factor_y = (size(1) != 0) ? new_size(1) / size(1) : 1;
-    Real scaling_factor_z = (size(2) != 0) ? new_size(2) / size(2) : 1;
-
-    scale(Vec3r(scaling_factor_x, scaling_factor_y, scaling_factor_z));
 }
 
 void ParticleMesh::scale(const Vec3r& scaling)
 {
-    for (auto& v : _vertices)
+    for (const auto& v : _vertices)
     {
-        v.position[0] *= scaling[0];
-        v.position[1] *= scaling[1];
-        v.position[2] *= scaling[2];
+        _particle_pool.positions[v][0] *= scaling[0];
+        _particle_pool.positions[v][1] *= scaling[1];
+        _particle_pool.positions[v][2] *= scaling[2];
     }
 
-    for (auto& v : _initial_vertices)
-    {
-        v[0] *= scaling[0];
-        v[1] *= scaling[1];
-        v[2] *= scaling[2];
-    }
+    // for (auto& v : _initial_vertices)
+    // {
+    //     v[0] *= scaling[0];
+    //     v[1] *= scaling[1];
+    //     v[2] *= scaling[2];
+    // }
 
     _mesh_origin[0] *= scaling[0];
     _mesh_origin[1] *= scaling[1];
     _mesh_origin[2] *= scaling[2];
 
     // scale the unrotated size
-    _unrotated_size_xyz[0] *= scaling[0];
-    _unrotated_size_xyz[1] *= scaling[1];
-    _unrotated_size_xyz[2] *= scaling[2];
+    // _unrotated_size_xyz[0] *= scaling[0];
+    // _unrotated_size_xyz[1] *= scaling[1];
+    // _unrotated_size_xyz[2] *= scaling[2];
 }
 
 void ParticleMesh::moveTogether(const Vec3r& delta)
 {
-    for (auto& v : _vertices)
-        v.position += delta;
+    for (const auto& v : _vertices)
+        _particle_pool.positions[v] += delta;
 
-    for (auto& v : _initial_vertices)
-        v += delta;
+    // for (auto& v : _initial_vertices)
+    //     v += delta;
         
     _mesh_origin += delta;
-}
-
-// void ParticleMesh::moveSeparate(const VerticesMat& delta)
-// {
-//     _vertices.noalias() += delta;
-// }
-
-void ParticleMesh::moveTo(const Vec3r& position)
-{
-
-    // calculate the required position offset based on the current center of the AABB
-    const AABB aabb = boundingBox();
-    const Vec3r offset = position - aabb.center();
-
-    // apply the position offset
-    moveTogether(offset);
-}
-
-void ParticleMesh::rotateAbout(const Vec3r& p, const Vec3r& xyz_angles)
-{
-    const Real x = xyz_angles(0) * M_PI / 180.0;
-    const Real y = xyz_angles(1) * M_PI / 180.0;
-    const Real z = xyz_angles(2) * M_PI / 180.0;
-    // using the "123" convention: rotate first about x axis, then about y, then about z
-    Mat3r rot_mat;
-    rot_mat(0,0) = std::cos(y) * std::cos(z);
-    rot_mat(0,1) = std::sin(x)*std::sin(y)*std::cos(z) - std::cos(x)*std::sin(z);
-    rot_mat(0,2) = std::cos(x)*std::sin(y)*std::cos(z) + std::sin(x)*std::sin(z);
-
-    rot_mat(1,0) = std::cos(y)*std::sin(z);
-    rot_mat(1,1) = std::sin(x)*std::sin(y)*std::sin(z) + std::cos(x)*std::cos(z);
-    rot_mat(1,2) = std::cos(x)*std::sin(y)*std::sin(z) - std::sin(x)*std::cos(z);
-
-    rot_mat(2,0) = -std::sin(y);
-    rot_mat(2,1) = std::sin(x)*std::cos(y);
-    rot_mat(2,2) = std::cos(x)*std::cos(y);
-    
-    rotateAbout(p, rot_mat);
 }
 
 void ParticleMesh::rotateAbout(const Vec3r& p, const Mat3r& rot_mat)
 {
     moveTogether(-p);
     for (auto& v : _vertices)
-        v.position = rot_mat * v.position;
+        _particle_pool.positions[v] = rot_mat * _particle_pool.positions[v];
 
-    for (auto& v : _initial_vertices)
-        v = rot_mat * v;
+    // for (auto& v : _initial_vertices)
+    //     v = rot_mat * v;
 
     _mesh_origin = rot_mat * _mesh_origin;
     moveTogether(p);
