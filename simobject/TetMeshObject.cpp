@@ -6,7 +6,7 @@
 namespace SimObject
 {
 
-TetMeshObject::TetMeshObject(Simulation::SimulationContext* ctx, const Config::TetMeshObjectConfig& config)
+TetMeshObject::TetMeshObject(Sim::SimulationContext* ctx, const Config::TetMeshObjectConfig& config)
     : Object_Base(ctx, config),
     _filename(config.filename()),
     _E(config.E()),

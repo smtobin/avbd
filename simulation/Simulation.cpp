@@ -20,13 +20,17 @@ Simulation::Simulation()
 }
 
 Simulation::Simulation(const Config::SimulationConfig& sim_config)
-    : _setup(false), _time(0),
-    _dt(sim_config.timeStep()), _end_time(sim_config.endTime()), _g_accel(sim_config.gAccel()),
-    _viewer_refresh_time_ms(1000.0/30.0),
-    _solver_iters(sim_config.solverIters()),
-    _iter_acceleration(sim_config.iterAcceleration()),
-    _graphics_scene(sim_config.renderConfig()),
-    _config(sim_config)
+    : _setup(false)
+    , _time(0)
+    , _dt(sim_config.timeStep())
+    , _end_time(sim_config.endTime())
+    , _g_accel(sim_config.gAccel())
+    , _viewer_refresh_time_ms(1000.0/30.0)
+    , _solver_iters(sim_config.solverIters())
+    , _iter_acceleration(sim_config.iterAcceleration())
+    , _ctx(1000)
+    , _graphics_scene(sim_config.renderConfig())
+    , _config(sim_config)
 {
     _last_collision_check_time = std::numeric_limits<Real>::lowest();
 }

@@ -6,7 +6,7 @@
 
 #include <functional>
 
-namespace Simulation
+namespace Sim
 {
     class SimulationContext;
 }
@@ -17,7 +17,7 @@ namespace SimObject
 class Object_Base
 {
 public:
-    Object_Base(Simulation::SimulationContext* ctx, const Config::ObjectConfig& config)
+    Object_Base(Sim::SimulationContext* ctx, const Config::ObjectConfig& config)
         : _ctx(ctx), _name(config.name())
     {}
 
@@ -41,7 +41,7 @@ public:
     // virtual void for_each_quadratic_energy(std::function<void(QuadraticEnergy*)> func) const = 0;
 
 protected:
-    Simulation::SimulationContext* _ctx;
+    Sim::SimulationContext* _ctx;
 
     std::string _name;
 };

@@ -2,6 +2,7 @@
 
 #include "common/common.hpp"
 
+#include "simulation/SimulationContext.hpp"
 #include "simulation/SimulationLogger.hpp"
 
 #include "graphics/GraphicsScene.hpp"
@@ -144,21 +145,32 @@ class Simulation
     Real _last_collision_check_time;
 
 
+    /** Number of solver iterations */
     int _solver_iters = 1;
+
     /** Acceleration parameter "rho" for Chebyshev acceleration. VBD eqn (18) */
     Real _iter_acceleration;
 
     std::deque<std::function<void()>> _callback_queue;
 
-    /** Simulation objects */
+    /** The simulation context
+     * Stores all particles, energies in the sim.
+     */
+    SimulationContext _ctx;
+
+    /** Simulation objects
+     * 
+     * Mostly used for visualization and grouping the particles in the sim.
+     */
     std::vector<std::unique_ptr<SimObject::Object_Base>> _objects;
 
     /** Responsible for logging various simulation quantities. */
     std::unique_ptr<SimulationLogger> _logger;
 
-    // graphics
+    /** Responsible for visualization in the sim */
     Graphics::GraphicsScene _graphics_scene;
 
+    /** Simulation params */
     Config::SimulationConfig _config;
 };
 

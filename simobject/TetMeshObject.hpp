@@ -11,7 +11,7 @@ namespace SimObject
 class TetMeshObject : public Object_Base
 {
 public:
-    TetMeshObject(Simulation::SimulationContext* ctx, const Config::TetMeshObjectConfig& config);
+    TetMeshObject(Sim::SimulationContext* ctx, const Config::TetMeshObjectConfig& config);
     
     const ParticleTetMesh* mesh() const { return &_mesh; }
     ParticleTetMesh* mesh() { return &_mesh; }
