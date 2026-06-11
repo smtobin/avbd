@@ -24,6 +24,9 @@ void Particle::inertialUpdate(Real dt, const Vec3r& a_ext)
 
     // move particle to its initialized position
     position += dt*velocity + dt*dt*a_tilde_vec;
+
+    // mark particle as not in collision at the beginning of the time step
+    in_collision = false;
 }
 
 void Particle::solveParticle(Real dt)

@@ -14,13 +14,13 @@ HardConstraintEnergy::HardConstraintEnergy(const Constraint_Base* constraint, Re
 
 Real HardConstraintEnergy::_evaluateConstraint() const
 {
-    return _constraint->evaluate() - 0.95*_C_prev;
+    return _constraint->evaluate() - CONSTRAINT_ALPHA*_C_prev;
 }
 
 void HardConstraintEnergy::reset()
 {
     _k = std::max(STIFFNESS_GAMMA*_k, _k_start);
-    _lambda = STIFFNESS_GAMMA * _lambda;
+    _lambda = STIFFNESS_GAMMA * CONSTRAINT_ALPHA * _lambda;
 
     /** TODO: incorporate alpha */
 }
@@ -39,7 +39,7 @@ void HardConstraintEnergy::updateAfterIteration()
     if (lambda_p > _lambda_min && lambda_p < _lambda_max)
     {
         _k += STIFFNESS_BETA * C;
-        // _C_prev = _constraint->evaluate();
+        _C_prev = _constraint->evaluate();
     }
 
     

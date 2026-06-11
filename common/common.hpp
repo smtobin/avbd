@@ -11,6 +11,7 @@
 
 #define STIFFNESS_BETA 10
 #define STIFFNESS_GAMMA 0.99
+#define CONSTRAINT_ALPHA 0.95
 
 /** Forward declaration of VariadicVectorContainer */
 template<class L, class... R> class VariadicVectorContainer;
