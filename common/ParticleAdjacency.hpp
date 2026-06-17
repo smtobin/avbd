@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "energy/EnergyRegistry.hpp"
+#include "common/ParticlePool.hpp"
 
 #include <vector>
 
@@ -8,7 +10,8 @@ struct ParticleAdjacency {
     // For each vertex, the range [adj_offsets[v], adj_offsets[v+1])
     // gives the list of constraint references in adj_entries
     std::vector<unsigned> adj_offsets;   // size: numParticles + 1
-    
+    std::vector<unsigned> valences;
+
     struct Entry {
         EnergyType energy_type;  // type of energy
         unsigned energy_idx;   // index into that type's pool
@@ -16,32 +19,48 @@ struct ParticleAdjacency {
     };
     std::vector<Entry> adj_entries;  // size: sum of valences across all vertices
 
-    void addEntry(unsigned p_idx, EnergyType e_type, unsigned e_idx, unsigned short local_idx)
+    void buildAdjacency(const ParticlePool& particle_pool, const Energy::EnergyRegistry& energy_registry)
     {
-        // get the current end of the range for this particle
-        unsigned end = adj_offsets[p_idx+1];
+        unsigned num_particles = particle_pool.highest_index;
+        valences.resize(num_particles);
+        valences.assign(num_particles, 0);
 
-        // insert an entry at this spot
-        adj_entries.insert(end, {e_type, e_idx, local_idx});
-
-        // increment the end of the range for this particle and all particles following
-        for (unsigned idx = p_idx+1; idx < adj_offsets.size(); idx++)
-            adj_offsets[idx]++;
-    }
-
-    template <typename EnergyPool>
-    void buildAdjacency(const EnergyPool& pool)
-    {
-        for (unsigned e_idx = 0; e_idx < pool.highest_index; e_idx++)
-        {
-            // particle indices affected by the energy
-            const auto& indices = pool.particle_indices[c_idx];
-
-            for (unsigned k = 0; k < indices.size(); k++)
+        // step 1: count valence of each particle
+        energy_registry.forEachEnergyType([&] (const auto& pool) {
+            // iterate through each (active) energy in the pool
+            for (unsigned e_idx : pool)
             {
-                addEntry(indices[k], EnergyPool::Type, e_idx, k);
+                // iterate through each particle in the energy
+                for (unsigned k = 0; k < pool.NumParticlesPerEnergy; k++)
+                {
+                    unsigned p_idx = pool.particle_indices[e_idx][k];
+                    valences[p_idx]++;
+                }
             }
+        });
+
+        // step 2: prefix sum to get offsets
+        adj_offsets.resize(num_particles + 1);
+        adj_offsets[0] = 0;
+        for (unsigned i = 0; i < num_particles; i++)
+        {
+            adj_offsets[i+1] = adj_offsets[i] + valences[i];
         }
+
+        // step 3: scatter entries for each energy
+        std::vector<unsigned> cursor = adj_offsets;     // cursor per particle for where to put the next entry
+        energy_registry.forEachEnergyType([&] (const auto& pool) {
+            // iterate through each (active) energy in the pool
+            for (unsigned e_idx : pool)
+            {
+                // iterate through each particle in the energy
+                for (unsigned short k = 0; k < pool.NumParticlesPerEnergy; k++)
+                {
+                    unsigned p_idx = pool.particle_indices[e_idx][k];
+                    adj_entries[cursor[p_idx]++] = {pool.Type, e_idx, k};
+                }
+            }
+        });
     }
 };
 

@@ -70,9 +70,20 @@ struct TombstonePool
      */
     void freeSlot(unsigned slot)
     {
+        // slot must be active to free it
         if (!active[slot])
         {
             throw std::runtime_error("freeSlot called on inactive slot");
+        }
+
+        // update highest index if the slot being freed is the highest index
+        if (slot == highest_index)
+        {
+            while (highest_index > 0 &&
+                !active[highest_index])
+            {
+                --highest_index;
+            }
         }
 
         active[slot] = false;
@@ -80,6 +91,79 @@ struct TombstonePool
 
         int idx = top.fetch_sub(1) - 1;
         slots[idx] = slot;
+    }
+
+    /** Iterator subclass that iterates through active indices. */
+    class iterator
+    {
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = unsigned;
+        using difference_type = std::ptrdiff_t;
+        using pointer = const unsigned*;
+        using reference = unsigned;
+
+        iterator(const TombstonePool* pool, unsigned index)
+            : _pool(pool)
+            , _index(index)
+        {
+            skipInactive();
+        }
+
+        unsigned operator*() const
+        {
+            return _index;
+        }
+
+        iterator& operator++()
+        {
+            ++_index;
+            skipInactive();
+            return *this;
+        }
+
+        iterator operator++(int)
+        {
+            iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        bool operator==(const iterator& other) const
+        {
+            return _pool == other._pool &&
+                   _index == other._index;
+        }
+
+        bool operator!=(const iterator& other) const
+        {
+            return !(*this == other);
+        }
+
+    private:
+        void skipInactive()
+        {
+            const unsigned limit = _pool->highest_index + 1;
+
+            while (_index < limit &&
+                   !_pool->active[_index])
+            {
+                ++_index;
+            }
+        }
+
+        const TombstonePool* _pool;
+        unsigned _index;
+    };
+
+    iterator begin() const
+    {
+        return iterator(this, 0);
+    }
+
+    iterator end() const
+    {
+        return iterator(this, highest_index + 1);
     }
 };
 
