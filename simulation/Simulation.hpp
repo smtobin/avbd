@@ -174,4 +174,4 @@ class Simulation
     Config::SimulationConfig _config;
 };
 
-} // namespace Simulation
+} // namespace Sim

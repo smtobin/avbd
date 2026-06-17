@@ -260,4 +260,4 @@ void Simulation::_updateGraphics()
     _graphics_scene.update();
 }
 
-} // namespace Simulation
+} // namespace Sim

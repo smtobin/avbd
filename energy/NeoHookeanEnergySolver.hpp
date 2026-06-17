@@ -25,6 +25,8 @@ struct NeoHookeanEnergySolver
         return X*Q;
     }
 
+    /** TODO: Write accumulate() function for single particle index. */
+
     /** Computes the Hessian and gradient for all of the particles affected by this constraint.
      * Updates the accumulated vertex Hessian and gradients.
      * @param c_idx : the energy index

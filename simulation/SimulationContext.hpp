@@ -5,7 +5,7 @@
 #include "common/ParticleAdjacency.hpp"
 #include "energy/EnergyRegistry.hpp"
 
-namespace Simulation
+namespace Sim
 {
 
 /** Storage of all state in the sim. */
@@ -26,4 +26,4 @@ struct SimulationContext
     }
 };
 
-} // namespace Simulation
+} // namespace Sim
