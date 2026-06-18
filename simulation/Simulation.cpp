@@ -24,7 +24,7 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     , _end_time(sim_config.endTime())
     , _g_accel(sim_config.gAccel())
     , _viewer_refresh_time_ms(1000.0/30.0)
-    , _ctx(1000)
+    , _ctx(1000, 5000)
     , _solver(&_ctx, sim_config.solverIters(), sim_config.iterAcceleration())
     , _graphics_scene(sim_config.renderConfig())
     , _config(sim_config)
@@ -69,6 +69,9 @@ void Simulation::setup()
     obj_configs.for_each_element([&](const auto& obj_config){
         _addObjectFromConfig(obj_config); 
     });
+
+    // after creating the objects, build the adjacency structure
+    _ctx.adjacency.buildAdjacency(_ctx.particles, _ctx.energies);
     
     
 }

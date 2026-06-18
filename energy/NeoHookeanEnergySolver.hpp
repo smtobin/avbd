@@ -10,7 +10,7 @@ namespace Energy
 /** Implements the stable Neo-Hookean per-element energies, seen in Macklin et al. 2021 */
 struct NeoHookeanEnergySolver
 {
-    static void computeF(
+    static Mat3r computeF(
         const Vec3r& v1,
         const Vec3r& v2,
         const Vec3r& v3, 
@@ -46,7 +46,7 @@ struct NeoHookeanEnergySolver
     )
     {
         // extract data from energy pool
-        const Vec4i& indices = energies.particle_indices[e_idx];
+        const Vec4u& indices = energies.particle_indices[e_idx];
         Real V = energies.rest_volumes[e_idx];
         const Mat3r& Q = energies.Qs[e_idx];
         Real lambda = energies.lambdas[e_idx];
@@ -78,7 +78,8 @@ struct NeoHookeanEnergySolver
         F_cross.col(1) = F.col(2).cross(F.col(0));
         F_cross.col(2) = F.col(0).cross(F.col(1));
 
-        Mat3r hyd_grad_full = V*lambda * (F.determinant() - mu/lambda - 1) * F_cross * Q.transpose();
+        Mat3r detF_grad_full = F_cross * Q.transpose();
+        Mat3r hyd_grad_full = V*lambda * (F.determinant() - mu/lambda - 1) * detF_grad_full;
 
         // deviatoric gradient
         Mat3r dev_grad_full = V*mu * F * Q.transpose();

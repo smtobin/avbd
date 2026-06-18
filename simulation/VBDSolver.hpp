@@ -41,7 +41,7 @@ public:
         }
 
         // for all hard constraint energies with Lagrange multipliers, reset the multipliers and stiffnesses for the new time step
-        _ctx->energies.forEachHardConstraintEnergyType([&] (const auto& pool) {
+        _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
             for (unsigned e_idx : pool)
             {
                 /** TODO: this is hard-coded for now. Make type detectino automatic */
@@ -54,7 +54,7 @@ public:
 
         // solve each individual vertex block
         Real omega = 1;
-        for (int i = 0; i < _solver_iters; i++)
+        for (unsigned i = 0; i < _solver_iters; i++)
         {
             std::cout << "=== Starting iter " << i << " === " << std::endl;
             if (i > 2)
@@ -78,7 +78,7 @@ public:
             }
 
             // for all hard constraint energies with Lagrange multipliers, update the multipliers and stiffnesses after the iteration
-            _ctx->energies.forEachHardConstraintEnergyType([&] (const auto& pool) {
+            _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
                 for (unsigned e_idx : pool)
                 {
                     /** TODO: this is hard-coded for now. Make type detectino automatic */
@@ -137,8 +137,8 @@ private:
 
     void _solveParticle(unsigned p_idx, Real dt)
     {
-        unsigned adj_start = _ctx->adjacency.adjOffsets[p_idx];
-        unsigned adj_end   = _ctx->adjacency.adjOffsets[p_idx + 1];
+        unsigned adj_start = _ctx->adjacency.adj_offsets[p_idx];
+        unsigned adj_end   = _ctx->adjacency.adj_offsets[p_idx + 1];
 
         Vec3r grad = Vec3r::Zero();
         Mat3r hess = Mat3r::Zero();

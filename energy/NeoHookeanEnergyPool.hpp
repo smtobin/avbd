@@ -9,10 +9,10 @@ namespace Energy
  */
 struct NeoHookeanEnergyPool : TombstonePool
 {
-    static constexpr int NumParticlesPerConstraint = 1; // number of particles per constraint
+    static constexpr int NumParticlesPerEnergy = 1; // number of particles per energy
     static constexpr EnergyType Type = EnergyType::NEO_HOOKEAN;   // type of energy in the EnergyType enum
 
-    std::vector<Vec4i> particle_indices;    // indices of particles in the element
+    std::vector<Vec4u> particle_indices;    // indices of particles in the element
     std::vector<Real> lambdas;              // first Lame parameter
     std::vector<Real> mus;                  // second Lame parameter
     std::vector<Real> kds;                  // strain-rate damping coefficient
@@ -35,7 +35,7 @@ struct NeoHookeanEnergyPool : TombstonePool
      * @returns the index of the new energy in the pool
      */
     unsigned addEnergy(
-        const Vec4i& indices,
+        const Vec4u& indices,
         Real lambda,
         Real mu,
         Real kd,

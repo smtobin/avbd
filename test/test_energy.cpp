@@ -91,36 +91,6 @@ bool testEnergy(const Energy::Energy_Base* energy)
 
 int main()
 {
-    gmsh::initialize();
-
-    // load initial mesh
-    ParticleTetMesh mesh = MeshUtils::loadTetMeshFromGmshFile("../resource/single.msh");
-    int element_index = 0;
-    mesh.setCurrentStateAsUndeformedState();
-
-    // std::cout << "F: " << mesh.elementDeformationGradient(0) << std::endl;
-
-    // perturb the tet a little bit
-    // std::cout << "Mesh vertex 0 pos: " << mesh.vertex(0).transpose() << std::endl;
-    mesh.setVertex(0, Vec3r(-0.4,-0.2,-0.3));
-    // std::cout << "Mesh vertex 0 pos: " << mesh.vertex(0).transpose() << std::endl;
-
-    // std::cout << "F: " << mesh.elementDeformationGradient(0) << std::endl;
-
-    Real _E = 1e5;
-    Real _nu = 0.3;
-    Real _mu = _E / (2 * (1 + _nu));
-    Real _lambda = (_E*_nu) / ( (1 + _nu) * (1 - 2*_nu) );
-    Real _kd = 1e-2;
-    Energy::TetElementEnergy tet_energy(&mesh, element_index, _lambda, _mu, _kd);
-    testEnergy(&tet_energy);
-
-    // Energy::GroundCollisionEnergy ground_collision_energy(&mesh.particle(0));
-    // testEnergy(&ground_collision_energy);
-
-    Energy::AttachmentConstraint attach_constraint(&mesh.particle(0), Vec3r(100,100,100));
-    Energy::HardConstraintEnergy attach_energy(&attach_constraint, 1e2);
-    testEnergy(&attach_energy);
 
 
 }

@@ -7,14 +7,14 @@ namespace Energy
 
 struct GroundCollisionEnergyPool : HardConstraintEnergyPool
 {
-    static constexpr int NumParticlesPerConstraint = 1; // number of particles per constraint
+    static constexpr int NumParticlesPerEnergy = 1; // number of particles per constraint
     static constexpr EnergyType Type = EnergyType::GROUND_COLLISION; // type of energy in the EnergyType enum
 
-    std::vector<Eigen::Vector<unsigned, NumParticlesPerConstraint>> particles;     // particle indices for each constraint
+    std::vector<Eigen::Vector<unsigned, NumParticlesPerEnergy>> particle_indices;     // particle indices for each constraint
 
     explicit GroundCollisionEnergyPool(unsigned capacity)
         : HardConstraintEnergyPool(capacity, 1e2, 0)
-        , particles(capacity)
+        , particle_indices(capacity)
     {
 
     }
@@ -28,7 +28,7 @@ struct GroundCollisionEnergyPool : HardConstraintEnergyPool
         // parent will call allocSlot()
         unsigned slot = HardConstraintEnergyPool::addEnergy();
 
-        particles[slot][0] = particle_index;
+        particle_indices[slot][0] = particle_index;
 
         return slot;
     }

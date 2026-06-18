@@ -26,10 +26,11 @@ void TetMeshObject::setup()
     _mesh.scale(_config.scaling());
 
     // rotate the mesh to the initial rotation
-    _mesh.rotateAbout(Vec3r::Zero(), _config.initialRotation());
+    Mat3r rot_mat = Math::RotMatFromXYZEulerAngles(_config.initialRotation());
+    _mesh.rotateAbout(Vec3r::Zero(), rot_mat);
 
     // move the mesh to the initial position
-    _mesh.moveTo(_config.initialPosition());
+    _mesh.moveTogether(_config.initialPosition());
 
     Real mu = _E / (2 * (1 + _nu));
     Real lambda = (_E*_nu) / ( (1 + _nu) * (1 - 2*_nu) );
@@ -51,10 +52,10 @@ void TetMeshObject::setup()
         }
 
         // compute inverse undeformed basis
-        const Vec3r& v1 = vertex(elem[0]);
-        const Vec3r& v2 = vertex(elem[1]);
-        const Vec3r& v3 = vertex(elem[2]);
-        const Vec3r& v4 = vertex(elem[3]);
+        const Vec3r& v1 = _mesh.vertex(elem[0]);
+        const Vec3r& v2 = _mesh.vertex(elem[1]);
+        const Vec3r& v3 = _mesh.vertex(elem[2]);
+        const Vec3r& v4 = _mesh.vertex(elem[3]);
         Mat3r X;
         X.col(0) = (v1 - v4);
         X.col(1) = (v2 - v4);
@@ -74,7 +75,6 @@ void TetMeshObject::setup()
         );
 
         // add mass to each particle in this element
-        const Vec4i& elem = _mesh.element(elem_index);
         for (int i = 0; i < 4; i++)
         {
             _ctx->particles.masses[pool_indices[i]] += 0.25 * rest_volume * _density;

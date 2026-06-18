@@ -16,7 +16,7 @@ struct HardConstraintEnergySolver
      */
     static void updateAfterIteration(
         unsigned c_idx,
-        const EnergyPool& energies,
+        EnergyPool& energies,
         ParticlePool& particles
     )
     {
@@ -43,7 +43,7 @@ struct HardConstraintEnergySolver
         }
 
         // update lambda - equation (11)
-        energies.lambdas[c_idx] = std::max(lambda_min, std::min(lambda_max, lambda_p));
+        energies.lambdas[c_idx] = std::max(energies.lambda_min, std::min(energies.lambda_max, lambda_p));
     }
 
     /** Updates the stiffness and Lagrange multiplier after a full time step.
@@ -53,7 +53,7 @@ struct HardConstraintEnergySolver
      */
     static void updateAfterTimeStep(
         unsigned c_idx,
-        const EnergyPool& energies
+        EnergyPool& energies
     )
     {
         energies.lambdas[c_idx] = CONSTRAINT_ALPHA * STIFFNESS_GAMMA * energies.lambdas[c_idx];
@@ -72,7 +72,7 @@ struct HardConstraintEnergySolver
      */
     static void accumulate(
         unsigned e_idx,
-        const NeoHookeanEnergyPool& energies,
+        const EnergyPool& energies,
         ParticlePool& particles,
         unsigned local_idx,
         Mat3r& particle_H,
@@ -103,7 +103,7 @@ struct HardConstraintEnergySolver
         else if (lambda_p > energies.lambda_max && std::abs(C) > 1e-12)
             k_scaled = (energies.lambda_max - lambda) / C;
         
-        const auto& indices = energies.particles;
+        // const auto& indices = energies.particle_indices;
 
         // gradient
         Vec3r grad = lambda_p * C_grad;

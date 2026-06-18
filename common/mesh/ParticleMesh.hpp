@@ -47,7 +47,7 @@ public:
     /** Essentially "sets up" the mesh - treats the current state as the initial, undeformed state of the mesh.
      * This should be called after performing the initial translations and rotations setting up the mesh.
      */
-    virtual void setCurrentStateAsUndeformedState();
+    void setCurrentStateAsUndeformedState();
 
     /** Returns a single vertex as an Eigen 3-vector, given the vertex index.
      * This assumes that the index used is a valid index (i.e. the vertex we are trying to access has not been removed).

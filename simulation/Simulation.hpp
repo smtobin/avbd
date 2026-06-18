@@ -67,7 +67,7 @@ class Simulation
         // }
         // else
         // {
-            ObjPtrType new_obj_ptr = std::make_unique<ObjType>(obj_config);
+            ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
             new_obj_ptr->setup();
             // _objects.template emplace_back<ObjPtrType>(std::make_unique<ObjType>(obj_config));
             // new_obj_ptr = _objects.template get<ObjPtrType>().back().get();
@@ -108,7 +108,7 @@ class Simulation
         // }
         // else
         // {
-            ObjPtrType new_obj_ptr = std::make_unique<ObjType>(obj_config);
+            ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
             new_obj_ptr->setup();
             // _objects.template emplace_back<ObjPtrType>(std::make_unique<ObjType>(obj_config));
             // new_obj_ptr = _objects.template get<ObjPtrType>().back().get();

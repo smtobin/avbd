@@ -14,7 +14,7 @@ struct GroundCollisionConstraintSolver
         ParticlePool& particles
     )
     {
-        unsigned particle_idx = energies.particles[c_idx];
+        unsigned particle_idx = energies.particle_indices[c_idx][0];
         return -particles.positions[particle_idx][1];
     }
 
@@ -28,7 +28,7 @@ struct GroundCollisionConstraintSolver
         Mat3r& C_hess
     )
     {
-        unsigned p_idx = energies.particles[c_idx];
+        unsigned p_idx = energies.particle_indices[c_idx][0];
         C = -particles.positions[p_idx][1];
 
         C_grad = Vec3r(0,-1,0);
