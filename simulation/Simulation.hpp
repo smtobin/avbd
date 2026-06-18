@@ -4,6 +4,7 @@
 
 #include "simulation/SimulationContext.hpp"
 #include "simulation/SimulationLogger.hpp"
+#include "simulation/VBDSolver.hpp"
 
 #include "graphics/GraphicsScene.hpp"
 
@@ -146,10 +147,10 @@ class Simulation
 
 
     /** Number of solver iterations */
-    int _solver_iters = 1;
+    // int _solver_iters = 1;
 
     /** Acceleration parameter "rho" for Chebyshev acceleration. VBD eqn (18) */
-    Real _iter_acceleration;
+    // Real _iter_acceleration;
 
     std::deque<std::function<void()>> _callback_queue;
 
@@ -157,6 +158,11 @@ class Simulation
      * Stores all particles, energies in the sim.
      */
     SimulationContext _ctx;
+
+    /** The VBD solver
+     * Implements the VBD block coordinate descent solution process
+     */
+    VBDSolver _solver;
 
     /** Simulation objects
      * 

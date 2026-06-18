@@ -24,7 +24,7 @@ Real ParticleTetMesh::elementVolume(int index) const
 
 Vec3r ParticleTetMesh::elementCentroid(int element_index) const
 {
-    const Vec4i& elem_verts = element(element_index);
+    const Vec4u& elem_verts = element(element_index);
     Vec3r sum = vertex(elem_verts[0]) + vertex(elem_verts[1]) + vertex(elem_verts[2]) + vertex(elem_verts[3]);
     return sum/4.0;
 }

@@ -25,7 +25,7 @@ struct HardConstraintEnergyPool : TombstonePool
         Real lambda_max_=std::numeric_limits<Real>::max()
     )
         : TombstonePool(capacity)
-        , k_start(k_start_),
+        , k_start(k_start_)
         , lambda_min(lambda_min_)
         , lambda_max(lambda_max_)
         , ks(capacity, k_start_)

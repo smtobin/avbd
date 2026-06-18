@@ -22,12 +22,13 @@ private:
     Real _iter_acceleration;
 
 public:
+    VBDSolver() = default;
+
     VBDSolver(SimulationContext* ctx, unsigned solver_iters, Real iter_acceleration)
         : _ctx(ctx)
         , _solver_iters(solver_iters)
         , _iter_acceleration(iter_acceleration)
     {
-
     }
 
     void solve(Real dt)

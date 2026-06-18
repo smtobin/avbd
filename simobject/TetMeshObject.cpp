@@ -20,7 +20,7 @@ TetMeshObject::TetMeshObject(Sim::SimulationContext* ctx, const Config::TetMeshO
 void TetMeshObject::setup()
 {
     // load mesh from file
-    _mesh = MeshUtils::loadTetMeshFromGmshFile(_filename);
+    _mesh = MeshUtils::loadTetMeshFromGmshFile(_filename, _ctx->particles);
     
     // scale the mesh according to the requested scaling
     _mesh.scale(_config.scaling());

@@ -18,9 +18,9 @@ struct SimulationContext
     // adjacency information for particles
     ParticleAdjacency adjacency;
 
-    SimulationContext(unsigned capacity)
-     : particles(capacity)
-     , energies(capacity)
+    SimulationContext(unsigned particles_capacity, unsigned energies_capacity)
+     : particles(particles_capacity)
+     , energies(energies_capacity)
     {
         
     }

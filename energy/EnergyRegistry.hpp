@@ -14,9 +14,20 @@ struct EnergyRegistry
     NeoHookeanEnergyPool neo_hookean;
     GroundCollisionEnergyPool ground_collision;
 
+    EnergyRegistry(unsigned capacity)
+        : neo_hookean(capacity)
+        , ground_collision(capacity)
+    {}
+
     /** Apply a function to each set of energies. */
     template <typename Func>
     void forEachEnergyType(Func&& f)
+    {
+        f(neo_hookean);
+        f(ground_collision);
+    }
+    template <typename Func>
+    void forEachEnergyType(Func&& f) const
     {
         f(neo_hookean);
         f(ground_collision);
@@ -25,6 +36,11 @@ struct EnergyRegistry
     /** Apply a function only to energies derived from a hard constraint */
     template <typename Func>
     void forEachHardConstraintEnergyType(Func&& f)
+    {
+        f(ground_collision);
+    }
+    template <typename Func>
+    void forEachHardConstraintEnergyType(Func&& f) const
     {
         f(ground_collision);
     }

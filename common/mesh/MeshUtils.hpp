@@ -5,11 +5,11 @@
 
 struct MeshUtils
 {
-    static ParticleMesh loadSurfaceMeshFromFile(const std::string& filename);
+    static ParticleMesh loadSurfaceMeshFromFile(const std::string& filename, ParticlePool& pool);
 
     static void convertToSTL(const std::string& filename);
 
     static void convertSTLtoMSH(const std::string& filename);
 
-    static ParticleTetMesh loadTetMeshFromGmshFile(const std::string& filename);
+    static ParticleTetMesh loadTetMeshFromGmshFile(const std::string& filename, ParticlePool& pool);
 };

@@ -1,12 +1,14 @@
 #include "common/mesh/ParticleMesh.hpp"
 
+#include <fstream>
+
 ParticleMesh::ParticleMesh(ParticlePool& pool, const std::vector<Vec3r>& vertices, const std::vector<Vec3u>& faces)
-    : _particle_pool(pool), _faces(faces)
+    : _particle_pool(&pool), _faces(faces)
 {
     // create particles from vertices list
     for (const auto& vert : vertices)
     {
-        unsigned idx = _particle_pool.addParticle(vert, 0);
+        unsigned idx = _particle_pool->addParticle(vert, 0);
         _vertices.push_back(idx);
     }
 
@@ -17,9 +19,9 @@ void ParticleMesh::scale(const Vec3r& scaling)
 {
     for (const auto& v : _vertices)
     {
-        _particle_pool.positions[v][0] *= scaling[0];
-        _particle_pool.positions[v][1] *= scaling[1];
-        _particle_pool.positions[v][2] *= scaling[2];
+        _particle_pool->positions[v][0] *= scaling[0];
+        _particle_pool->positions[v][1] *= scaling[1];
+        _particle_pool->positions[v][2] *= scaling[2];
     }
 
     // for (auto& v : _initial_vertices)
@@ -42,7 +44,7 @@ void ParticleMesh::scale(const Vec3r& scaling)
 void ParticleMesh::moveTogether(const Vec3r& delta)
 {
     for (const auto& v : _vertices)
-        _particle_pool.positions[v] += delta;
+        _particle_pool->positions[v] += delta;
 
     // for (auto& v : _initial_vertices)
     //     v += delta;
@@ -54,7 +56,7 @@ void ParticleMesh::rotateAbout(const Vec3r& p, const Mat3r& rot_mat)
 {
     moveTogether(-p);
     for (auto& v : _vertices)
-        _particle_pool.positions[v] = rot_mat * _particle_pool.positions[v];
+        _particle_pool->positions[v] = rot_mat * _particle_pool->positions[v];
 
     // for (auto& v : _initial_vertices)
     //     v = rot_mat * v;
@@ -185,7 +187,8 @@ void ParticleMesh::writeMeshToObjFile(const std::string& filename) const
     {
         for (const auto& v : _vertices)
         {
-            obj_file << "v " << v.position[0] << " " << v.position[1] << " " << v.position[2] << std::endl;
+            const Vec3r& p = _particle_pool->positions[v];
+            obj_file << "v " << p[0] << " " << p[1] << " " << p[2] << std::endl;
         }
         
         for (const auto& f : _faces)

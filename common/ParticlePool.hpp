@@ -45,7 +45,7 @@ struct ParticlePool : TombstonePool
     {
         unsigned slot = allocSlot();
         positions[slot] = position;
-        mass[slot] = mass;
+        masses[slot] = mass;
 
         // initialize other positional quantities to be the initial position
         inertial_positions[slot] = position;
@@ -68,7 +68,7 @@ struct ParticlePool : TombstonePool
     */
     unsigned addParticle()
     {
-        addParticle(Vec3r::Zero(), 0);
+        return addParticle(Vec3r::Zero(), 0);
     }
 
     /** Removes a particle from the pool.

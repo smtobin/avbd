@@ -8,8 +8,8 @@
 class ParticleMesh
 {
 protected:
-    /** Reference to the particle memory pool */
-    ParticlePool& _particle_pool;
+    /** Pointer to the particle memory pool */
+    ParticlePool* _particle_pool;
 
     /** Vertices - indices in the particle pool.
      */
@@ -27,10 +27,12 @@ protected:
     Vec3r _mesh_origin;
 
 public:
+    ParticleMesh() = default;
+
     /** Constructs a mesh from a set of vertices and faces.
      * This is usually done using helper methods in the MeshUtils library.
      */
-    ParticleMesh(const std::vector<Vec3r> &vertices, const std::vector<Vec3u> &faces);
+    ParticleMesh(ParticlePool& pool, const std::vector<Vec3r> &vertices, const std::vector<Vec3u> &faces);
 
     /** Returns a const-reference to the vertices of the mesh. */
     const TombstoneVector<unsigned>& vertices() const { return _vertices; }
@@ -50,19 +52,19 @@ public:
     /** Returns a single vertex as an Eigen 3-vector, given the vertex index.
      * This assumes that the index used is a valid index (i.e. the vertex we are trying to access has not been removed).
      */
-    const Vec3r& vertex(int index) const { return _vertices[index].position; }
-    const Vec3r& previousVertex(int index) const { return _vertices[index].prev_position; }
+    const Vec3r& vertex(int index) const { return _particle_pool->positions[_vertices[index]]; }
+    const Vec3r& previousVertex(int index) const { return _particle_pool->previous_positions[_vertices[index]]; }
 
     /** Returns whether not the index corresponds to a valid vertex. */
-    bool vertexValid(int index) const { return _vertices.indexValid(index); }
+    bool vertexValid(int index) const { return _particle_pool->active[_vertices[index]]; }
 
     /** Sets the vertex at the specified to a new position. */
-    void setVertex(int index, const Vec3r &new_pos) { _particle_pool.positions[_vertices.at(index)] = new_pos; }
+    void setVertex(int index, const Vec3r &new_pos) { _particle_pool->positions[_vertices.at(index)] = new_pos; }
 
     /** Returns the surface face at the given index.
      * This assumes that the index used is a valid index (i.e. the face we are trying to access has not been removed).
      */
-    Vec3i face(int index) const { return _faces.at(index); }
+    const Vec3u& face(int index) const { return _faces.at(index); }
 
     /** Returns whether or not the index corresponds to a valid face. */
     bool faceValid(int index) const { return _faces.indexValid(index); }
@@ -70,7 +72,7 @@ public:
     /** Returns the coordinates of the mesh origin.
      * i.e. where the "origin" of the mesh (the (0,0,0) point when the mesh is first loaded) is currently at
      */
-    Vec3r meshOrigin() const { return _mesh_origin; }
+    const Vec3r& meshOrigin() const { return _mesh_origin; }
 
     /** Returns the unrotated size of the mesh.
      * This does not change when the mesh rotates - only when the mesh is resized.

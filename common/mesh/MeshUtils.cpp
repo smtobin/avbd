@@ -12,7 +12,7 @@
 #include <sstream>
 #include <filesystem>
 
-ParticleMesh MeshUtils::loadSurfaceMeshFromFile(const std::string& filename)
+ParticleMesh MeshUtils::loadSurfaceMeshFromFile(const std::string& filename, ParticlePool& pool)
 {
     Assimp::Importer importer;
     importer.SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS, 
@@ -51,7 +51,7 @@ ParticleMesh MeshUtils::loadSurfaceMeshFromFile(const std::string& filename)
     }
 
     // Extract faces
-    std::vector<Vec3i> faces(ai_mesh->mNumFaces);
+    std::vector<Vec3u> faces(ai_mesh->mNumFaces);
     for (unsigned i = 0; i < ai_mesh->mNumFaces; i++)
     {
         faces[i][0] = ai_mesh->mFaces[i].mIndices[0];
@@ -59,11 +59,11 @@ ParticleMesh MeshUtils::loadSurfaceMeshFromFile(const std::string& filename)
         faces[i][2] = ai_mesh->mFaces[i].mIndices[2];
     }
 
-    ParticleMesh mesh(verts, faces);
+    ParticleMesh mesh(pool, verts, faces);
     return mesh;
 }
 
-ParticleTetMesh MeshUtils::loadTetMeshFromGmshFile(const std::string& filename)
+ParticleTetMesh MeshUtils::loadTetMeshFromGmshFile(const std::string& filename, ParticlePool& pool)
 {
     std::cout << "MeshUtils::loadTetMeshFromGmshFile - loading mesh data from " << filename << " as a ParticleMesh..." << std::endl;
 
@@ -100,8 +100,8 @@ ParticleTetMesh MeshUtils::loadTetMeshFromGmshFile(const std::string& filename)
     gmsh::model::getEntities(entities);
 
     std::vector<Vec3r> vertices;
-    std::vector<Vec3i> faces;
-    std::vector<Vec4i> elements;
+    std::vector<Vec3u> faces;
+    std::vector<Vec4u> elements;
 
     for(auto e : entities) {
         // Dimension and tag of the entity:
@@ -180,7 +180,7 @@ ParticleTetMesh MeshUtils::loadTetMeshFromGmshFile(const std::string& filename)
         }
     }
 
-    ParticleTetMesh tet_mesh(vertices, faces, elements);
+    ParticleTetMesh tet_mesh(pool, vertices, faces, elements);
 
     // write the loaded surface mesh part to file
     const std::string surface_mesh_filename = filename.substr(0,filename.length()-4) + "_surface_mesh.obj";

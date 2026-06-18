@@ -11,10 +11,12 @@ protected:
     TombstoneVector<Vec4u> _elements;
 
 public:
+    ParticleTetMesh() = default;
+    
     /** Constructs a tetrahedral mesh from a set of vertices, faces, and elements.
      * This is usually done using the helper methods in the MeshUtils library.
      */
-    ParticleTetMesh(ParticlePool& pool, const std::vector<Vec3r>& vertices, const std::vector<Vec3i>& faces, const std::vector<Vec4i>& elements);
+    ParticleTetMesh(ParticlePool& pool, const std::vector<Vec3r>& vertices, const std::vector<Vec3u>& faces, const std::vector<Vec4u>& elements);
 
     /** Returns a const-reference to the elements of the mesh. */
     const TombstoneVector<Vec4u>& elements() const { return _elements; }
@@ -23,7 +25,7 @@ public:
     int numElements() const { return _elements.size(); }
 
     /** Returns a single element as an Eigen 4-vector, given the element index. */
-    Vec4i element(int index) const { return _elements.at(index); }
+    const Vec4u& element(int index) const { return _elements.at(index); }
 
     /** Returns whether or not the index corresponds to a valid element. */
     bool elementValid(int index) const { return _elements.indexValid(index); }

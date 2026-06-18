@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <atomic>
+#include <numeric>
 
 /** Base struct for dynamic structure-of-array memory "pools" which have elements added and removed throughout the sim.
  * 
@@ -50,7 +51,7 @@ struct TombstonePool
     unsigned allocSlot()
     {
         int idx = top.fetch_add(1);
-        if (idx >= capacity)
+        if (idx >= (int)capacity)
         {
             top.fetch_sub(1);   // undo add
             throw std::runtime_error("Pool has exceeded capacity");
@@ -62,7 +63,7 @@ struct TombstonePool
         highest_index = std::max(highest_index, slot);
         return slot;
         
-        return pool.slots[idx];
+        return slots[idx];
     }
 
     /** Frees space for removing an element from a slot.
