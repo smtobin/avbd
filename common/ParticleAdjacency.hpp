@@ -48,6 +48,7 @@ struct ParticleAdjacency {
         }
 
         // step 3: scatter entries for each energy
+        adj_entries.resize(adj_offsets.back());
         std::vector<unsigned> cursor = adj_offsets;     // cursor per particle for where to put the next entry
         energy_registry.forEachEnergyType([&] (const auto& pool) {
             // iterate through each (active) energy in the pool

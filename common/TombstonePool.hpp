@@ -61,9 +61,12 @@ struct TombstonePool
         active[slot] = true;
         count++;
         highest_index = std::max(highest_index, slot);
+
+        std::cout << "Alloc slot..." << std::endl;
+        std::cout << "  New highest index: " << highest_index << std::endl;
+        std::cout << "  Slot: " << slot << std::endl;
+
         return slot;
-        
-        return slots[idx];
     }
 
     /** Frees space for removing an element from a slot.
