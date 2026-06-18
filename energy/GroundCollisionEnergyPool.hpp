@@ -8,6 +8,7 @@ namespace Energy
 struct GroundCollisionEnergyPool : HardConstraintEnergyPool
 {
     static int NumParticlesPerConstraint = 1; // number of particles per constraint
+    static EnergyType Type = EnergyType::GROUND_COLLISION; // type of energy in the EnergyType enum
 
     std::vector<Eigen::Vector<unsigned, NumParticlesPerConstraint>> particles;     // particle indices for each constraint
 

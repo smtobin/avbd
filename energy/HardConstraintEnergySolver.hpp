@@ -60,6 +60,69 @@ struct HardConstraintEnergySolver
         energies.ks[c_idx] = std::max(STIFFNESS_GAMMA * energies.ks[c_idx], energies.k_start);
     }
 
+    /** Computes the Hessian and gradient for a specified particle affected by this energy.
+     * Updates the accumulated vertex Hessian and gradients.
+     * @param e_idx : the energy index
+     * @param energies : the memory pool for the energies
+     * @param particles : the memory pool for the particles
+     * @param local_idx : the "local" index of the particle in the energy
+     * @param particle_H : the current accumulated particle Hessian - this is updated by this function
+     * @param particle_G : the current accumulated particle gradient - this is updated by this function
+     * @param dt : the time step
+     */
+    static void accumulate(
+        unsigned e_idx,
+        const NeoHookeanEnergyPool& energies,
+        ParticlePool& particles,
+        unsigned local_idx,
+        Mat3r& particle_H,
+        Vec3r& particle_G,
+        Real dt
+    )
+    {
+        // evaluate the constraint, gradients, and Hessians for the constraint for each particle involved
+        Vec3r C_grad;
+        Mat3r C_hess;
+        Real C_raw;
+        ConstraintSolver::constraintGradientHessian(
+            e_idx, energies, particles, local_idx, // inputs
+            C_raw, C_grad, C_hess  // outputs
+        );
+        // alpha correction on the constraint violation
+        Real C = C_raw - CONSTRAINT_ALPHA * energies.C_prevs[e_idx];
+
+        Real k = energies.ks[e_idx];
+        Real lambda = energies.lambdas[e_idx];
+
+        Real lambda_p = std::max(energies.lambda_min, std::min(energies.lambda_max, k*C + lambda));
+        
+        // stiffness rescaling - equation (14)
+        Real k_scaled = k;
+        if (lambda_p < energies.lambda_min && std::abs(C) > 1e-12)
+            k_scaled = (energies.lambda_min - lambda) / C;
+        else if (lambda_p > energies.lambda_max && std::abs(C) > 1e-12)
+            k_scaled = (energies.lambda_max - lambda) / C;
+        
+        const auto& indices = energies.particles;
+
+        // gradient
+        Vec3r grad = lambda_p * C_grad;
+
+            // Hessian
+            /** TODO: do diagonalization of Hessian component
+             * 
+             * 
+             * 
+             * 
+             */
+            
+
+        Mat3r hess = (k_scaled * C + lambda) * C_hess +
+            k_scaled * C_grad * C_grad.transpose();
+            
+        particle_H += hess;
+        particle_G += grad;
+    }
 
     /** Computes the Hessian and gradient for all of the particles affected by this constraint.
      * Updates the accumulated vertex Hessian and gradients.

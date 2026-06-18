@@ -22,16 +22,17 @@ struct GroundCollisionConstraintSolver
         unsigned c_idx,
         const GroundCollisionEnergyPool& energies,
         ParticlePool& particles,
+        unsigned local_idx,
         Real& C,
-        Vec3r grads[1],
-        Mat3r hessians[1]
+        Vec3r& C_grad,
+        Mat3r& C_hess
     )
     {
         unsigned p_idx = energies.particles[c_idx];
         C = -particles.positions[p_idx][1];
 
-        grads[0] = Vec3r(0,-1,0);
-        hessians[0] = Mat3r::Zero();
+        C_grad = Vec3r(0,-1,0);
+        C_hess = Mat3r::Zero();
     }
 };
 

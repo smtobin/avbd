@@ -21,6 +21,13 @@ struct EnergyRegistry
         f(neo_hookean);
         f(ground_collision);
     }
+
+    /** Apply a function only to energies derived from a hard constraint */
+    template <typename Func>
+    void forEachHardConstraintEnergyType(Func&& f)
+    {
+        f(ground_collision);
+    }
 };
 
 } // namespace Energy
