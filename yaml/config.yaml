@@ -1,5 +1,5 @@
 name: "MeshSim"
-# sim-mode: "Frame-by-frame"
+sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
 time-step: 3.33e-3
 end-time: 10
@@ -17,6 +17,7 @@ camera-position: [25, 25, 25]
 hdr-image-filename: "../resource/studio_1k.hdr"
 create-skybox: True
 hdr-scaling: 0.2
+fancy-graphics: false
 
 ground-plane: True
 
@@ -24,9 +25,9 @@ objects:
   - 
     type: "TetMeshObject"
     name: "test"
-    filename: "../resource/cube8.msh"
-    position: [-5, 10, -5]
-    scaling: [10, 10, 10]
+    filename: "../resource/tumor.msh"
+    position: [-5, 50, -5]
+    scaling: [1, 1, 1]
     # material parameters
     E: 70 # kPa
     nu: 0.45

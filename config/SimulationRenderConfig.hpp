@@ -23,6 +23,7 @@ class SimulationRenderConfig : public Config_Base
         _extractParameter("hdr-image-filename", node, _hdr_image_filename);
         _extractParameter("create-skybox", node, _create_skybox);
         _extractParameter("hdr-scaling", node, _hdr_scaling);
+        _extractParameter("fancy-graphics", node, _fancy_graphics);
 
         _extractParameter("camera-position", node, _camera_position);
         _extractParameter("camera-focal-point", node, _camera_focal_point);
@@ -32,6 +33,7 @@ class SimulationRenderConfig : public Config_Base
     const std::optional<std::string>& hdrImageFilename() const { return _hdr_image_filename.value; }
     bool createSkybox() const { return _create_skybox.value; }
     Real hdrScaling() const { return _hdr_scaling.value; }
+    bool fancyGraphics() const { return _fancy_graphics.value; }
     Vec3r cameraPosition() const { return _camera_position.value; }
     Vec3r cameraFocalPoint() const { return _camera_focal_point.value; }
     bool cameraOrthographic() const { return _camera_orthographic.value; }
@@ -41,6 +43,7 @@ class SimulationRenderConfig : public Config_Base
     ConfigParameter<std::optional<std::string>> _hdr_image_filename = ConfigParameter<std::optional<std::string>>();
     ConfigParameter<bool> _create_skybox = ConfigParameter<bool>(true);
     ConfigParameter<Real> _hdr_scaling = ConfigParameter<Real>(0.2);
+    ConfigParameter<bool> _fancy_graphics = ConfigParameter<bool>(true);
 
     ConfigParameter<Vec3r> _camera_position = ConfigParameter<Vec3r>(Vec3r(3, 4, 3));
     ConfigParameter<Vec3r> _camera_focal_point = ConfigParameter<Vec3r>(Vec3r(0, 0, 0));
