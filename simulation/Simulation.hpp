@@ -138,10 +138,10 @@ class Simulation
     bool _setup;
 
     Real _time;
-    Real _dt;
-    Real _end_time;
-    Real _g_accel;
-    int _viewer_refresh_time_ms;
+    // Real _dt;
+    // Real _end_time;
+    // Real _g_accel;
+    // int _viewer_refresh_time_ms;
 
     Real _last_collision_check_time;
 

@@ -4,6 +4,7 @@
 #include "common/ParticlePool.hpp"
 #include "common/ParticleAdjacency.hpp"
 #include "energy/EnergyRegistry.hpp"
+#include "simulation/SimulationParams.hpp"
 
 namespace Sim
 {
@@ -17,6 +18,9 @@ struct SimulationContext
 
     // adjacency information for particles
     ParticleAdjacency adjacency;
+
+    // simulation parameters
+    SimulationParams params;
 
     SimulationContext()
         : particles(1000)

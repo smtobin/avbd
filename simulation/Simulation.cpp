@@ -10,8 +10,9 @@ namespace Sim
 
 Simulation::Simulation()
     : _setup(false),
-      _time(0), _dt(1e-3), _end_time(10),
-      _g_accel(9.81), _viewer_refresh_time_ms(1000.0/30.0),
+      _time(0),
+    //   , _dt(1e-3), _end_time(10),
+    //   _g_accel(9.81), _viewer_refresh_time_ms(1000.0/30.0),
       _graphics_scene()
 {
     _last_collision_check_time = std::numeric_limits<Real>::lowest();
@@ -20,15 +21,20 @@ Simulation::Simulation()
 Simulation::Simulation(const Config::SimulationConfig& sim_config)
     : _setup(false)
     , _time(0)
-    , _dt(sim_config.timeStep())
-    , _end_time(sim_config.endTime())
-    , _g_accel(sim_config.gAccel())
-    , _viewer_refresh_time_ms(1000.0/30.0)
+    // , _dt(sim_config.timeStep())
+    // , _end_time(sim_config.endTime())
+    // , _g_accel(sim_config.gAccel())
+    // , _viewer_refresh_time_ms(1000.0/30.0)
     , _ctx(1000, 5000)
     , _solver(&_ctx, sim_config.solverIters(), sim_config.iterAcceleration())
     , _graphics_scene(sim_config.renderConfig())
     , _config(sim_config)
 {
+    _ctx.params.dt = sim_config.timeStep();
+    _ctx.params.end_time = sim_config.endTime();
+    _ctx.params.g_accel = sim_config.gAccel();
+    _ctx.params.viewer_refresh_time_ms = 1000.0/30.0;   // 30 fps
+
     _last_collision_check_time = std::numeric_limits<Real>::lowest();
 }
 
@@ -86,7 +92,7 @@ void Simulation::update()
     auto wall_time_start = std::chrono::steady_clock::now();
     auto last_redraw = std::chrono::steady_clock::now();
 
-    while (_time < _end_time)
+    while (_time < _ctx.params.end_time)
     {
         // run any callbacks that have been queued
         for (; !_callback_queue.empty(); _callback_queue.pop_front())
@@ -118,7 +124,7 @@ void Simulation::update()
         // the time in ms since the viewer was last redrawn
         auto time_since_last_redraw_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_redraw).count();
         // we want ~30 fps, so update the viewer every 33 ms
-        if (time_since_last_redraw_ms > _viewer_refresh_time_ms)
+        if (time_since_last_redraw_ms > _ctx.params.viewer_refresh_time_ms)
         {
             // std::cout << _haptic_device_manager->getPosition() << std::endl;
             _updateGraphics();
@@ -133,7 +139,7 @@ void Simulation::update()
     }
 
     auto wall_time_end = std::chrono::steady_clock::now();
-    std::cout << "Simulation " << _end_time << " seconds took " << std::chrono::duration_cast<std::chrono::milliseconds>(wall_time_end - wall_time_start).count() << " ms" << std::endl;
+    std::cout << "Simulation " << _ctx.params.end_time << " seconds took " << std::chrono::duration_cast<std::chrono::milliseconds>(wall_time_end - wall_time_start).count() << " ms" << std::endl;
 }
 
 int Simulation::run()
@@ -187,7 +193,7 @@ void Simulation::_timeStep()
     std::cout << "t=" << _time << std::endl;
 
     // let the solver do the iterations
-    _solver.solve(_dt);
+    _solver.solve(_ctx.params.dt);
 
     // log quantities
     if (_logger)
@@ -195,7 +201,7 @@ void Simulation::_timeStep()
         _logger->logToFile(_time);
     }
 
-    _time += _dt;
+    _time += _ctx.params.dt;
 }
 
 void Simulation::_updateGraphics()

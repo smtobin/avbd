@@ -33,7 +33,7 @@ public:
 
     void solve(Real dt)
     {
-        Vec3r a_grav(0, -9.81, 0);  // acceleration due to gravity - applied to all particles
+        Vec3r a_grav(0, -_ctx->params.g_accel, 0);  // acceleration due to gravity - applied to all particles
         // compute inertial update and initialization for each particle
         for (unsigned p_idx : _ctx->particles)
         {
