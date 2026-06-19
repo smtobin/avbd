@@ -56,7 +56,7 @@ public:
         Real omega = 1;
         for (unsigned i = 0; i < _solver_iters; i++)
         {
-            std::cout << "=== Starting iter " << i << " === " << std::endl;
+            // std::cout << "=== Starting iter " << i << " === " << std::endl;
             if (i > 2)
                 omega = 4 / (4 - _iter_acceleration*_iter_acceleration*omega);
             else if (i == 2)
@@ -151,11 +151,14 @@ private:
 
     void _solveParticle(unsigned p_idx, Real dt)
     {
+        // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
+
         unsigned adj_start = _ctx->adjacency.adj_offsets[p_idx];
         unsigned adj_end   = _ctx->adjacency.adj_offsets[p_idx + 1];
 
         Vec3r grad = Vec3r::Zero();
         Mat3r hess = Mat3r::Zero();
+        // Mat3r hess = 1e-8 * Mat3r::Ones();
 
         // accumulate Hessians and gradients from energies
         for (unsigned e = adj_start; e < adj_end; e++) 
@@ -163,6 +166,7 @@ private:
             const ParticleAdjacency::Entry& entry = _ctx->adjacency.adj_entries[e];
             if (entry.energy_type == EnergyType::NEO_HOOKEAN)
             {
+                // std::cout << " NeoHookean constraint " << entry.energy_idx << std::endl;
                 Energy::NeoHookeanEnergySolver::accumulate(
                     entry.energy_idx,
                     _ctx->energies.neo_hookean,
@@ -192,7 +196,6 @@ private:
         const Vec3r& p = _ctx->particles.positions[p_idx];
         const Vec3r& y = _ctx->particles.inertial_positions[p_idx];
 
-        // std::cout << "\n=== Particle " << p_idx << std::endl;
         // std::cout << "mass: " << mass << std::endl;
         // std::cout << "position: " << p.transpose() << std::endl;
         // std::cout << "inertial position: " << y.transpose() << std::endl;

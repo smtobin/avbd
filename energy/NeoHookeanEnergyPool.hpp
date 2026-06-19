@@ -9,7 +9,7 @@ namespace Energy
  */
 struct NeoHookeanEnergyPool : TombstonePool
 {
-    static constexpr int NumParticlesPerEnergy = 1; // number of particles per energy
+    static constexpr int NumParticlesPerEnergy = 4; // number of particles per energy
     static constexpr EnergyType Type = EnergyType::NEO_HOOKEAN;   // type of energy in the EnergyType enum
 
     std::vector<Vec4u> particle_indices;    // indices of particles in the element

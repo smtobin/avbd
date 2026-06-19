@@ -21,7 +21,7 @@ struct ParticleAdjacency {
 
     void buildAdjacency(const ParticlePool& particle_pool, const Energy::EnergyRegistry& energy_registry)
     {
-        unsigned num_particles = particle_pool.highest_index;
+        unsigned num_particles = particle_pool.highest_index + 1;
         valences.resize(num_particles);
         valences.assign(num_particles, 0);
 
@@ -30,11 +30,14 @@ struct ParticleAdjacency {
             // iterate through each (active) energy in the pool
             for (unsigned e_idx : pool)
             {
+                std::cout << "Constraint " << e_idx << "..." << std::endl;
                 // iterate through each particle in the energy
                 for (unsigned k = 0; k < pool.NumParticlesPerEnergy; k++)
                 {
                     unsigned p_idx = pool.particle_indices[e_idx][k];
                     valences[p_idx]++;
+
+                    std::cout << "  particle " << k << ": " << p_idx << std::endl;
                 }
             }
         });
@@ -44,6 +47,7 @@ struct ParticleAdjacency {
         adj_offsets[0] = 0;
         for (unsigned i = 0; i < num_particles; i++)
         {
+            std::cout << "valence " << i << ": " << valences[i] << std::endl;
             adj_offsets[i+1] = adj_offsets[i] + valences[i];
         }
 

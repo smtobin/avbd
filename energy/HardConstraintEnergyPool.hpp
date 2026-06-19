@@ -30,7 +30,7 @@ struct HardConstraintEnergyPool : TombstonePool
         , lambda_max(lambda_max_)
         , ks(capacity, k_start_)
         , lambdas(capacity)
-        , C_prevs(capacity)
+        , C_prevs(capacity, 0)
     {}
 
     /** Add an energy
