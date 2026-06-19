@@ -22,6 +22,13 @@ void TetMeshObject::setup()
     // load mesh from file
     _mesh = MeshUtils::loadTetMeshFromGmshFile(_filename, _ctx->particles);
     
+    if (_config.positionByCOM())
+    {
+        // move mesh so that center of mass is at the origin
+        Vec3r com = _mesh.massCenter();
+        _mesh.moveTogether(-com);
+    }
+
     // scale the mesh according to the requested scaling
     _mesh.scale(_config.scaling());
 
