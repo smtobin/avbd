@@ -101,31 +101,45 @@ public:
 private:
     void _particleInertialUpdate(unsigned p_idx, const Vec3r& a_ext, Real dt)
     {
-        Vec3r p = _ctx->particles.positions[p_idx];
-        Vec3r v = _ctx->particles.velocities[p_idx];
-        Vec3r v_prev = _ctx->particles.previous_velocities[p_idx];
+        // std::cout << "\n=== Particle " << p_idx << " inertial update" << std::endl;
+        Vec3r& p = _ctx->particles.positions[p_idx];
+        Vec3r& y = _ctx->particles.inertial_positions[p_idx];
+        const Vec3r& v = _ctx->particles.velocities[p_idx];
+        const Vec3r& v_prev = _ctx->particles.previous_velocities[p_idx];
+
+        // std::cout << "p: " << p.transpose() << std::endl;
+        // std::cout << "y: " << y.transpose() << std::endl;
+        // std::cout << "v: " << v.transpose() << std::endl;
+        // std::cout << "v_prev: " << v_prev.transpose() << std::endl;
 
         // use adaptive initialization (Sec 3.7 in VBD paper)
         Vec3r a = (v - v_prev) / dt;
 
+        Vec3r a_tilde_vec = Vec3r::Zero();
         Real a_ext_norm = a_ext.norm();
-        Real a_along_a_ext = a.dot(a_ext) / a_ext_norm;
+        if (a_ext_norm > 1e-12)
+        {
+            Real a_along_a_ext = a.dot(a_ext) / a_ext_norm;
 
-        Real a_tilde;
-        if (a_along_a_ext > a_ext_norm)
-            a_tilde = 1;
-        else if (a_along_a_ext < 0)
-            a_tilde = 0;
-        else
-            a_tilde = a_along_a_ext / a_ext_norm;
+            Real a_tilde;
+            if (a_along_a_ext > a_ext_norm)
+                a_tilde = 1;
+            else if (a_along_a_ext < 0)
+                a_tilde = 0;
+            else
+                a_tilde = a_along_a_ext / a_ext_norm;
 
-        Vec3r a_tilde_vec = a_tilde * a_ext;
+            a_tilde_vec = a_tilde * a_ext;
+        }
 
         // compute the inertially predicted position
-        _ctx->particles.inertial_positions[p_idx] = p + dt*v + dt*dt*a_ext;
+        y = p + dt*v + dt*dt*a_ext;
 
         // move particle to its initialized position
-        _ctx->particles.positions[p_idx] += dt*v + dt*dt*a_tilde_vec;
+        p += dt*v + dt*dt*a_tilde_vec;
+
+        // std::cout << "p: " << p.transpose() << std::endl;
+        // std::cout << "y: " << y.transpose() << std::endl;
 
         // mark particle as not in collision at the beginning of the time step
         _ctx->particles.in_collision[p_idx] = false;
@@ -178,10 +192,19 @@ private:
         const Vec3r& p = _ctx->particles.positions[p_idx];
         const Vec3r& y = _ctx->particles.inertial_positions[p_idx];
 
+        // std::cout << "\n=== Particle " << p_idx << std::endl;
+        // std::cout << "mass: " << mass << std::endl;
+        // std::cout << "position: " << p.transpose() << std::endl;
+        // std::cout << "inertial position: " << y.transpose() << std::endl;
+        // std::cout << "grad: " << grad.transpose() << std::endl;
+        // std::cout << "hess:\n" << hess << std::endl;
+
         Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
         Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
 
         Vec3r dx = LHS.partialPivLu().solve(RHS);
+
+        // std::cout << "dx: " << dx.transpose() << std::endl;
 
         _ctx->particles.positions[p_idx] += dx;
     }

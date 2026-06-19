@@ -32,6 +32,9 @@ void TetMeshObject::setup()
     // move the mesh to the initial position
     _mesh.moveTogether(_config.initialPosition());
 
+    // set the current mesh state as the undeformed state
+    _mesh.setCurrentStateAsUndeformedState();
+
     Real mu = _E / (2 * (1 + _nu));
     Real lambda = (_E*_nu) / ( (1 + _nu) * (1 - 2*_nu) );
 

@@ -1,5 +1,5 @@
 name: "MeshSim"
-sim-mode: "Frame-by-frame"
+# sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
 time-step: 3.33e-3
 end-time: 10
@@ -24,13 +24,13 @@ objects:
     type: "TetMeshObject"
     name: "test"
     filename: "../resource/cube2.msh"
-    position: [0, 30, 0]
+    position: [-5, 10, -5]
     scaling: [10, 10, 10]
     # material parameters
-    E: 70 # kPa
+    E: 0.7 # kPa
     nu: 0.45
     density: 1e-6 # kg / mm^3
-    damping-coeff: 1e-6 # ?
+    damping-coeff: 0 #1e-6 # ?
 
     # render settings
     smooth-normals: False

@@ -15,6 +15,15 @@ ParticleMesh::ParticleMesh(ParticlePool& pool, const std::vector<Vec3r>& vertice
     _mesh_origin = Vec3r::Zero();
 }
 
+void ParticleMesh::setCurrentStateAsUndeformedState()
+{
+    for (unsigned v : _vertices)
+    {
+        // set previous position to be the current position
+        _particle_pool->previous_positions[v] = _particle_pool->positions[v];
+    }
+}
+
 void ParticleMesh::scale(const Vec3r& scaling)
 {
     for (const auto& v : _vertices)
