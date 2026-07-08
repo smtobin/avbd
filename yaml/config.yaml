@@ -2,7 +2,7 @@ name: "MeshSim"
 # sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
 time-step: 3.33e-3
-end-time: 10
+end-time: 1
 g-accel: 9.81e3
 solver-iters: 50
 iter-acceleration: 0.95
@@ -25,7 +25,7 @@ objects:
   - 
     type: "TetMeshObject"
     name: "test"
-    filename: "../resource/tumor.msh"
+    filename: "../resource/cube8.msh"
     position: [0, 10, 0]
     scaling: [1, 1, 1]
     position-by-com: true

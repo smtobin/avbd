@@ -3,6 +3,8 @@
 #include "common/common.hpp"
 #include "common/ParticlePool.hpp"
 #include "common/ParticleAdjacency.hpp"
+#include "common/ColorList.hpp"
+#include "common/ThreadPool.hpp"
 #include "energy/EnergyRegistry.hpp"
 #include "simulation/SimulationParams.hpp"
 
@@ -18,13 +20,18 @@ struct SimulationContext
 
     // adjacency information for particles
     ParticleAdjacency adjacency;
+    ColorList coloring;
 
     // simulation parameters
     SimulationParams params;
 
+    // thread pool
+    ThreadPool thread_pool;
+
     SimulationContext()
         : particles(1000)
         , energies(1000)
+        , thread_pool(std::thread::hardware_concurrency())
     {
         
     }
@@ -32,6 +39,7 @@ struct SimulationContext
     SimulationContext(unsigned particles_capacity, unsigned energies_capacity)
      : particles(particles_capacity)
      , energies(energies_capacity)
+     , thread_pool(std::thread::hardware_concurrency())
     {
         
     }

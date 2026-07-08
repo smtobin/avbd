@@ -1,89 +1,193 @@
 #pragma once
 
-#include <vector>
-#include <functional>
-#include <thread>
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <functional>
+#include <mutex>
+#include <thread>
+#include <vector>
+#include <algorithm>
+#include <immintrin.h>   // _mm_pause()
 
-class ThreadPool {
+class ThreadPool
+{
 public:
-    explicit ThreadPool(unsigned num_threads) {
-        // create workers that will wait for work
-        for (unsigned t = 0; t < num_threads; t++)
-            workers.emplace_back([this, t] { workerLoop(t); });
+
+    explicit ThreadPool(unsigned threads)
+        : _numThreads(threads)
+    {
+        _workers.reserve(_numThreads);
+
+        for (unsigned t = 0; t < _numThreads; ++t)
+            _workers.emplace_back([this] { workerLoop(); });
     }
 
-    // Dispatch a parallel-for over [0, n) and block until complete
-    template <typename Func>
-    void parallelFor(unsigned n, Func&& f) {
-        if (n == 0) return;
-
-        work = [&f, n, num_threads = workers.size()](unsigned t) {
-            // divvy up the work equally between the worker threads
-            unsigned chunk = (n + num_threads - 1) / num_threads;
-            unsigned start = t * chunk;
-            unsigned end   = std::min(start + chunk, n);
-
-            for (unsigned i = start; i < end; i++) 
-                f(i);
-        };
-        dispatch();
+    ~ThreadPool()
+    {
+        shutdown();
     }
 
-    ~ThreadPool() { shutdown(); }
+    template<class Func>
+    void parallelFor(unsigned count, Func&& func)
+    {
+        if (count == 0)
+            return;
+
+        {
+            std::lock_guard lock(_mutex);
+
+            _count = count;
+            _next.store(0, std::memory_order_relaxed);
+            _finished.store(0, std::memory_order_relaxed);
+
+            _work = &func;
+
+            _callback = [](void* ctx,
+                           unsigned begin,
+                           unsigned end)
+            {
+                auto& f = *static_cast<Func*>(ctx);
+
+                f(begin, end);
+            };
+
+            ++_generation;
+        }
+
+        _workCV.notify_all();
+
+        //
+        // Spin briefly.
+        // Most colors finish before this expires.
+        //
+        constexpr int SpinCount = 2000;
+
+        for (int i = 0; i < SpinCount; ++i)
+        {
+            if (_finished.load(std::memory_order_acquire) == _numThreads)
+                return;
+
+            _mm_pause();
+        }
+
+        //
+        // Longer job.
+        // Sleep until last worker finishes.
+        //
+        std::unique_lock lock(_mutex);
+
+        _doneCV.wait(lock, [&]
+        {
+            return _finished.load(std::memory_order_acquire) == _numThreads;
+        });
+    }
 
 private:
-    std::vector<std::thread> workers;
-    std::function<void(unsigned)> work;
-    std::atomic<unsigned> done_count{0};
-    std::atomic<bool> stop{false};
-    std::atomic<long unsigned> generation{0};
-    std::condition_variable cv;
-    std::mutex mtx;
 
-    void dispatch() {
-        // increment generation to signal to other threads that new work is ready
-        ++generation;
+    static constexpr unsigned BlockSize = 16;
 
-        // keep track of how many threads are done
-        done_count = 0;
-        { std::lock_guard<std::mutex> lk(mtx); cv.notify_all(); }
-        while (done_count.load(std::memory_order_acquire) < workers.size()) {
-            std::this_thread::yield();  // spin-wait — see note below
+    using Callback =
+        void(*)(void*, unsigned, unsigned);
+
+    //------------------------------------------------------------
+
+    std::vector<std::thread> _workers;
+
+    unsigned _numThreads;
+
+    std::mutex _mutex;
+
+    std::condition_variable _workCV;
+    std::condition_variable _doneCV;
+
+    bool _shutdown = false;
+
+    uint64_t _generation = 0;
+
+    unsigned _count = 0;
+
+    Callback _callback = nullptr;
+
+    void* _work = nullptr;
+
+    std::atomic<unsigned> _next{0};
+
+    std::atomic<unsigned> _finished{0};
+
+    //------------------------------------------------------------
+
+    void workerLoop()
+    {
+        uint64_t myGeneration = 0;
+
+        while (true)
+        {
+            Callback callback;
+            void* work;
+            unsigned count;
+
+            {
+                std::unique_lock lock(_mutex);
+
+                _workCV.wait(lock, [&]
+                {
+                    return _shutdown || _generation != myGeneration;
+                });
+
+                if (_shutdown)
+                    return;
+
+                myGeneration = _generation;
+
+                callback = _callback;
+                work = _work;
+                count = _count;
+            }
+
+            //
+            // Dynamic scheduling.
+            //
+            while (true)
+            {
+                unsigned begin =
+                    _next.fetch_add(BlockSize,
+                                    std::memory_order_relaxed);
+
+                if (begin >= count)
+                    break;
+
+                unsigned end =
+                    std::min(begin + BlockSize,
+                             count);
+
+                callback(work, begin, end);
+            }
+
+            //
+            // Barrier.
+            //
+            if (_finished.fetch_add(1,
+                    std::memory_order_acq_rel)
+                + 1 == _numThreads)
+            {
+                std::lock_guard lock(_mutex);
+                _doneCV.notify_one();
+            }
         }
     }
 
-    void workerLoop(unsigned t) {
-        // track the number of times the CV has been notified
-        // used to unlock and start doing work
-        long unsigned last_gen = 0;
+    //------------------------------------------------------------
 
-        while (!stop.load(std::memory_order_acquire)) {
-            // wait for work
-            std::unique_lock<std::mutex> lk(mtx);
-            cv.wait(lk, [&] { return generation.load() != last_gen || stop.load(); });
-            lk.unlock();
-
-            // quit if stop is true at any point
-            if (stop.load()) 
-                return;
-            
-            
-            last_gen = generation.load();
-            
-            // perform the work
-            work(t);
-
-            // increment done count when done
-            done_count.fetch_add(1, std::memory_order_release);
+    void shutdown()
+    {
+        {
+            std::lock_guard lock(_mutex);
+            _shutdown = true;
         }
-    }
 
-    void shutdown() {
-        stop = true;
-        { std::lock_guard<std::mutex> lk(mtx); cv.notify_all(); }
-        for (auto& w : workers) w.join();
+        _workCV.notify_all();
+
+        for (auto& t : _workers)
+            t.join();
     }
 };

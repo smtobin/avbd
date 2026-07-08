@@ -39,7 +39,6 @@ struct ParticleAdjacency {
             // iterate through each (active) energy in the pool
             for (unsigned e_idx : pool)
             {
-                std::cout << "Constraint " << e_idx << "..." << std::endl;
                 // iterate through each particle in the energy
                 for (unsigned k = 0; k < pool.NumParticlesPerEnergy; k++)
                 {
@@ -53,10 +52,8 @@ struct ParticleAdjacency {
                         if (k == k2)
                             continue;
 
-                        adj_p_set[k].insert(pool.particle_indices[e_idx][k2]);
+                        adj_p_set[p_idx].insert(pool.particle_indices[e_idx][k2]);
                     }
-
-                    std::cout << "  particle " << k << ": " << p_idx << std::endl;
                 }
             }
         });
@@ -101,6 +98,7 @@ struct ParticleAdjacency {
         }
 
         // step 5: order particles by valence
+        p_descending_valence.resize(num_particles);
         orderParticlesByDescendingValence();
     }
 

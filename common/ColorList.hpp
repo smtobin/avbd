@@ -9,25 +9,28 @@ struct ColorList
 {
     static constexpr unsigned UNCOLORED = std::numeric_limits<unsigned>::max();
 
-    std::vector<unsigned> colors;       // per-particle color
+    unsigned num_colors;                // number of colors
+    std::vector<unsigned> color;       // per-particle color
     std::vector<unsigned> color_counts;     // number of particles per color
     std::vector<unsigned> color_offsets;    // per-color offsets
     std::vector<unsigned> work_list;    // particle indices, grouped by color
 
     /** Greedy coloring of the particles given the adjacency structure.
-     * Returns the number of colors
+     * Also sets the number of colors in the coloring.
      */
-    unsigned greedyColor(const ParticleAdjacency& adjacency, unsigned num_particles)
+    void greedyColor(const ParticleAdjacency& adjacency, unsigned num_particles)
     {
         // resize the colors to the number of particles
-        colors.resize(num_particles);
+        color.resize(num_particles);
         // reset all colors
-        colors.assign(num_particles, UNCOLORED);
+        color.assign(num_particles, UNCOLORED);
 
         // scratch space for storing which colors are "used" by adjacent vertices
         std::vector<bool> used_color;
         for (unsigned v : adjacency.p_descending_valence)
         {
+            std::cout << " Coloring vertex " << v << std::endl;
+            std::cout << "    valence: " << adjacency.p_offsets[v+1] - adjacency.p_offsets[v] << std::endl;
             // reset the used color buffer
             used_color.assign(used_color.size(), false);
 
@@ -53,19 +56,22 @@ struct ColorList
             color[v] = c;
         }
 
-        return used_color.size();
+        num_colors = used_color.size();
     }
 
     void buildColorList(const ParticleAdjacency& adjacency, unsigned num_particles)
     {
         // first, perform greedy coloring on the particle adjacency structure
-        unsigned num_colors = greedyColor(adjacency, num_particles);
+        greedyColor(adjacency, num_particles);
 
         // count each color
-        color_counts.resize(num_colors)
+        color_counts.resize(num_colors);
         color_counts.assign(num_colors, 0);
         for (unsigned c : color)
+        {
+            std::cout << "Color: " << c << std::endl;
             color_counts[c]++;
+        }
 
         // use counts to generate offsets
         color_offsets.resize(num_colors+1, 0);
@@ -74,7 +80,7 @@ struct ColorList
 
         // use offsets to generate work list
         work_list.resize(num_particles);
-        std::vector<unsigned> = color_offsets;
+        std::vector<unsigned> cursor = color_offsets;
         for (unsigned v = 0; v < num_particles; v++)
         {
             work_list[cursor[color[v]]++] = v;
