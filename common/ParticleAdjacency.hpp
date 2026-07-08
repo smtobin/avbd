@@ -21,8 +21,9 @@ struct ParticleAdjacency {
     std::vector<Entry> e_entries;  // size: sum of valences across all vertices
 
     /** Particle-particle adjacency */
-    std::vector<unsigned> p_offsets;
-    std::vector<unsigned> p_neighbors;
+    std::vector<unsigned> p_offsets;    // CSR offsets
+    std::vector<unsigned> p_neighbors;  // indices of neighbors
+    std::vector<unsigned> p_descending_valence;  // lists particle indices by decreasing valence
 
     /** Build vertex-energy adjacency and vertex-vertex adjacency. */
     void buildAdjacency(const ParticlePool& particle_pool, const Energy::EnergyRegistry& energy_registry)
@@ -98,6 +99,20 @@ struct ParticleAdjacency {
                 p_neighbors[w++] = v;
             }
         }
+
+        // step 5: order particles by valence
+        orderParticlesByDescendingValence();
+    }
+
+    /** Sort particles by valence. Useful for better coloring. */
+    void orderParticlesByDescendingValence()
+    {
+        std::iota(p_descending_valence.begin(), p_descending_valence.end(), 0);
+        std::sort(p_descending_valence.begin(), p_descending_valence.end(), [&](unsigned a, unsigned b) {
+            unsigned deg_a = p_offsets[a+1] - p_offsets[a];
+            unsigned deg_b = p_offsets[b+1] - p_offsets[b];
+            return deg_a > deg_b;
+        });
     }
 };
 
