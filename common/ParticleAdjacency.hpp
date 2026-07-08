@@ -5,27 +5,35 @@
 #include "common/ParticlePool.hpp"
 
 #include <vector>
+#include <unordered_set>
 
 struct ParticleAdjacency {
-    // For each vertex, the range [adj_offsets[v], adj_offsets[v+1])
+    // For each particle, the range [adj_offsets[v], adj_offsets[v+1])
     // gives the list of constraint references in adj_entries
-    std::vector<unsigned> adj_offsets;   // size: numParticles + 1
-    std::vector<unsigned> valences;
+    std::vector<unsigned> e_offsets;   // size: numParticles + 1
+    std::vector<unsigned> e_valences;
 
     struct Entry {
         EnergyType energy_type;  // type of energy
         unsigned energy_idx;   // index into that type's pool
         unsigned short  local_vertex_idx;  // the index of this vertex in the energy
     };
-    std::vector<Entry> adj_entries;  // size: sum of valences across all vertices
+    std::vector<Entry> e_entries;  // size: sum of valences across all vertices
 
+    /** Particle-particle adjacency */
+    std::vector<unsigned> p_offsets;
+    std::vector<unsigned> p_neighbors;
+
+    /** Build vertex-energy adjacency and vertex-vertex adjacency. */
     void buildAdjacency(const ParticlePool& particle_pool, const Energy::EnergyRegistry& energy_registry)
     {
         unsigned num_particles = particle_pool.highest_index + 1;
-        valences.resize(num_particles);
-        valences.assign(num_particles, 0);
+        e_valences.resize(num_particles);
+        e_valences.assign(num_particles, 0);
 
         // step 1: count valence of each particle
+        std::vector<std::unordered_set<unsigned>> adj_p_set(num_particles);
+
         energy_registry.forEachEnergyType([&] (const auto& pool) {
             // iterate through each (active) energy in the pool
             for (unsigned e_idx : pool)
@@ -34,8 +42,18 @@ struct ParticleAdjacency {
                 // iterate through each particle in the energy
                 for (unsigned k = 0; k < pool.NumParticlesPerEnergy; k++)
                 {
+                    // adjacent energies
                     unsigned p_idx = pool.particle_indices[e_idx][k];
-                    valences[p_idx]++;
+                    e_valences[p_idx]++;
+
+                    // adjacent vertices
+                    for (unsigned k2 = 0; k2 < pool.NumParticlesPerEnergy; k2++)
+                    {
+                        if (k == k2)
+                            continue;
+
+                        adj_p_set[k].insert(pool.particle_indices[e_idx][k2]);
+                    }
 
                     std::cout << "  particle " << k << ": " << p_idx << std::endl;
                 }
@@ -43,17 +61,21 @@ struct ParticleAdjacency {
         });
 
         // step 2: prefix sum to get offsets
-        adj_offsets.resize(num_particles + 1);
-        adj_offsets[0] = 0;
+        e_offsets.resize(num_particles + 1);
+        e_offsets[0] = 0;
+        p_offsets.resize(num_particles + 1);
+        p_offsets[0] = 0;
         for (unsigned i = 0; i < num_particles; i++)
         {
-            std::cout << "valence " << i << ": " << valences[i] << std::endl;
-            adj_offsets[i+1] = adj_offsets[i] + valences[i];
+            std::cout << "valence " << i << ": " << e_valences[i] << std::endl;
+            e_offsets[i+1] = e_offsets[i] + e_valences[i];
+            p_offsets[i+1] = p_offsets[i] + adj_p_set[i].size();
         }
 
         // step 3: scatter entries for each energy
-        adj_entries.resize(adj_offsets.back());
-        std::vector<unsigned> cursor = adj_offsets;     // cursor per particle for where to put the next entry
+        e_entries.resize(e_offsets.back());
+        p_neighbors.resize(p_offsets.back());
+        std::vector<unsigned> cursor = e_offsets;     // cursor per particle for where to put the next entry
         energy_registry.forEachEnergyType([&] (const auto& pool) {
             // iterate through each (active) energy in the pool
             for (unsigned e_idx : pool)
@@ -62,10 +84,20 @@ struct ParticleAdjacency {
                 for (unsigned short k = 0; k < pool.NumParticlesPerEnergy; k++)
                 {
                     unsigned p_idx = pool.particle_indices[e_idx][k];
-                    adj_entries[cursor[p_idx]++] = {pool.Type, e_idx, k};
+                    e_entries[cursor[p_idx]++] = {pool.Type, e_idx, k};
                 }
             }
         });
+
+        // step 4: vertex adjacency
+        for (unsigned p_idx : particle_pool)
+        {
+            unsigned w = p_offsets[p_idx];
+            for (const auto& v : adj_p_set[p_idx])
+            {
+                p_neighbors[w++] = v;
+            }
+        }
     }
 };
 

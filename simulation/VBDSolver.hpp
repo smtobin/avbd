@@ -153,8 +153,8 @@ private:
     {
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
-        unsigned adj_start = _ctx->adjacency.adj_offsets[p_idx];
-        unsigned adj_end   = _ctx->adjacency.adj_offsets[p_idx + 1];
+        unsigned adj_start = _ctx->adjacency.e_offsets[p_idx];
+        unsigned adj_end   = _ctx->adjacency.e_offsets[p_idx + 1];
 
         Vec3r grad = Vec3r::Zero();
         Mat3r hess = Mat3r::Zero();
@@ -163,7 +163,7 @@ private:
         // accumulate Hessians and gradients from energies
         for (unsigned e = adj_start; e < adj_end; e++) 
         {
-            const ParticleAdjacency::Entry& entry = _ctx->adjacency.adj_entries[e];
+            const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
             if (entry.energy_type == EnergyType::NEO_HOOKEAN)
             {
                 // std::cout << " NeoHookean constraint " << entry.energy_idx << std::endl;
