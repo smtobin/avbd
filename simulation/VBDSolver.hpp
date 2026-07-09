@@ -42,17 +42,6 @@ public:
             _particleInertialUpdate(p_idx, a_grav, dt);
         }
 
-        // for all hard constraint energies with Lagrange multipliers, reset the multipliers and stiffnesses for the new time step
-        // _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
-        //     for (unsigned e_idx : pool)
-        //     {
-        //         /** TODO: this is hard-coded for now. Make type detectino automatic */
-        //         Energy::HardConstraintEnergySolver<Energy::GroundCollisionEnergyPool, Energy::GroundCollisionConstraintSolver>::updateAfterTimeStep(
-        //             e_idx,
-        //             pool
-        //         );
-        //     }
-        // });
         _ctx->energies.forEachEnergyType([&] (auto& pool) {
             using Pool = base_type_t<decltype(pool)>;
             for (unsigned e_idx : pool)
@@ -76,38 +65,10 @@ public:
                 omega = 1;
 
             // iterate through particles and solve system
-            /** TODO: When graph coloring is used, we will iterate through all the energies in the color. */
-            
             for (unsigned c = 0; c < _ctx->coloring.num_colors; c++)
             {
-                // std::atomic<uint64_t> particleTicks{0};
-                // auto t0 = Clock::now();
                 unsigned color_count = _ctx->coloring.color_counts[c];
-                // std::cout << "Color " << c << " count: " << color_count << std::endl;
                 unsigned start = _ctx->coloring.color_offsets[c];
-                // _ctx->thread_pool.parallelFor(color_count, [&](unsigned wi) {
-                //     unsigned p_idx = _ctx->coloring.work_list[start + wi];
-                //     this->_solveParticle(p_idx, dt);
-                // });
-                // _ctx->thread_pool.parallelFor(
-                //     color_count,
-                //     [&](unsigned begin, unsigned end)
-                //     {
-                //         for (unsigned wi = begin; wi < end; ++wi)
-                //         {
-                //             unsigned p =
-                //                 _ctx->coloring.work_list[start + wi];
-
-                //             // auto t0 = Clock::now();
-                //             this->_solveParticle(p, dt);
-                //             // auto t1 = Clock::now();
-
-                //             // particleTicks.fetch_add(
-                //             // std::chrono::duration_cast<std::chrono::nanoseconds>(
-                //             //     t1 - t0).count(),
-                //             // std::memory_order_relaxed);
-                //         }
-                //     });
 
                 unsigned block_size = 4;
                 unsigned num_blocks = color_count / block_size + 1;
@@ -119,55 +80,13 @@ public:
                             unsigned p =
                                 _ctx->coloring.work_list[start + wi];
 
-                            // auto t0 = Clock::now();
                             this->_solveParticle(p, dt);
-                            // auto t1 = Clock::now();
-
-                            // particleTicks.fetch_add(
-                            // std::chrono::duration_cast<std::chrono::nanoseconds>(
-                            //     t1 - t0).count(),
-                            // std::memory_order_relaxed);
                         }
                     }, num_blocks
                 );
                 _ctx->thread_pool.wait();
-                // auto t1 = Clock::now();
-                // double ms =
-                // std::chrono::duration<double, std::milli>(
-                //     t1 - t0).count();
-                // std::cout
-                //     << "Color "
-                //     << c
-                //     << ": "
-                //     << ms
-                //     << " ms\n";
-                // std::cout
-                //     << "Total particle solve time: "
-                //     << particleTicks.load() / 1e6
-                //     << " ms\n";
             }
-            
-            // for (unsigned p_idx : _ctx->particles)
-            // {
-            //     _solveParticle(p_idx, dt);
-            // }
 
-            // Chebyshev acceleration
-            // _ctx->thread_pool.parallelFor(
-            //     _ctx->particles.highest_index+1,
-            //     [&](unsigned begin, unsigned end)
-            //     {
-            //         for (unsigned wi = begin; wi < end; wi++)
-            //         {
-            //             if (_ctx->particles.active[wi])
-            //                 this->_particleChebyshevAcceleration(wi, omega);
-            //         }
-            //     }
-            // );
-            // for (unsigned p_idx : _ctx->particles)
-            // {
-            //     _particleChebyshevAcceleration(p_idx, omega);
-            // }
             unsigned block_size = 16;
             unsigned num_blocks = (_ctx->particles.highest_index+1) / block_size + 1;
             _ctx->thread_pool.detach_blocks(0, _ctx->particles.highest_index+1,
@@ -232,11 +151,6 @@ private:
         const Vec3r& v = _ctx->particles.velocities[p_idx];
         const Vec3r& v_prev = _ctx->particles.previous_velocities[p_idx];
 
-        // std::cout << "p: " << p.transpose() << std::endl;
-        // std::cout << "y: " << y.transpose() << std::endl;
-        // std::cout << "v: " << v.transpose() << std::endl;
-        // std::cout << "v_prev: " << v_prev.transpose() << std::endl;
-
         // use adaptive initialization (Sec 3.7 in VBD paper)
         Vec3r a = (v - v_prev) / dt;
 
@@ -262,9 +176,6 @@ private:
 
         // move particle to its initialized position
         p += dt*v + dt*dt*a_tilde_vec;
-
-        // std::cout << "p: " << p.transpose() << std::endl;
-        // std::cout << "y: " << y.transpose() << std::endl;
 
         // mark particle as not in collision at the beginning of the time step
         _ctx->particles.in_collision[p_idx] = false;

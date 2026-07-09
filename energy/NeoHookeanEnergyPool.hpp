@@ -7,13 +7,13 @@ namespace Energy
 
 struct NeoHookeanEnergyInfo
 {
-    Vec4u particle_indices;
-    Real lambda;
-    Real mu;
-    Real kd;
-    Mat3r Q;
-    Real rest_volume;
-    Mat3r E_prev;
+    Vec4u particle_indices;     // indices of particles in the element
+    Real lambda;                // first Lame parameter
+    Real mu;                    // second Lame parameter
+    Real kd;                    // strain-rate damping coefficient
+    Mat3r Q;                    // rest state matrices (F = XQ^T)
+    Real rest_volume;           // rest-state volume of the elements
+    Mat3r E_prev;               // previous Green strain (used for strain-rate damping)
 };
 
 /** Pool of memory for the Neo-Hookean energies.
@@ -23,13 +23,7 @@ struct NeoHookeanEnergyPool : TombstonePool
     static constexpr int NumParticlesPerEnergy = 4; // number of particles per energy
     static constexpr EnergyType Type = EnergyType::NEO_HOOKEAN;   // type of energy in the EnergyType enum
     using Solver = NeoHookeanEnergySolver;  // the solver struct for this pool
-
-    // std::vector<Vec4u> particle_indices;    // indices of particles in the element
-    // std::vector<Real> lambdas;              // first Lame parameter
-    // std::vector<Real> mus;                  // second Lame parameter
-    // std::vector<Real> kds;                  // strain-rate damping coefficient
-    // std::vector<Mat3r> Qs;                  // rest state matrices (F = XQ^T)
-    // std::vector<Real> rest_volumes;         // rest-state volume of the elements
+     
     std::vector<NeoHookeanEnergyInfo> data;
 
     explicit NeoHookeanEnergyPool(unsigned capacity)

@@ -7,22 +7,20 @@ namespace Energy
 
 struct GroundCollisionEnergyInfo : HardConstraintEnergyInfo
 {
-    Vec1u particle_indices;
+    Vec1u particle_indices;     // particle indices for each constraint
 };
 
 struct GroundCollisionEnergyPool : HardConstraintEnergyPool<GroundCollisionEnergyInfo>
 {
     static constexpr int NumParticlesPerEnergy = 1; // number of particles per constraint
     static constexpr EnergyType Type = EnergyType::GROUND_COLLISION; // type of energy in the EnergyType enum
-    using Solver = GroundCollisionEnergySolver;
+    using Solver = GroundCollisionEnergySolver;     // solver class type
 
-    // std::vector<Eigen::Vector<unsigned, NumParticlesPerEnergy>> particle_indices;     // particle indices for each constraint
     std::vector<GroundCollisionEnergyInfo> data;
 
     explicit GroundCollisionEnergyPool(unsigned capacity)
         : HardConstraintEnergyPool(capacity, 1e2, 0)
         , data(capacity)
-        // , particle_indices(capacity)
     {
 
     }

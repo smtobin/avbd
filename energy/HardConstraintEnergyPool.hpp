@@ -8,9 +8,9 @@ namespace Energy
 /** TODO: switch to AoS */
 struct HardConstraintEnergyInfo
 {
-    Real k;
-    Real lambda;
-    Real C_prev;
+    Real k;         // the finite stiffnesses of the quadratic energy
+    Real lambda;    // the Lagrange multipliers enforcing the constraints
+    Real C_prev;    // the constraint violation at the end of the previous time step
 };
 
 /** Pool of memory for HardConstraintEnergies.
@@ -24,9 +24,6 @@ struct HardConstraintEnergyPool : TombstonePool
     Real lambda_min;        // lower lambda bound for this constraint (if applicable)
     Real lambda_max;         // upper lambda bound for this constraint (if applicable)
     std::vector<EnergyInfo> data;
-    // std::vector<Real> ks;   // the finite stiffnesses of the quadratic energy
-    // std::vector<Real> lambdas;  // the Lagrange multipliers enforcing the constraints
-    // std::vector<Real> C_prevs;  // the constraint violation at the end of the previous time step
 
     explicit HardConstraintEnergyPool(
         unsigned capacity,
@@ -39,9 +36,6 @@ struct HardConstraintEnergyPool : TombstonePool
         , lambda_min(lambda_min_)
         , lambda_max(lambda_max_)
         , data(capacity)
-        // , ks(capacity, k_start_)
-        // , lambdas(capacity)
-        // , C_prevs(capacity, 0)
     {}
 
     /** Add an energy
