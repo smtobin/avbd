@@ -65,7 +65,7 @@ struct ParticleAdjacency {
         p_offsets[0] = 0;
         for (unsigned i = 0; i < num_particles; i++)
         {
-            std::cout << "valence " << i << ": " << e_valences[i] << std::endl;
+            // std::cout << "valence " << i << ": " << e_valences[i] << std::endl;
             e_offsets[i+1] = e_offsets[i] + e_valences[i];
             p_offsets[i+1] = p_offsets[i] + adj_p_set[i].size();
         }

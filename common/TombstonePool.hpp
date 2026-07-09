@@ -62,9 +62,9 @@ struct TombstonePool
         count++;
         highest_index = std::max(highest_index, slot);
 
-        std::cout << "Alloc slot..." << std::endl;
-        std::cout << "  New highest index: " << highest_index << std::endl;
-        std::cout << "  Slot: " << slot << std::endl;
+        // std::cout << "Alloc slot..." << std::endl;
+        // std::cout << "  New highest index: " << highest_index << std::endl;
+        // std::cout << "  Slot: " << slot << std::endl;
 
         return slot;
     }
