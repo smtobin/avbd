@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/SpinBarrier.hpp"
 #include "simulation/SimulationContext.hpp"
 
 #include "energy/NeoHookeanEnergySolver.hpp"
@@ -23,34 +24,86 @@ private:
     /** Chebyshev acceleration parameter in [0, 1] */
     Real _iter_acceleration;
 
+    /** Number of threads */
+    unsigned _num_threads;
+
+    /** Worker threads */
+    std::vector<std::thread> _workers;
+
+    /** If the workers are actively running */
+    std::atomic<bool> _running;
+    
+    /** Lightweight synchronization barrier for each worker thread */
+    SpinBarrier _barrier;
+
+    /** Solver generation used as start signal for worker threads */
+    std::atomic<unsigned> _solver_generation;
+
 public:
     VBDSolver() = default;
 
-    VBDSolver(SimulationContext* ctx, unsigned solver_iters, Real iter_acceleration)
+    VBDSolver(SimulationContext* ctx, unsigned solver_iters, Real iter_acceleration, unsigned num_threads)
         : _ctx(ctx)
         , _solver_iters(solver_iters)
         , _iter_acceleration(iter_acceleration)
+        , _num_threads(num_threads)
+        , _running(true)
+        , _barrier(num_threads)
+        , _solver_generation(0)
     {
+        // create the worker threads
+        _workers.reserve(num_threads);
+        for (unsigned w_idx = 1; w_idx < num_threads; w_idx++)
+        {
+            _workers.emplace_back([this, w_idx] {_workerThread(w_idx); });
+        }
     }
 
-    void solve(Real dt)
+    ~VBDSolver()
     {
-        Vec3r a_grav(0, -_ctx->params.g_accel, 0);  // acceleration due to gravity - applied to all particles
-        // compute inertial update and initialization for each particle
-        for (unsigned p_idx : _ctx->particles)
-        {
-            _particleInertialUpdate(p_idx, a_grav, dt);
-        }
+        _running.store(false);
 
+        _solver_generation.fetch_add(1, std::memory_order_release);
+
+        for (auto& t : _workers)
+            t.join();
+    }
+
+    void _workerThread(unsigned w_idx)
+    {
+        unsigned this_gen = _solver_generation.load();
+        while (_running)
+        {
+            // wait for start signal
+            unsigned test_gen;
+            do
+            {
+                test_gen = _solver_generation.load(std::memory_order_acquire);
+                _mm_pause();
+            } while (test_gen == this_gen);
+            this_gen = test_gen;
+
+            _workerIteration(w_idx);
+        }
+    }
+
+    void _workerIteration(unsigned w_idx)
+    {
+        
+        Vec3r a_grav(0, -_ctx->params.g_accel, 0);
+        Real dt = _ctx->params.dt;
+
+        // compute inertial update and initialization for each particle
+        _particleRangeInertialUpdate(w_idx, a_grav, dt);
+        _barrier.arrive_and_wait();
+
+        // update all energies after time step
         _ctx->energies.forEachEnergyType([&] (auto& pool) {
             using Pool = base_type_t<decltype(pool)>;
-            for (unsigned e_idx : pool)
-            {
-                Pool::Solver::updateAfterTimeStep(e_idx, pool, _ctx->particles);
-            }
-        });
 
-        using Clock = std::chrono::high_resolution_clock;
+            _updateRangeAfterTimeStep(w_idx, pool, _ctx->particles);
+            _barrier.arrive_and_wait();
+        });
 
         // solve each individual vertex block
         Real omega = 1;
@@ -64,82 +117,116 @@ public:
             else
                 omega = 1;
 
-            // iterate through particles and solve system
+            // iterate through colors and parallelize within the color
             for (unsigned c = 0; c < _ctx->coloring.num_colors; c++)
-            {
-                unsigned color_count = _ctx->coloring.color_counts[c];
-                unsigned start = _ctx->coloring.color_offsets[c];
-
-                unsigned block_size = 4;
-                unsigned num_blocks = color_count / block_size + 1;
-                _ctx->thread_pool.detach_blocks(0, color_count,
-                    [&](unsigned begin, unsigned end)
-                    {
-                        for (unsigned wi = begin; wi < end; ++wi)
-                        {
-                            unsigned p =
-                                _ctx->coloring.work_list[start + wi];
-
-                            this->_solveParticle(p, dt);
-                        }
-                    }, num_blocks
-                );
-                _ctx->thread_pool.wait();
+            {   
+                _solveParticleRangeInColor(w_idx, c, dt);
+                _barrier.arrive_and_wait();
             }
 
-            unsigned block_size = 16;
-            unsigned num_blocks = (_ctx->particles.highest_index+1) / block_size + 1;
-            _ctx->thread_pool.detach_blocks(0, _ctx->particles.highest_index+1,
-                [&](unsigned begin, unsigned end)
-                {
-                    for (unsigned wi = begin; wi < end; wi++)
-                    {
-                        if (_ctx->particles.active[wi])
-                            this->_particleChebyshevAcceleration(wi, omega);
-                    }
-                }, num_blocks
-            );
-            _ctx->thread_pool.wait();
+            // Chebyshev acceleration
+            _particleRangeChebyshevAcceleration(w_idx, omega);
+            _barrier.arrive_and_wait();
 
-            // for all hard constraint energies with Lagrange multipliers, update the multipliers and stiffnesses after the iteration
+            // update Lagrange multipliers
             _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
                 using Pool = base_type_t<decltype(pool)>;
-                // _ctx->thread_pool.detach_blocks(0, pool.highest_index+1,
-                //     [&](unsigned begin, unsigned end)
-                //     {
-                //         for (unsigned wi = begin; wi < end; wi++)
-                //         {
-                //             if (pool.active[wi])
-                //                 Pool::Solver::updateAfterIteration(wi, pool, _ctx->particles);
-                //         }
-                //     }, num_blocks
-                // );
-                // _ctx->thread_pool.wait();
-                for (unsigned e_idx : pool)
-                {
-                    /** TODO: this is hard-coded for now. Make type detectino automatic */
-                    Pool::Solver::updateAfterIteration(
-                        e_idx,
-                        pool,
-                        _ctx->particles
-                    );
-                }
+
+                _updateRangeAfterIteration(w_idx, pool, _ctx->particles);
+                _barrier.arrive_and_wait();
             });
-
-            // _ctx->energies.forEachEnergyType([&] (auto& pool) {
-            //     using Pool = base_type_t<decltype(pool)>;
-            //     for (unsigned e_idx : pool)
-            //     {
-            //         Pool::Solver::updateAfterIteration(e_idx, pool, _ctx->particles);
-            //     }
-            // });
         }
 
-        // update particle velocities after iteration
-        for (unsigned p_idx : _ctx->particles)
+        _particleRangeVelocityUpdate(w_idx, dt);
+        _barrier.arrive_and_wait();
+    }
+
+    /** Compute start and end indices for worker thread when iterating over a TombstonePool. */
+    std::pair<unsigned, unsigned> _computeStartEnd(unsigned w_idx, const TombstonePool& pool)
+    {
+        unsigned num = pool.highest_index+1;
+        return _computeStartEnd(w_idx, pool.highest_index+1);
+    }
+
+    /** Compute start and end indices for worker thread when iterating over a number of objects. */
+    std::pair<unsigned, unsigned> _computeStartEnd(unsigned w_idx, unsigned total_num)
+    {
+        unsigned start = total_num * w_idx / _num_threads;
+        unsigned end   = total_num * (w_idx + 1) / _num_threads;
+        return std::make_pair(start, end);
+    }
+
+    /** Worker thread inertial update over its range of particles */
+    void _particleRangeInertialUpdate(unsigned w_idx, const Vec3r& a_ext, Real dt)
+    {
+        auto [start, end] = _computeStartEnd(w_idx, _ctx->particles);
+        for (unsigned p_idx = start; p_idx < end; p_idx++)
         {
-            _particleVelocityUpdate(p_idx, dt);
+            _particleInertialUpdate(p_idx, a_ext, dt);
         }
+    }
+
+    template <typename EnergyPool>
+    void _updateRangeAfterTimeStep(unsigned w_idx, EnergyPool& pool, ParticlePool& particles)
+    {
+        auto [start, end] = _computeStartEnd(w_idx, pool);
+        for (unsigned e_idx = start; e_idx < end; e_idx++)
+        {
+            if (pool.active[e_idx])
+                EnergyPool::Solver::updateAfterTimeStep(e_idx, pool, particles);
+        }
+    }
+
+    template <typename EnergyPool>
+    void _updateRangeAfterIteration(unsigned w_idx, EnergyPool& pool, ParticlePool& particles)
+    {
+        auto [start, end] = _computeStartEnd(w_idx, pool);
+        for (unsigned e_idx = start; e_idx < end; e_idx++)
+        {
+            if (pool.active[e_idx])
+                EnergyPool::Solver::updateAfterIteration(e_idx, pool, particles);
+        }
+    }
+
+    void _solveParticleRangeInColor(unsigned w_idx, unsigned color, Real dt)
+    {
+        auto [start, end] = _computeStartEnd(w_idx, _ctx->coloring.color_counts[color]);
+        unsigned color_start = _ctx->coloring.color_offsets[color];
+        for (unsigned c_idx = color_start + start; c_idx < color_start + end; c_idx++)
+        {
+            unsigned p_idx = _ctx->coloring.work_list[c_idx];
+            _solveParticle(p_idx, dt);
+        }
+    }
+
+    void _particleRangeChebyshevAcceleration(unsigned w_idx, Real omega)
+    {
+        auto [start, end] = _computeStartEnd(w_idx, _ctx->particles);
+        for (unsigned p_idx = start; p_idx < end; p_idx++)
+        {
+            if (_ctx->particles.active[p_idx])
+                _particleChebyshevAcceleration(p_idx, omega);
+        }
+    }
+
+    void _particleRangeVelocityUpdate(unsigned w_idx, Real dt)
+    {
+        auto [start, end] = _computeStartEnd(w_idx, _ctx->particles);
+        for (unsigned p_idx = start; p_idx < end; p_idx++)
+        {
+            if (_ctx->particles.active[p_idx])
+                _particleVelocityUpdate(p_idx, dt);
+        }
+    }
+
+    void solve(Real dt)
+    {
+        // increment solver generation to signal worker threads to start
+        _solver_generation.fetch_add(1, std::memory_order_release);
+
+        // use this thread to perform a worker iteration (this is thread 0)
+        // synchronization at the end of the worker iteration guarantees that we finish the work before moving on
+        _workerIteration(0);
     }
 
 private:

@@ -4,7 +4,7 @@ name: "MeshSim"
 time-step: 3.33e-3
 end-time: 1
 g-accel: 9.81e3
-solver-iters: 50
+solver-iters: 20
 iter-acceleration: 0.95
 
 camera-position: [25, 25, 25]
