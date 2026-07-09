@@ -36,7 +36,13 @@ struct GroundCollisionConstraintSolver
     }
 };
 
-using GroundCollisionEnergySolver = 
-    HardConstraintEnergySolver<GroundCollisionEnergyPool, GroundCollisionConstraintSolver>;
+// using GroundCollisionEnergySolver = 
+//     HardConstraintEnergySolver<GroundCollisionEnergyPool, GroundCollisionConstraintSolver>;
+
+struct GroundCollisionEnergySolver
+    : HardConstraintEnergySolver<GroundCollisionEnergyPool, GroundCollisionConstraintSolver>
+{
+    using HardConstraintEnergySolver::HardConstraintEnergySolver;
+};
 
 } // namespace Energy

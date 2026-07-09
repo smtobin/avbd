@@ -10,6 +10,44 @@ namespace Energy
 /** Implements the stable Neo-Hookean per-element energies, seen in Macklin et al. 2021 */
 struct NeoHookeanEnergySolver
 {
+    /** Required - does nothing */
+    static void updateAfterIteration(
+        unsigned /* e_idx */,
+        const NeoHookeanEnergyPool& /* energies */,
+        ParticlePool& /* particles */
+    )
+    {
+
+    }
+
+    /** Computes the previous deformation gradient F and the previous Green strain E
+     * @param e_idx : the energy index
+     * @param energies : the memory pool for the energy
+     * @param particles : the simulation particle memory pool
+     */
+    static void updateAfterTimeStep(
+        unsigned e_idx,
+        NeoHookeanEnergyPool& energies,
+        ParticlePool& particles
+    )
+    {
+        const Vec4u& indices = energies.data[e_idx].particle_indices;
+        const Mat3r& Q = energies.data[e_idx].Q;
+
+        Mat3r F_prev = computeF(
+            particles.previous_positions[indices[0]],
+            particles.previous_positions[indices[1]],
+            particles.previous_positions[indices[2]],
+            particles.previous_positions[indices[3]],
+            Q);
+
+        energies.data[e_idx].E_prev = F_prev.transpose() * F_prev - Mat3r::Identity();
+    }
+
+    /** Helper function to compute the deformation gradient F given 4 vertices and the rest-state matrix Q.
+     * 
+     * F = [v1 - v4   v2 - v4   v3 - v4] * Q
+     */
     static Mat3r computeF(
         const Vec3r& v1,
         const Vec3r& v2,
@@ -59,6 +97,7 @@ struct NeoHookeanEnergySolver
         Real lambda = energies.data[e_idx].lambda;
         Real mu = energies.data[e_idx].mu;
         Real kd = energies.data[e_idx].kd;
+        const Mat3r& E_prev = energies.data[e_idx].E_prev;
 
         // compute F for this timestep and the previous timestep
         Mat3r F = computeF(
@@ -67,16 +106,10 @@ struct NeoHookeanEnergySolver
             particles.positions[indices[2]],
             particles.positions[indices[3]],
             Q);
-        Mat3r F_prev = computeF(
-            particles.previous_positions[indices[0]],
-            particles.previous_positions[indices[1]],
-            particles.previous_positions[indices[2]],
-            particles.previous_positions[indices[3]],
-            Q);
+        
         
         // compute rate of change of Green strain
         Mat3r E = F.transpose() * F - Mat3r::Identity();
-        Mat3r E_prev = F_prev.transpose() * F_prev - Mat3r::Identity();
         Mat3r E_dot = 1/dt * (E - E_prev);
 
         // hydrostatic gradient

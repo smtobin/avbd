@@ -53,7 +53,8 @@ struct HardConstraintEnergySolver
      */
     static void updateAfterTimeStep(
         unsigned c_idx,
-        EnergyPool& energies
+        EnergyPool& energies,
+        ParticlePool& /* particles */
     )
     {
         energies.lambdas[c_idx] = CONSTRAINT_ALPHA * STIFFNESS_GAMMA * energies.lambdas[c_idx];

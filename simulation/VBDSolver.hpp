@@ -43,14 +43,21 @@ public:
         }
 
         // for all hard constraint energies with Lagrange multipliers, reset the multipliers and stiffnesses for the new time step
-        _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
+        // _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
+        //     for (unsigned e_idx : pool)
+        //     {
+        //         /** TODO: this is hard-coded for now. Make type detectino automatic */
+        //         Energy::HardConstraintEnergySolver<Energy::GroundCollisionEnergyPool, Energy::GroundCollisionConstraintSolver>::updateAfterTimeStep(
+        //             e_idx,
+        //             pool
+        //         );
+        //     }
+        // });
+        _ctx->energies.forEachEnergyType([&] (auto& pool) {
+            using Pool = base_type_t<decltype(pool)>;
             for (unsigned e_idx : pool)
             {
-                /** TODO: this is hard-coded for now. Make type detectino automatic */
-                Energy::HardConstraintEnergySolver<Energy::GroundCollisionEnergyPool, Energy::GroundCollisionConstraintSolver>::updateAfterTimeStep(
-                    e_idx,
-                    pool
-                );
+                Pool::Solver::updateAfterTimeStep(e_idx, pool, _ctx->particles);
             }
         });
 
@@ -71,56 +78,79 @@ public:
             // iterate through particles and solve system
             /** TODO: When graph coloring is used, we will iterate through all the energies in the color. */
             
-            // for (unsigned c = 0; c < _ctx->coloring.num_colors; c++)
-            // {
-            //     // std::atomic<uint64_t> particleTicks{0};
-            //     // auto t0 = Clock::now();
-            //     unsigned color_count = _ctx->coloring.color_counts[c];
-            //     // std::cout << "Color " << c << " count: " << color_count << std::endl;
-            //     unsigned start = _ctx->coloring.color_offsets[c];
-            //     // _ctx->thread_pool.parallelFor(color_count, [&](unsigned wi) {
-            //     //     unsigned p_idx = _ctx->coloring.work_list[start + wi];
-            //     //     this->_solveParticle(p_idx, dt);
-            //     // });
-            //     _ctx->thread_pool.parallelFor(
-            //         color_count,
-            //         [&](unsigned begin, unsigned end)
-            //         {
-            //             for (unsigned wi = begin; wi < end; ++wi)
-            //             {
-            //                 unsigned p =
-            //                     _ctx->coloring.work_list[start + wi];
-
-            //                 // auto t0 = Clock::now();
-            //                 this->_solveParticle(p, dt);
-            //                 // auto t1 = Clock::now();
-
-            //                 // particleTicks.fetch_add(
-            //                 // std::chrono::duration_cast<std::chrono::nanoseconds>(
-            //                 //     t1 - t0).count(),
-            //                 // std::memory_order_relaxed);
-            //             }
-            //         });
-            //     // auto t1 = Clock::now();
-            //     // double ms =
-            //     // std::chrono::duration<double, std::milli>(
-            //     //     t1 - t0).count();
-            //     // std::cout
-            //     //     << "Color "
-            //     //     << c
-            //     //     << ": "
-            //     //     << ms
-            //     //     << " ms\n";
-            //     // std::cout
-            //     //     << "Total particle solve time: "
-            //     //     << particleTicks.load() / 1e6
-            //     //     << " ms\n";
-            // }
-            
-            for (unsigned p_idx : _ctx->particles)
+            for (unsigned c = 0; c < _ctx->coloring.num_colors; c++)
             {
-                _solveParticle(p_idx, dt);
+                // std::atomic<uint64_t> particleTicks{0};
+                // auto t0 = Clock::now();
+                unsigned color_count = _ctx->coloring.color_counts[c];
+                // std::cout << "Color " << c << " count: " << color_count << std::endl;
+                unsigned start = _ctx->coloring.color_offsets[c];
+                // _ctx->thread_pool.parallelFor(color_count, [&](unsigned wi) {
+                //     unsigned p_idx = _ctx->coloring.work_list[start + wi];
+                //     this->_solveParticle(p_idx, dt);
+                // });
+                // _ctx->thread_pool.parallelFor(
+                //     color_count,
+                //     [&](unsigned begin, unsigned end)
+                //     {
+                //         for (unsigned wi = begin; wi < end; ++wi)
+                //         {
+                //             unsigned p =
+                //                 _ctx->coloring.work_list[start + wi];
+
+                //             // auto t0 = Clock::now();
+                //             this->_solveParticle(p, dt);
+                //             // auto t1 = Clock::now();
+
+                //             // particleTicks.fetch_add(
+                //             // std::chrono::duration_cast<std::chrono::nanoseconds>(
+                //             //     t1 - t0).count(),
+                //             // std::memory_order_relaxed);
+                //         }
+                //     });
+
+                unsigned block_size = 4;
+                unsigned num_blocks = color_count / block_size + 1;
+                _ctx->thread_pool.detach_blocks(0, color_count,
+                    [&](unsigned begin, unsigned end)
+                    {
+                        for (unsigned wi = begin; wi < end; ++wi)
+                        {
+                            unsigned p =
+                                _ctx->coloring.work_list[start + wi];
+
+                            // auto t0 = Clock::now();
+                            this->_solveParticle(p, dt);
+                            // auto t1 = Clock::now();
+
+                            // particleTicks.fetch_add(
+                            // std::chrono::duration_cast<std::chrono::nanoseconds>(
+                            //     t1 - t0).count(),
+                            // std::memory_order_relaxed);
+                        }
+                    }, num_blocks
+                );
+                _ctx->thread_pool.wait();
+                // auto t1 = Clock::now();
+                // double ms =
+                // std::chrono::duration<double, std::milli>(
+                //     t1 - t0).count();
+                // std::cout
+                //     << "Color "
+                //     << c
+                //     << ": "
+                //     << ms
+                //     << " ms\n";
+                // std::cout
+                //     << "Total particle solve time: "
+                //     << particleTicks.load() / 1e6
+                //     << " ms\n";
             }
+            
+            // for (unsigned p_idx : _ctx->particles)
+            // {
+            //     _solveParticle(p_idx, dt);
+            // }
 
             // Chebyshev acceleration
             // _ctx->thread_pool.parallelFor(
@@ -134,23 +164,56 @@ public:
             //         }
             //     }
             // );
-            for (unsigned p_idx : _ctx->particles)
-            {
-                _particleChebyshevAcceleration(p_idx, omega);
-            }
+            // for (unsigned p_idx : _ctx->particles)
+            // {
+            //     _particleChebyshevAcceleration(p_idx, omega);
+            // }
+            unsigned block_size = 16;
+            unsigned num_blocks = (_ctx->particles.highest_index+1) / block_size + 1;
+            _ctx->thread_pool.detach_blocks(0, _ctx->particles.highest_index+1,
+                [&](unsigned begin, unsigned end)
+                {
+                    for (unsigned wi = begin; wi < end; wi++)
+                    {
+                        if (_ctx->particles.active[wi])
+                            this->_particleChebyshevAcceleration(wi, omega);
+                    }
+                }, num_blocks
+            );
+            _ctx->thread_pool.wait();
 
             // for all hard constraint energies with Lagrange multipliers, update the multipliers and stiffnesses after the iteration
             _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
+                using Pool = base_type_t<decltype(pool)>;
+                // _ctx->thread_pool.detach_blocks(0, pool.highest_index+1,
+                //     [&](unsigned begin, unsigned end)
+                //     {
+                //         for (unsigned wi = begin; wi < end; wi++)
+                //         {
+                //             if (pool.active[wi])
+                //                 Pool::Solver::updateAfterIteration(wi, pool, _ctx->particles);
+                //         }
+                //     }, num_blocks
+                // );
+                // _ctx->thread_pool.wait();
                 for (unsigned e_idx : pool)
                 {
                     /** TODO: this is hard-coded for now. Make type detectino automatic */
-                    Energy::HardConstraintEnergySolver<Energy::GroundCollisionEnergyPool, Energy::GroundCollisionConstraintSolver>::updateAfterIteration(
+                    Pool::Solver::updateAfterIteration(
                         e_idx,
                         pool,
                         _ctx->particles
                     );
                 }
             });
+
+            // _ctx->energies.forEachEnergyType([&] (auto& pool) {
+            //     using Pool = base_type_t<decltype(pool)>;
+            //     for (unsigned e_idx : pool)
+            //     {
+            //         Pool::Solver::updateAfterIteration(e_idx, pool, _ctx->particles);
+            //     }
+            // });
         }
 
         // update particle velocities after iteration

@@ -34,6 +34,30 @@ struct VariadicVectorContainerFromTypeList<TypeList<Types...>>
     // using const_vector_handle_type = VariadicVectorContainer<ConstVectorHandle<Types>...>;
 };
 
+/////////////////////////////////////////////////////////////////////////
+// Get base type (remove keywords, references, etc.)
+/////////////////////////////////////////////////////////////////////////
+template<typename T>
+struct base_type { using type = T; };
+
+template<typename T>
+struct base_type<T*> : base_type<T> {};
+
+template<typename T>
+struct base_type<T&> : base_type<T> {};
+
+template<typename T>
+struct base_type<T&&> : base_type<T> {};
+
+template<typename T>
+struct base_type<const T> : base_type<T> {};
+
+template<typename T>
+struct base_type<volatile T> : base_type<T> {};
+
+template<typename T>
+using base_type_t = typename base_type<T>::type;
+
 
 /** Escape sequences to set print colors */
 #define RST  "\x1B[0m"
@@ -82,6 +106,14 @@ enum class EnergyType
 namespace Energy
 {
     class Energy_Base;
+    
+    /** Pools */
+    struct NeoHookeanEnergyPool;
+    struct GroundCollisionEnergyPool;
+
+    /** Solvers */
+    struct NeoHookeanEnergySolver;
+    struct GroundCollisionEnergySolver;
 }
 
 namespace SimObject

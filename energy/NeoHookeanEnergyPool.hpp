@@ -13,6 +13,7 @@ struct NeoHookeanEnergyInfo
     Real kd;
     Mat3r Q;
     Real rest_volume;
+    Mat3r E_prev;
 };
 
 /** Pool of memory for the Neo-Hookean energies.
@@ -21,6 +22,7 @@ struct NeoHookeanEnergyPool : TombstonePool
 {
     static constexpr int NumParticlesPerEnergy = 4; // number of particles per energy
     static constexpr EnergyType Type = EnergyType::NEO_HOOKEAN;   // type of energy in the EnergyType enum
+    using Solver = NeoHookeanEnergySolver;  // the solver struct for this pool
 
     // std::vector<Vec4u> particle_indices;    // indices of particles in the element
     // std::vector<Real> lambdas;              // first Lame parameter

@@ -26,12 +26,12 @@ struct SimulationContext
     SimulationParams params;
 
     // thread pool
-    ThreadPool thread_pool;
+    light_ThreadPool thread_pool;
 
     SimulationContext()
         : particles(1000)
         , energies(1000)
-        , thread_pool(4)
+        , thread_pool(std::thread::hardware_concurrency())
     {
         
     }
@@ -39,7 +39,7 @@ struct SimulationContext
     SimulationContext(unsigned particles_capacity, unsigned energies_capacity)
      : particles(particles_capacity)
      , energies(energies_capacity)
-     , thread_pool(4)
+     , thread_pool(std::thread::hardware_concurrency())
     {
         
     }
