@@ -1,0 +1,393 @@
+#include "common/mesh/ParticleMesh.hpp"
+
+#include <set>
+#include <iostream>
+#include <fstream>
+
+std::ostream& operator<<(std::ostream& os, const Edge& edge) {
+    os << "(" << edge.index1 << ", " << edge.index2 << ")";
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Face& face) {
+    os << "(" << face.index1 << ", " << face.index2 << ", " << face.index3 << ")";
+    return os;
+}
+
+ParticleMesh::ParticleMesh(const std::vector<Vec3r>& vertices, const std::vector<Vec3i>& faces)
+    : _faces(faces)
+{
+    // create particles from vertices list
+    for (const auto& vert : vertices)
+    {
+        _vertices.emplace_back(vert);
+    }
+
+    // create surface vertex property
+    addVertexProperty<bool>("surface");
+    auto& surface_property = getVertexProperty<bool>("surface");
+    for (const auto& f : _faces)
+    {
+        surface_property.set(f[0], true);
+        surface_property.set(f[1], true);
+        surface_property.set(f[2], true);
+    }
+
+    _mesh_origin = Vec3r::Zero();
+
+    setCurrentStateAsUndeformedState();
+}
+
+void ParticleMesh::_computeAdjacentVertices()
+{
+    _vertex_adjacent_vertices.resize(numVertices());
+    
+    // clear all the adjacency lists
+    for (int i = 0; i < numVertices(); i++)
+    {
+        _vertex_adjacent_vertices[i].clear();
+    }
+
+    // go through each of the faces and add adjacent vertices for each vertex in the face
+    for (const auto& cur_face : _faces)
+    {
+        std::unordered_set<int>& adj_verts0 = _vertex_adjacent_vertices[cur_face[0]];
+        std::unordered_set<int>& adj_verts1 = _vertex_adjacent_vertices[cur_face[1]];
+        std::unordered_set<int>& adj_verts2 = _vertex_adjacent_vertices[cur_face[2]];
+
+        // for v0
+        adj_verts0.insert(cur_face[1]);
+        adj_verts0.insert(cur_face[2]);
+
+        // for v1
+        adj_verts1.insert(cur_face[0]);
+        adj_verts1.insert(cur_face[2]);
+
+        // for v2
+        adj_verts2.insert(cur_face[0]);
+        adj_verts2.insert(cur_face[1]);
+    }
+}
+
+void ParticleMesh::setCurrentStateAsUndeformedState()
+{
+    AABB bbox = boundingBox();
+    _unrotated_size_xyz = bbox.size();
+
+    _computeAdjacentVertices();
+    updateVertexNormals();
+
+    // set the previous position of the vertices
+    for (auto& vertex : _vertices)
+    {
+        vertex.prev_position = vertex.position;
+        vertex.prev_velocity = vertex.velocity;
+    }
+
+    // set the initial vertices
+    _initial_vertices.resize(_vertices.totalSize());
+    for (unsigned i = 0; i < _vertices.totalSize(); i++)
+    {
+        _initial_vertices[i] = _vertices[i].position;
+    }
+}
+
+void ParticleMesh::updateVertexNormals()
+{
+    // make sure we have enough space
+    _vertex_normals.resize(_vertices.totalSize());
+
+    // zero out all normals
+    for (const auto& vert_index : _vertices.validIndices())
+    {
+        _vertex_normals[vert_index] = Vec3r::Zero();
+    }
+        
+    // iterate through faces and add normal contributions to vertices
+    for (const auto& f : _faces)
+    {
+        const Vec3r& v0 = vertex(f[0]);
+        const Vec3r& v1 = vertex(f[1]);
+        const Vec3r& v2 = vertex(f[2]);
+
+        // edge 0->1
+        const Vec3r e01 = v1 - v0;
+        // edge 1->2
+        const Vec3r e12 = v2 - v1;
+        // edge 2->0
+        const Vec3r e20 = v0 - v2;
+
+        // edge magnitudes
+        Real e01_mag = e01.norm();
+        Real e12_mag = e12.norm();
+        Real e20_mag = e20.norm();
+
+        // approximate angle at each vertex
+        Real w0 = 1.0 / (e01_mag * e20_mag + 1e-12);
+        Real w1 = 1.0 / (e12_mag * e01_mag + 1e-12);
+        Real w2 = 1.0 / (e20_mag * e12_mag + 1e-12);
+
+        // face normal
+        const Vec3r n = -e01.cross(e20);    // negative because using e20 here
+
+        _vertex_normals[f[0]] += w0 * n;
+        _vertex_normals[f[1]] += w1 * n;
+        _vertex_normals[f[2]] += w2 * n;
+    }
+
+    for (const auto& vert_index : _vertices.validIndices())
+    {
+        _vertex_normals[vert_index] = _vertex_normals[vert_index].normalized();
+    }
+}
+
+AABB ParticleMesh::boundingBox() const
+{
+    Vec3r min = Vec3r::Constant(std::numeric_limits<Real>::max());
+    Vec3r max = Vec3r::Constant(std::numeric_limits<Real>::lowest());
+    for (const auto& v : _vertices)
+    {
+        min[0] = std::min(v.position[0], min[0]);
+        min[1] = std::min(v.position[1], min[1]);
+        min[2] = std::min(v.position[2], min[2]);
+
+        max[0] = std::max(v.position[0], max[0]);
+        max[1] = std::max(v.position[1], max[1]);
+        max[2] = std::max(v.position[2], max[2]);
+    }
+    return AABB(min, max);
+}
+
+void ParticleMesh::resize(const Vec3r& new_size)
+{
+    // compute the AABB
+    const AABB aabb = boundingBox();
+    const Vec3r size = aabb.size();
+    // compute the scaling factors for each dimension
+    // compute the scaling factors for each dimension
+    Real scaling_factor_x = (size(0) != 0) ? new_size(0) / size(0) : 1;
+    Real scaling_factor_y = (size(1) != 0) ? new_size(1) / size(1) : 1;
+    Real scaling_factor_z = (size(2) != 0) ? new_size(2) / size(2) : 1;
+
+    scale(Vec3r(scaling_factor_x, scaling_factor_y, scaling_factor_z));
+}
+
+void ParticleMesh::scale(const Vec3r& scaling)
+{
+    for (auto& v : _vertices)
+    {
+        v.position[0] *= scaling[0];
+        v.position[1] *= scaling[1];
+        v.position[2] *= scaling[2];
+    }
+
+    for (auto& v : _initial_vertices)
+    {
+        v[0] *= scaling[0];
+        v[1] *= scaling[1];
+        v[2] *= scaling[2];
+    }
+
+    _mesh_origin[0] *= scaling[0];
+    _mesh_origin[1] *= scaling[1];
+    _mesh_origin[2] *= scaling[2];
+
+    // scale the unrotated size
+    _unrotated_size_xyz[0] *= scaling[0];
+    _unrotated_size_xyz[1] *= scaling[1];
+    _unrotated_size_xyz[2] *= scaling[2];
+}
+
+void ParticleMesh::moveTogether(const Vec3r& delta)
+{
+    for (auto& v : _vertices)
+        v.position += delta;
+
+    for (auto& v : _initial_vertices)
+        v += delta;
+        
+    _mesh_origin += delta;
+}
+
+// void ParticleMesh::moveSeparate(const VerticesMat& delta)
+// {
+//     _vertices.noalias() += delta;
+// }
+
+void ParticleMesh::moveTo(const Vec3r& position)
+{
+
+    // calculate the required position offset based on the current center of the AABB
+    const AABB aabb = boundingBox();
+    const Vec3r offset = position - aabb.center();
+
+    // apply the position offset
+    moveTogether(offset);
+}
+
+void ParticleMesh::rotateAbout(const Vec3r& p, const Vec3r& xyz_angles)
+{
+    const Real x = xyz_angles(0) * M_PI / 180.0;
+    const Real y = xyz_angles(1) * M_PI / 180.0;
+    const Real z = xyz_angles(2) * M_PI / 180.0;
+    // using the "123" convention: rotate first about x axis, then about y, then about z
+    Mat3r rot_mat;
+    rot_mat(0,0) = std::cos(y) * std::cos(z);
+    rot_mat(0,1) = std::sin(x)*std::sin(y)*std::cos(z) - std::cos(x)*std::sin(z);
+    rot_mat(0,2) = std::cos(x)*std::sin(y)*std::cos(z) + std::sin(x)*std::sin(z);
+
+    rot_mat(1,0) = std::cos(y)*std::sin(z);
+    rot_mat(1,1) = std::sin(x)*std::sin(y)*std::sin(z) + std::cos(x)*std::cos(z);
+    rot_mat(1,2) = std::cos(x)*std::sin(y)*std::sin(z) - std::sin(x)*std::cos(z);
+
+    rot_mat(2,0) = -std::sin(y);
+    rot_mat(2,1) = std::sin(x)*std::cos(y);
+    rot_mat(2,2) = std::cos(x)*std::cos(y);
+    
+    rotateAbout(p, rot_mat);
+}
+
+void ParticleMesh::rotateAbout(const Vec3r& p, const Mat3r& rot_mat)
+{
+    moveTogether(-p);
+    for (auto& v : _vertices)
+        v.position = rot_mat * v.position;
+
+    for (auto& v : _initial_vertices)
+        v = rot_mat * v;
+
+    _mesh_origin = rot_mat * _mesh_origin;
+    moveTogether(p);
+}
+
+std::tuple<Real, Vec3r, Mat3r> ParticleMesh::massProperties(Real density) const
+{
+    // uses the algorithm described here: http://number-none.com/blow/inertia/index.html
+    Real total_volume = 0;
+    Vec3r weighted_volume(0,0,0);
+    Mat3r covariance = Mat3r::Zero();
+
+    // covariance of "canonical" tetrahedron which is (0,0,0), (1,0,0), (0,1,0), (0,0,1)
+    Mat3r C_canonical;
+    C_canonical <<  1.0/60.0, 1.0/120.0, 1.0/120.0,
+                    1.0/120.0, 1.0/60.0, 1.0/120.0,
+                    1.0/120.0, 1.0/120.0, 1.0/60.0;
+    for (const auto& f : _faces)
+    {
+        // each triangle in the mesh + origin forms a tetrahedron
+        // v0=origin, v1=f[0], v2=f[1], v3=f[2]
+        const Vec3r v0(0,0,0);
+        const Vec3r v1 = vertex(f[0]);
+        const Vec3r v2 = vertex(f[1]);
+        const Vec3r v3 = vertex(f[2]);
+
+        // tet basis matrix
+        Mat3r A;
+        A.col(0) = (v1 - v0);
+        A.col(1) = (v2 - v0);
+        A.col(2) = (v3 - v0);
+
+        // find signed volume of tet
+        const Real volume = A.determinant() / 6.0;
+
+        // calculate the center of mass of this tetrahedron - just average of 4 vertices
+        const Vec3r tet_cm = 0.25*(v0 + v1 + v2 + v3);
+        // update overall center of mass using a weighted average
+        weighted_volume += tet_cm*volume;
+
+        // add covariance matrix from this tet
+        covariance += A.determinant() * A * C_canonical * A.transpose();
+        // update overall volume
+        total_volume += volume;
+    }
+
+    Vec3r center_of_mass = weighted_volume / total_volume;
+
+    // move covariance matrix to center of mass
+    covariance = covariance + total_volume * ( 2*(-center_of_mass) * (center_of_mass).transpose() + (-center_of_mass)*(-center_of_mass).transpose());
+
+    // compute moment of inertia tensor from covariance mat
+    const Mat3r I = Mat3r::Identity() * covariance.trace() - covariance;
+
+    return std::tuple<Real, Vec3r, Mat3r>(density*total_volume, center_of_mass, density*I);
+}
+
+Vec3r ParticleMesh::massCenter() const
+{
+    Real total_volume = 0;
+    Vec3r weighted_volume(0,0,0);
+    for (const auto& f : _faces)
+    {
+        // each triangle in the mesh + origin forms a tetrahedron
+        // v0=origin, v1=f[0], v2=f[1], v3=f[2]
+        const Vec3r v0(0,0,0);
+        const Vec3r v1 = vertex(f[0]);
+        const Vec3r v2 = vertex(f[1]);
+        const Vec3r v3 = vertex(f[2]);
+
+        // tet basis matrix
+        Mat3r A;
+        A.col(0) = (v1 - v0);
+        A.col(1) = (v2 - v0);
+        A.col(2) = (v3 - v0);
+
+        // find signed volume of tet
+        const Real volume = A.determinant() / 6.0;
+
+        // calculate the center of mass of this tetrahedron - just average of 4 vertices
+        const Vec3r tet_cm = 0.25*(v0 + v1 + v2 + v3);
+        // update overall center of mass using a weighted average
+        // if (total_volume + volume > 0)
+        //     center_of_mass = (center_of_mass*total_volume + tet_cm*volume) / (total_volume + volume);
+        weighted_volume += tet_cm * volume;
+
+        // update overall volume
+        total_volume += volume;
+    }
+
+    return weighted_volume / total_volume;
+}
+
+bool ParticleMesh::isInside(const Vec3r& p) const
+{
+    Real total = 0;
+    for (const auto& f : _faces)
+    {
+        // compute solid angle for each face
+        Vec3r a = vertex(f[0]) - p;
+        Vec3r b = vertex(f[1]) - p;
+        Vec3r c = vertex(f[2]) - p;
+
+        Real la = a.norm();
+        Real lb = b.norm();
+        Real lc = c.norm();
+
+        Real numerator = a.dot(b.cross(c));
+        Real denominator = la*lb*lc + a.dot(b)*lc + b.dot(c)*la + c.dot(a)*lb;
+        Real solid_angle = 2.0 * std::atan2(numerator, denominator);
+
+        total += solid_angle;
+    }
+    // winding number = normalized total solid angle
+    Real w = total / (4.0 * M_PI);
+
+    // if winding number > 0.5, then the point is inside the mesh
+    return std::abs(w) > 0.5;
+}
+
+void ParticleMesh::writeMeshToObjFile(const std::string& filename) const
+{
+    std::ofstream obj_file(filename);
+    if (obj_file.is_open())
+    {
+        for (const auto& v : _vertices)
+        {
+            obj_file << "v " << v.position[0] << " " << v.position[1] << " " << v.position[2] << std::endl;
+        }
+        
+        for (const auto& f : _faces)
+        {
+            obj_file << "f " << f[0]+1 << " " << f[1]+1 << " " << f[2]+1 << std::endl;
+        }
+    }
+}

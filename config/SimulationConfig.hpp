@@ -4,6 +4,8 @@
 #include "config/TetMeshObjectConfig.hpp"
 #include "config/RigidSphereConfig.hpp"
 
+#include "common/VariadicVectorContainer.hpp"
+
 namespace Config
 {
 

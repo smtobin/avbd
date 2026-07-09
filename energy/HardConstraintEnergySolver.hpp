@@ -1,0 +1,194 @@
+#pragma once
+
+#include "common/common.hpp"
+#include "energy/HardConstraintEnergyPool.hpp"
+
+namespace Energy
+{
+
+template <typename EnergyPool, typename ConstraintSolver>
+struct HardConstraintEnergySolver
+{
+    /** Updates the stiffness and Lagrange multiplier after the iteration
+     * @param c_idx : the constraint index
+     * @param energies : the memory pool for the energy
+     * @param particles : the simulation particle memory pool
+     */
+    static void updateAfterIteration(
+        unsigned c_idx,
+        EnergyPool& energies,
+        ParticlePool& particles
+    )
+    {
+        // evaluate the constraint
+        Real C = ConstraintSolver::evaluateConstraint(c_idx, energies, particles);
+
+        // subtract off previous constraint violation
+        Real C_corr = C - CONSTRAINT_ALPHA * energies.data[c_idx].C_prev;
+        
+        // extract the current stiffness and Lagrange multiplier
+        Real k = energies.data[c_idx].k;
+        Real lambda = energies.data[c_idx].lambda;
+
+        Real lambda_p = k * C_corr + lambda;
+
+        // update stiffness - equation (12)
+        if (lambda_p > energies.lambda_min && lambda_p < energies.lambda_max)
+        {
+            // additive stiffness update
+            energies.data[c_idx].k += STIFFNESS_BETA * C_corr;
+
+            // store the current constraint violation
+            energies.data[c_idx].C_prev = C;
+        }
+
+        // update lambda - equation (11)
+        energies.data[c_idx].lambda = std::max(energies.lambda_min, std::min(energies.lambda_max, lambda_p));
+    }
+
+    /** Updates the stiffness and Lagrange multiplier after a full time step.
+     * Implements equation (19) from the AVBD paper.
+     * @param c_idx : the constraint index
+     * @param energies : the memory pool for the energy
+     */
+    static void updateAfterTimeStep(
+        unsigned c_idx,
+        EnergyPool& energies,
+        ParticlePool& /* particles */
+    )
+    {
+        energies.data[c_idx].lambda = CONSTRAINT_ALPHA * STIFFNESS_GAMMA * energies.data[c_idx].lambda;
+        energies.data[c_idx].k = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k, energies.k_start);
+    }
+
+    /** Computes the Hessian and gradient for a specified particle affected by this energy.
+     * Updates the accumulated vertex Hessian and gradients.
+     * @param e_idx : the energy index
+     * @param energies : the memory pool for the energies
+     * @param particles : the memory pool for the particles
+     * @param local_idx : the "local" index of the particle in the energy
+     * @param particle_H : the current accumulated particle Hessian - this is updated by this function
+     * @param particle_G : the current accumulated particle gradient - this is updated by this function
+     * @param dt : the time step
+     */
+    static void accumulate(
+        unsigned e_idx,
+        const EnergyPool& energies,
+        ParticlePool& particles,
+        unsigned local_idx,
+        Mat3r& particle_H,
+        Vec3r& particle_G,
+        Real dt
+    )
+    {
+        // evaluate the constraint, gradients, and Hessians for the constraint for each particle involved
+        Vec3r C_grad;
+        Mat3r C_hess;
+        Real C_raw;
+        ConstraintSolver::constraintGradientHessian(
+            e_idx, energies, particles, local_idx, // inputs
+            C_raw, C_grad, C_hess  // outputs
+        );
+        // alpha correction on the constraint violation
+        Real C = C_raw - CONSTRAINT_ALPHA * energies.data[e_idx].C_prev;
+
+        Real k = energies.data[e_idx].k;
+        Real lambda = energies.data[e_idx].lambda;
+
+        Real lambda_p = std::max(energies.lambda_min, std::min(energies.lambda_max, k*C + lambda));
+        
+        // stiffness rescaling - equation (14)
+        Real k_scaled = k;
+        if (lambda_p < energies.lambda_min && std::abs(C) > 1e-12)
+            k_scaled = (energies.lambda_min - lambda) / C;
+        else if (lambda_p > energies.lambda_max && std::abs(C) > 1e-12)
+            k_scaled = (energies.lambda_max - lambda) / C;
+        
+        // const auto& indices = energies.particle_indices;
+
+        // gradient
+        Vec3r grad = lambda_p * C_grad;
+
+            // Hessian
+            /** TODO: do diagonalization of Hessian component
+             * 
+             * 
+             * 
+             * 
+             */
+            
+
+        Mat3r hess = (k_scaled * C + lambda) * C_hess +
+            k_scaled * C_grad * C_grad.transpose();
+            
+        particle_H += hess;
+        particle_G += grad;
+    }
+
+    /** Computes the Hessian and gradient for all of the particles affected by this constraint.
+     * Updates the accumulated vertex Hessian and gradients.
+     * @param c_idx : the energy index
+     * @param energies : the memory pool for the energies
+     * @param particles : the memory pool for the particles
+     * @param vertex_Hs : a memory pool storing the per-vertex Hessians - this is updated by this function
+     * @param vertex_Gs : a memory pool storing the per-vertex gradients - this is updated by this function
+     * @param dt : the time step
+     */
+    // static void accumulateHessianGradient(
+    //     unsigned c_idx,
+    //     const EnergyPool& energies,
+    //     ParticlePool& particles,
+    //     Mat3r* vertex_Hs,
+    //     Vec3r* vertex_Gs,
+    //     Real dt
+    // )
+    // {
+    //     // evaluate the constraint, gradients, and Hessians for the constraint for each particle involved
+    //     Vec3r grads[EnergyPool::NumParticlesPerConstraint];
+    //     Mat3r hessians[EnergyPool::NumParticlesPerConstraint];
+    //     Real C_raw;
+    //     ConstraintSolver::constraintGradientHessian(
+    //         c_idx, energies, particles, // inputs
+    //         C_raw, grads, hessians  // outputs
+    //     );
+    //     // alpha correction on the constraint violation
+    //     Real C = C_raw - CONSTRAINT_ALPHA * energies.C_prevs[c_idx];
+
+    //     Real k = energies.ks[c_idx];
+    //     Real lambda = energies.lambdas[c_idx];
+
+    //     Real lambda_p = std::max(energies.lambda_min, std::min(energies.lambda_max, k*C + lambda));
+        
+    //     // stiffness rescaling - equation (14)
+    //     Real k_scaled = k;
+    //     if (lambda_p < energies.lambda_min && std::abs(C) > 1e-12)
+    //         k_scaled = (energies.lambda_min - lambda) / C;
+    //     else if (lambda_p > energies.lambda_max && std::abs(C) > 1e-12)
+    //         k_scaled = (energies.lambda_max - lambda) / C;
+        
+    //     const auto& indices = energies.particles;
+    //     for (int i = 0; i < EnergyPool::NumParticlesPerConstraint; i++)
+    //     {
+    //         // gradient
+    //         Vec3r grad_i = lambda_p * grads[i];
+
+    //         // Hessian
+    //         /** TODO: do diagonalization of Hessian component
+    //          * 
+    //          * 
+    //          * 
+    //          * 
+    //          */
+            
+
+    //         Mat3r hess_i = (k_scaled * C + lambda) * hessians[i] +
+    //             k_scaled * grads[i] * grads[i].transpose();
+            
+    //         vertex_Hs[indices[i]] += hess_i;
+    //         vertex_Gs[indices[i]] += grad_i;
+    //     }
+        
+    // }
+};
+
+} // namespace Energy

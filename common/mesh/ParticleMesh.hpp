@@ -1,122 +1,43 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/Particle.hpp"
-#include "common/VariadicVectorContainer.hpp"
+#include "common/ParticlePool.hpp"
+
 #include "common/TombstoneVector.hpp"
-#include "common/AABB.hpp"
 
-#include "common/mesh/MeshProperty.hpp"
-
-#include <optional>
-#include <unordered_set>
-#include <cassert>
-
-struct Edge
-{
-    int index1;
-    int index2;
-
-    Edge(int i1, int i2)
-        : index1(std::min(i1,i2)), index2(std::max(i1,i2))
-    {}
-
-    Edge()
-        : index1(-1), index2(-1)
-    {}
-
-    bool operator==(const Edge& other) const
-    {
-        return index1 == other.index1 && index2 == other.index2;
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const Edge& edge);
-};
-
-struct EdgeHash
-{
-    size_t operator()(const Edge& e) const {
-        auto h1 = std::hash<int>{}(e.index1);
-        auto h2 = std::hash<int>{}(e.index2);
-        // Better mixing than simple XOR
-        return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
-    }
-};
-
-struct Face
-{
-    int index1, index2, index3;
-
-    Face(int i1, int i2, int i3)
-    {
-        index1 = std::min({i1, i2, i3});    // index1 is minimum index
-        index3 = std::max({i1, i2, i3});    // index3 is maximum index
-        index2 = i1 + i2 + i3 - index1 - index3;   // index2 is in the middle
-    }
-
-    Face()
-        : index1(-1), index2(-1), index3(-1)
-    {}
-
-    bool isValid() const { return (index1 != -1 && index2 != -1 && index3 != -1); }
-
-    bool operator==(const Face& other) const
-    {
-        return index1 == other.index1 && index2 == other.index2 && index3 == other.index3;
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const Face& face);
-};
-
-struct FaceHash
-{
-    size_t operator()(const Face& f) const {
-        auto h1 = std::hash<int>{}(f.index1);
-        auto h2 = std::hash<int>{}(f.index2);
-        auto h3 = std::hash<int>{}(f.index3);
-        // Better mixing than simple XOR
-        size_t seed = h1;
-        seed ^= h2 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= h3 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        return seed;
-    }
-};
-
-/** A class for a surface mesh which consists of a set of particles as vertices, and a set of faces connecting those vertices.
- * The vertices are specified as 3-vectors of vertex coordinates.
- * The faces are specified as 3-vectors of vertex indices.
- * No face normal checking is performed - this class assumes all face normals are pointed correctly outwards from the interior of the mesh.
- */
 class ParticleMesh
 {
-    // public typedefs
-public:
-    using vertices_vec_type = TombstoneVector<Particle>;
-    using faces_vec_type = TombstoneVector<Vec3i>;
-    using elements_vec_type = TombstoneVector<Vec4i>;
+protected:
+    /** Pointer to the particle memory pool */
+    ParticlePool* _particle_pool;
+
+    /** Vertices - indices in the particle pool.
+     */
+    TombstoneVector<unsigned> _vertices;
+
+    /** Faces - 3-vectors of indices in the vertices list
+     * (they do not correspond to indices in the particle pool - must go through the vertices list)
+     */
+    TombstoneVector<Vec3u> _faces;
+
+    /** The size of the mesh in its unrotated state - i.e. the size of the oriented bounding box */
+    // Vec3r _unrotated_size_xyz;
+
+    /** The current location of the original (0,0,0) point in mesh space. */
+    Vec3r _mesh_origin;
 
 public:
-    ParticleMesh() = default; // required for deserialization
+    ParticleMesh() = default;
 
     /** Constructs a mesh from a set of vertices and faces.
      * This is usually done using helper methods in the MeshUtils library.
      */
-    ParticleMesh(const std::vector<Vec3r> &vertices, const std::vector<Vec3i> &faces);
-
-    virtual ~ParticleMesh() = default;
-
-    /** Returns the latest topology version of the mesh. This gets updated every time the mesh topology is edited (element removed, refined, etc.). */
-    unsigned long topologyVersion() const { return _topology_version; }
+    ParticleMesh(ParticlePool& pool, const std::vector<Vec3r> &vertices, const std::vector<Vec3u> &faces);
 
     /** Returns a const-reference to the vertices of the mesh. */
-    const vertices_vec_type &vertices() const { return _vertices; }
+    const TombstoneVector<unsigned>& vertices() const { return _vertices; }
     /** Returns a const-reference to the faces of the mesh. */
-    const faces_vec_type &faces() const { return _faces; }
-
-    /** Returns a non-const-reference to the vertices of the mesh. */
-    vertices_vec_type &vertices() { return _vertices; }
-    /** Returns a non-const-reference to the faces of the mesh. */
-    faces_vec_type &faces() { return _faces; }
+    const TombstoneVector<Vec3u>& faces() const { return _faces; }
 
     /** Number of verticees in the mesh. */
     int numVertices() const { return _vertices.size(); }
@@ -126,64 +47,37 @@ public:
     /** Essentially "sets up" the mesh - treats the current state as the initial, undeformed state of the mesh.
      * This should be called after performing the initial translations and rotations setting up the mesh.
      */
-    virtual void setCurrentStateAsUndeformedState();
-
-    /** Updates the vertex normals in the mesh */
-    void updateVertexNormals();
-
-    /** Returns the vertex normal at vertex i */
-    Vec3r vertexNormal(int index) { return _vertex_normals[index]; }
-
-    const std::vector<Vec3r>& vertexNormals() const { return _vertex_normals; }
+    void setCurrentStateAsUndeformedState();
 
     /** Returns a single vertex as an Eigen 3-vector, given the vertex index.
      * This assumes that the index used is a valid index (i.e. the vertex we are trying to access has not been removed).
      */
-    const Vec3r& vertex(int index) const { return _vertices[index].position; }
-    const Vec3r& previousVertex(int index) const { return _vertices[index].prev_position; }
-
-    const Particle& particle(int index) const { return _vertices[index]; }
-    Particle& particle(int index) { return _vertices[index]; }
+    const Vec3r& vertex(int index) const { return _particle_pool->positions[_vertices[index]]; }
+    const Vec3r& previousVertex(int index) const { return _particle_pool->previous_positions[_vertices[index]]; }
 
     /** Returns whether not the index corresponds to a valid vertex. */
-    bool vertexValid(int index) const { return _vertices.indexValid(index); }
-
-    /** Returns whether or not the vertex is on the surface of the mesh. */
-    bool vertexOnSurface(int index) const { const auto& prop = getVertexProperty<bool>("surface"); return prop.get(index); }
+    bool vertexValid(int index) const { return _particle_pool->active[_vertices[index]]; }
 
     /** Sets the vertex at the specified to a new position. */
-    void setVertex(int index, const Vec3r &new_pos) { _vertices.at(index).position = new_pos; }
+    void setVertex(int index, const Vec3r &new_pos) { _particle_pool->positions[_vertices.at(index)] = new_pos; }
 
-    const std::unordered_set<int>& vertexAdjacentVertices(int index) const { return _vertex_adjacent_vertices[index]; }
-
-    /** Returns the initial position for a given vertex. */
-    Vec3r initialVertex(int index) const { return _initial_vertices[index]; }
-
-    /** Returns a single face as an Eigen 3-vector, given the vertex index.
+    /** Returns the surface face at the given index.
      * This assumes that the index used is a valid index (i.e. the face we are trying to access has not been removed).
      */
-    Vec3i face(int index) const { return _faces.at(index); }
+    const Vec3u& face(int index) const { return _faces.at(index); }
 
     /** Returns whether or not the index corresponds to a valid face. */
     bool faceValid(int index) const { return _faces.indexValid(index); }
 
-    /** Returns the axis-aligned bounding-box (AABB) for the mesh. */
-    AABB boundingBox() const;
-
     /** Returns the coordinates of the mesh origin.
      * i.e. where the "origin" of the mesh (the (0,0,0) point when the mesh is first loaded) is currently at
      */
-    Vec3r meshOrigin() const { return _mesh_origin; }
+    const Vec3r& meshOrigin() const { return _mesh_origin; }
 
     /** Returns the unrotated size of the mesh.
      * This does not change when the mesh rotates - only when the mesh is resized.
      */
-    Vec3r unrotatedSize() const { return _unrotated_size_xyz; }
-
-    /** Resizes the mesh to the specified x, y, and z sizes, with a Eigen::Vector3 as an input.
-     * @param size : the Vec3r describing the new size of the mesh
-     */
-    void resize(const Vec3r &size);
+    // Vec3r unrotatedSize() const { return _unrotated_size_xyz; }
 
     /** Scales the mesh according to the given scaling values in the x, y, and z directions. */
     void scale(const Vec3r& scaling);
@@ -191,22 +85,12 @@ public:
     /** Moves each vertex in the mesh by the same amount. */
     void moveTogether(const Vec3r &delta);
 
-    /** Moves each vertex in the mesh by a per-vertex amount.
-     * Up to the caller to ensure that the per-vertex displacement matrix is the same dimensions as the mesh's vertices matrix.
-     */
-    // void moveSeparate(const VerticesMat &delta);
-
-    /** Moves the center of the AABB of the mesh to a specified position.
-     * @param position : the position to move the center of the AABB mesh to
-     */
-    void moveTo(const Vec3r &position);
-
     /** Rotates the mesh according to a vector of (x angle, y angle, and z angle) Euler angles around some point p.
      * Usees the XYZ Euler angle convention - rotates x degrees about x-axis, then y degrees about y-axis, and then z degrees about z-axis
      * @param p : the point around which to rotate the mesh
      * @param xyz_angles : a 3-vector corresponding to successive rotation angles
      */
-    void rotateAbout(const Vec3r &p, const Vec3r &xyz_angles);
+    // void rotateAbout(const Vec3r &p, const Vec3r &xyz_angles);
 
     /** Rotates the mesh using a 3x3 rotation matrix around some point p.
      * @param p : the point around which to rotate the mesh
@@ -233,180 +117,4 @@ public:
 
     /** Checks if a point p is inside the mesh. Uses winding number approach. (O(n) computation) */
     bool isInside(const Vec3r& p) const;
-
-    /** Creates a vertex property with the specified name, and optional default value. */
-    template <typename T>
-    void addVertexProperty(const std::string &name, std::optional<T> default_value = std::nullopt, bool is_field = false)
-    {
-        static_assert(type_list_contains_v<T, MeshPropertyTypeList> && "Mesh property type not supported!");
-
-        // make sure name doesn't already exist
-        for (const auto& vprop : _vertex_properties.get<MeshProperty<T>>())
-        {
-            bool exists = name == vprop.name();
-            if (exists)
-                throw std::runtime_error("Vertex property with name already exists!");
-            
-        }
-    
-        if (default_value.has_value())
-        {
-            _vertex_properties.template emplace_back<MeshProperty<T>>(name, _vertices.totalSize(), default_value.value(), is_field);
-        }
-        else
-        {
-            _vertex_properties.template emplace_back<MeshProperty<T>>(name, _vertices.totalSize(), is_field);
-        }
-    }
-
-    /** Fetches a vertex property with name. */
-    template <typename T>
-    const MeshProperty<T>& getVertexProperty(const std::string& name) const
-    {
-        static_assert(type_list_contains_v<T, MeshPropertyTypeList> && "Mesh property type not supported!");
-
-        for (const auto& vprop : _vertex_properties.template get<MeshProperty<T>>())
-        {
-            if (name == vprop.name())
-                return vprop;
-        }
-    
-        throw std::runtime_error("Vertex property not found!");
-        return _vertex_properties.template get<MeshProperty<T>>().front();
-    }
-
-    template <typename T>
-    MeshProperty<T>& getVertexProperty(const std::string& name)
-    {
-        static_assert(type_list_contains_v<T, MeshPropertyTypeList> && "Mesh property type not supported!");
-
-        for (auto& vprop : _vertex_properties.template get<MeshProperty<T>>())
-        {
-            if (name == vprop.name())
-                return vprop;
-        }
-    
-        throw std::runtime_error("Vertex property not found!");
-        return _vertex_properties.template get<MeshProperty<T>>().front();
-    }
-
-    template <typename T>
-    bool hasVertexProperty(const std::string& name) const
-    {
-        static_assert(type_list_contains_v<T, MeshPropertyTypeList> && "Mesh property type not supported!");
-
-        for (auto& vprop : _vertex_properties.template get<MeshProperty<T>>())
-        {
-            if (name == vprop.name())
-                return true;
-        }
-
-        return false;
-    }
-
-    const PropertyContainer<MeshPropertyTypeList>& vertexProperties() const { return _vertex_properties; }
-
-    /** Creates a face property with the specified name, and optional default value. */
-    template <typename T>
-    void addFaceProperty(const std::string &name, std::optional<T> default_value = std::nullopt, bool is_field = false)
-    {
-        static_assert(type_list_contains_v<T, MeshPropertyTypeList> && "Mesh property type not supported!");
-
-        // make sure name doesn't already exist
-        for (const auto& fprop : _face_properties.get<MeshProperty<T>>())
-        {
-            bool exists = name == fprop.name();
-            if (exists)
-                throw std::runtime_error("Face property with name already exists!");
-        }
-    
-        if (default_value.has_value())
-        {
-            _face_properties.template emplace_back<MeshProperty<T>>(name, _faces.totalSize(), default_value.value(), is_field);
-        }
-        else
-        {
-            _face_properties.template emplace_back<MeshProperty<T>>(name, _faces.totalSize(), is_field);
-        }
-    }
-
-    /** Fetches a face property with name. */
-    template <typename T>
-    const MeshProperty<T>& getFaceProperty(const std::string& name) const
-    {
-        static_assert(type_list_contains_v<T, MeshPropertyTypeList> && "Mesh property type not supported!");
-
-        for (const auto& fprop : _face_properties.template get<MeshProperty<T>>())
-        {
-            if (name == fprop.name())
-                return fprop;
-        }
-    
-        throw std::runtime_error("Face property not found!");
-        return _face_properties.template get<MeshProperty<T>>().front();
-    }
-
-    template <typename T>
-    MeshProperty<T>& getFaceProperty(const std::string& name)
-    {
-        static_assert(type_list_contains_v<T, MeshPropertyTypeList> && "Mesh property type not supported!");
-        
-        for (auto& fprop : _face_properties.template get<MeshProperty<T>>())
-        {
-            if (name == fprop.name())
-                return fprop;
-        }
-    
-        std::runtime_error("Face property not found!");
-        return _face_properties.template get<MeshProperty<T>>().front();
-    }
-
-    template <typename T>
-    bool hasFaceProperty(const std::string& name) const
-    {
-        static_assert(type_list_contains_v<T, MeshPropertyTypeList> && "Mesh property type not supported!");
-
-        for (const auto& fprop : _face_properties.template get<MeshProperty<T>>())
-        {
-            if (name == fprop.name())
-                return true;
-        }
-
-        return false;
-    }
-
-    const PropertyContainer<MeshPropertyTypeList>& faceProperties() const { return _face_properties; }
-
-protected:
-    /** Finds adjacent vertices for each vertex in the mesh.
-     * Two vertices are "adjacent" if they are connected by a face or element.
-     */
-    virtual void _computeAdjacentVertices();
-
-protected:
-    vertices_vec_type _vertices; // the vertices of the mesh
-    faces_vec_type _faces;       // the faces of the mesh
-    std::vector<Vec3r> _vertex_normals; // vertex normals of the mesh
-
-    /** Store the initial vertices so that when we add new vertices, we can interpolate where their initial positions would be.
-     * This is useful for calculating the inverse undeformed basis (Q in XPBD) for each new element. (used in deformation gradient computation)
-     * The initial vertices are reset every time setCurrentStateAsUndeformedState() is called.
-     */
-    std::vector<Vec3r> _initial_vertices;
-
-    std::vector<std::unordered_set<int>> _vertex_adjacent_vertices;
-
-    Vec3r _unrotated_size_xyz; // the size of the mesh in each dimension in its unrotated state
-
-    Vec3r _mesh_origin; // the (0,0,0) point in the mesh
-
-    // mesh properties
-    PropertyContainer<MeshPropertyTypeList> _vertex_properties;
-    PropertyContainer<MeshPropertyTypeList> _face_properties;
-
-    /** Stores the latest mesh topology "version". 
-     * Every time we edit the topology of the mesh (i.e. remove elements), we increment the version number.
-     * That way, things that depend on the mesh topology being constant (i.e. FEM) know when it changes and can handle it accordingly.
-     */
-    unsigned long _topology_version;
 };

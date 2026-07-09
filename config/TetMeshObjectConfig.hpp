@@ -18,6 +18,8 @@ public:
     explicit TetMeshObjectConfig(const YAML::Node& node)
         : ObjectConfig(node), _mesh_render_config(node)
     {
+        _extractParameter("position-by-com", node, _position_by_com);
+
         _extractParameter("filename", node, _filename);
 
         _extractParameter("E", node, _E);
@@ -28,6 +30,8 @@ public:
 
         _extractParameter("scaling", node, _scaling);
     }
+
+    bool positionByCOM() const { return _position_by_com.value; }
 
     std::string filename() const { return _filename.value; }
 
@@ -41,6 +45,8 @@ public:
     const MeshRenderConfig& meshRenderConfig() const { return _mesh_render_config; }
 
 protected:
+    ConfigParameter<bool> _position_by_com = ConfigParameter<bool>(true);
+
     ConfigParameter<std::string> _filename = ConfigParameter<std::string>("");
 
     ConfigParameter<Vec3r> _scaling = ConfigParameter<Vec3r>(Vec3r(1,1,1));

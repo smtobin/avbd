@@ -2,7 +2,9 @@
 
 #include "common/common.hpp"
 
+#include "simulation/SimulationContext.hpp"
 #include "simulation/SimulationLogger.hpp"
+#include "simulation/VBDSolver.hpp"
 
 #include "graphics/GraphicsScene.hpp"
 
@@ -65,7 +67,7 @@ class Simulation
         // }
         // else
         // {
-            ObjPtrType new_obj_ptr = std::make_unique<ObjType>(obj_config);
+            ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
             new_obj_ptr->setup();
             // _objects.template emplace_back<ObjPtrType>(std::make_unique<ObjType>(obj_config));
             // new_obj_ptr = _objects.template get<ObjPtrType>().back().get();
@@ -106,7 +108,7 @@ class Simulation
         // }
         // else
         // {
-            ObjPtrType new_obj_ptr = std::make_unique<ObjType>(obj_config);
+            ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
             new_obj_ptr->setup();
             // _objects.template emplace_back<ObjPtrType>(std::make_unique<ObjType>(obj_config));
             // new_obj_ptr = _objects.template get<ObjPtrType>().back().get();
@@ -136,30 +138,46 @@ class Simulation
     bool _setup;
 
     Real _time;
-    Real _dt;
-    Real _end_time;
-    Real _g_accel;
-    int _viewer_refresh_time_ms;
+    // Real _dt;
+    // Real _end_time;
+    // Real _g_accel;
+    // int _viewer_refresh_time_ms;
 
     Real _last_collision_check_time;
 
 
-    int _solver_iters = 1;
+    /** Number of solver iterations */
+    // int _solver_iters = 1;
+
     /** Acceleration parameter "rho" for Chebyshev acceleration. VBD eqn (18) */
-    Real _iter_acceleration;
+    // Real _iter_acceleration;
 
     std::deque<std::function<void()>> _callback_queue;
 
-    /** Simulation objects */
+    /** The simulation context
+     * Stores all particles, energies in the sim.
+     */
+    SimulationContext _ctx;
+
+    /** The VBD solver
+     * Implements the VBD block coordinate descent solution process
+     */
+    VBDSolver _solver;
+
+    /** Simulation objects
+     * 
+     * Mostly used for visualization and grouping the particles in the sim.
+     */
     std::vector<std::unique_ptr<SimObject::Object_Base>> _objects;
 
     /** Responsible for logging various simulation quantities. */
     std::unique_ptr<SimulationLogger> _logger;
 
-    // graphics
+    /** Responsible for visualization in the sim */
     Graphics::GraphicsScene _graphics_scene;
 
+    /** Simulation params */
     Config::SimulationConfig _config;
 };
 
-} // namespace Simulation
+} // namespace Sim

@@ -34,6 +34,30 @@ struct VariadicVectorContainerFromTypeList<TypeList<Types...>>
     // using const_vector_handle_type = VariadicVectorContainer<ConstVectorHandle<Types>...>;
 };
 
+/////////////////////////////////////////////////////////////////////////
+// Get base type (remove keywords, references, etc.)
+/////////////////////////////////////////////////////////////////////////
+template<typename T>
+struct base_type { using type = T; };
+
+template<typename T>
+struct base_type<T*> : base_type<T> {};
+
+template<typename T>
+struct base_type<T&> : base_type<T> {};
+
+template<typename T>
+struct base_type<T&&> : base_type<T> {};
+
+template<typename T>
+struct base_type<const T> : base_type<T> {};
+
+template<typename T>
+struct base_type<volatile T> : base_type<T> {};
+
+template<typename T>
+using base_type_t = typename base_type<T>::type;
+
 
 /** Escape sequences to set print colors */
 #define RST  "\x1B[0m"
@@ -60,16 +84,36 @@ using VecXr = Eigen::Vector<Real, -1>;
 using Vec3i = Eigen::Vector<int, 3>;
 using Vec4i = Eigen::Vector<int, 4>;
 
+using Vec1u = Eigen::Vector<unsigned, 1>;
+using Vec2u = Eigen::Vector<unsigned, 2>;
+using Vec3u = Eigen::Vector<unsigned, 3>;
+using Vec4u = Eigen::Vector<unsigned, 4>;
+
 using Mat2r = Eigen::Matrix<Real, 2, 2>;
 using Mat3r = Eigen::Matrix<Real, 3, 3>;
 using Mat4r = Eigen::Matrix<Real, 4, 4>;
 using Mat6r = Eigen::Matrix<Real, 6, 6>;
 using MatXr = Eigen::Matrix<Real,-1,-1>;
 
+/** Enum of energy types */
+enum class EnergyType
+{
+    NEO_HOOKEAN = 0,
+    GROUND_COLLISION
+};
+
 /** Forward declarations */
 namespace Energy
 {
     class Energy_Base;
+    
+    /** Pools */
+    struct NeoHookeanEnergyPool;
+    struct GroundCollisionEnergyPool;
+
+    /** Solvers */
+    struct NeoHookeanEnergySolver;
+    struct GroundCollisionEnergySolver;
 }
 
 namespace SimObject

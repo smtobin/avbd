@@ -187,44 +187,47 @@ void GraphicsScene::setup(Sim::Simulation* sim)
     /////////////////////////////////////////////////////////
     // Create the rendering passes and settings
     ////////////////////////////////////////////////////////
-    _render_window->SetAlphaBitPlanes(1);
-    // _render_window->SetMultiSamples(0);
+    if (_render_config.fancyGraphics())
+    {
+        _render_window->SetAlphaBitPlanes(1);
+        // _render_window->SetMultiSamples(0);
 
-    _renderer->SetUseDepthPeeling(true);
-    _renderer->SetMaximumNumberOfPeels(50);
-    _renderer->SetOcclusionRatio(0.1);
+        _renderer->SetUseDepthPeeling(true);
+        _renderer->SetMaximumNumberOfPeels(50);
+        _renderer->SetOcclusionRatio(0.1);
 
-    // Core passes
-    vtkNew<vtkRenderPassCollection> passes;
+        // Core passes
+        vtkNew<vtkRenderPassCollection> passes;
 
-    vtkNew<vtkLightsPass> lightsPass;
-    vtkNew<vtkOpaquePass> opaquePass;
-    vtkNew<vtkTranslucentPass> translucentPass;
+        vtkNew<vtkLightsPass> lightsPass;
+        vtkNew<vtkOpaquePass> opaquePass;
+        vtkNew<vtkTranslucentPass> translucentPass;
 
-    // Shadow map
-    vtkNew<vtkShadowMapPass> shadowPass;
-    shadowPass->GetShadowMapBakerPass()->SetResolution(4096);
+        // Shadow map
+        vtkNew<vtkShadowMapPass> shadowPass;
+        shadowPass->GetShadowMapBakerPass()->SetResolution(4096);
 
-    // IMPORTANT: depth peeling must wrap translucent pass
-    vtkNew<vtkDepthPeelingPass> peelingPass;
-    peelingPass->SetTranslucentPass(translucentPass);
-    peelingPass->SetMaximumNumberOfPeels(50);
-    peelingPass->SetOcclusionRatio(0.1);
+        // IMPORTANT: depth peeling must wrap translucent pass
+        vtkNew<vtkDepthPeelingPass> peelingPass;
+        peelingPass->SetTranslucentPass(translucentPass);
+        peelingPass->SetMaximumNumberOfPeels(50);
+        peelingPass->SetOcclusionRatio(0.1);
 
-    // Order matters
-    passes->AddItem(shadowPass->GetShadowMapBakerPass());
-    passes->AddItem(lightsPass);
-    passes->AddItem(opaquePass);
-    passes->AddItem(shadowPass);
-    passes->AddItem(peelingPass);
+        // Order matters
+        passes->AddItem(shadowPass->GetShadowMapBakerPass());
+        passes->AddItem(lightsPass);
+        passes->AddItem(opaquePass);
+        passes->AddItem(shadowPass);
+        passes->AddItem(peelingPass);
 
-    vtkNew<vtkSequencePass> seq;
-    seq->SetPasses(passes);
+        vtkNew<vtkSequencePass> seq;
+        seq->SetPasses(passes);
 
-    vtkNew<vtkCameraPass> cameraP;
-    cameraP->SetDelegatePass(seq);
+        vtkNew<vtkCameraPass> cameraP;
+        cameraP->SetDelegatePass(seq);
 
-    _renderer->SetPass(cameraP);
+        _renderer->SetPass(cameraP);
+    }
 
     vtkNew<vtkCallbackCommand> render_callback;
     render_callback->SetCallback(GraphicsScene::renderCallback);
