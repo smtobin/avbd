@@ -122,6 +122,9 @@ public:
             {   
                 _solveParticleRangeInColor(w_idx, c, dt);
                 _barrier.arrive_and_wait();
+
+                // copy buffer into vertices
+                // _ctx->particles.positions = _ctx->particles.buffered_positions;
             }
 
             // Chebyshev acceleration
@@ -333,6 +336,8 @@ private:
         // std::cout << "dx: " << dx.transpose() << std::endl;
 
         _ctx->particles.positions[p_idx] += dx;
+        // put positions into a buffer
+        // _ctx->particles.buffered_positions[p_idx] = _ctx->particles.positions[p_idx] + dx;
     }
 
     void _particleChebyshevAcceleration(unsigned p_idx, Real omega)

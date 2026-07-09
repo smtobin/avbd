@@ -5,8 +5,8 @@ set(CMAKE_BUILD_RPATH "/usr/local/lib")
 set(CMAKE_INSTALL_RPATH "/usr/local/lib")
 
 set(CMAKE_CXX_STANDARD 17)                       # specify C++ standard
-set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra")
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra -march=native -g -fno-omit-frame-pointer")
+set(CMAKE_BUILD_TYPE Release)
 
 set(CMAKE_C_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")

@@ -9,6 +9,8 @@
 #include "common/TypeList.hpp"
 // #include "common/VariadicVectorContainer.hpp"
 
+#define EIGEN_NO_DEBUG
+
 #define STIFFNESS_BETA 10
 #define STIFFNESS_GAMMA 0.99
 #define CONSTRAINT_ALPHA 0.95

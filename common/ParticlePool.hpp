@@ -7,6 +7,7 @@
 struct ParticlePool : TombstonePool
 {
     std::vector<Vec3r> positions;                   // particle positions
+    std::vector<Vec3r> buffered_positions;          // position buffer to avoid race conditions for 
     std::vector<Vec3r> inertial_positions;          // particle inertial positions ('y' in the VBD paper)
     std::vector<Vec3r> previous_positions;          // particle previous positions
     std::vector<Vec3r> last_iter_positions;         // particle position at the end of the previous iteration (useful for Chebyshev acceleration)
@@ -22,6 +23,7 @@ struct ParticlePool : TombstonePool
     explicit ParticlePool(unsigned capacity)
         : TombstonePool(capacity)
         , positions(capacity)
+        , buffered_positions(capacity)
         , inertial_positions(capacity)
         , previous_positions(capacity)
         , last_iter_positions(capacity)

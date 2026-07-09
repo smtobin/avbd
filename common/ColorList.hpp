@@ -235,7 +235,7 @@ struct ColorList
         for (unsigned i = 0; i < num_colors; i++)
             std::cout << "  Color " << i << ": " << color_counts[i] << std::endl;
 
-        mergeSmallColors(adjacency, num_particles);
+        // mergeSmallColors(adjacency, num_particles);
 
         color_counts.resize(num_colors);
         color_counts.assign(num_colors, 0);
