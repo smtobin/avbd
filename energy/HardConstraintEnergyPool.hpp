@@ -6,19 +6,27 @@ namespace Energy
 {
 
 /** TODO: switch to AoS */
+struct HardConstraintEnergyInfo
+{
+    Real k;
+    Real lambda;
+    Real C_prev;
+};
 
 /** Pool of memory for HardConstraintEnergies.
  * Base class for all energies associated with hard constraints.
  * Really just has k (finite stiffness) and lambda (lagrange multipliers)
  */
+template <typename EnergyInfo>
 struct HardConstraintEnergyPool : TombstonePool
 {
     Real k_start;           // the initial stiffness
     Real lambda_min;        // lower lambda bound for this constraint (if applicable)
     Real lambda_max;         // upper lambda bound for this constraint (if applicable)
-    std::vector<Real> ks;   // the finite stiffnesses of the quadratic energy
-    std::vector<Real> lambdas;  // the Lagrange multipliers enforcing the constraints
-    std::vector<Real> C_prevs;  // the constraint violation at the end of the previous time step
+    std::vector<EnergyInfo> data;
+    // std::vector<Real> ks;   // the finite stiffnesses of the quadratic energy
+    // std::vector<Real> lambdas;  // the Lagrange multipliers enforcing the constraints
+    // std::vector<Real> C_prevs;  // the constraint violation at the end of the previous time step
 
     explicit HardConstraintEnergyPool(
         unsigned capacity,
@@ -30,9 +38,10 @@ struct HardConstraintEnergyPool : TombstonePool
         , k_start(k_start_)
         , lambda_min(lambda_min_)
         , lambda_max(lambda_max_)
-        , ks(capacity, k_start_)
-        , lambdas(capacity)
-        , C_prevs(capacity, 0)
+        , data(capacity)
+        // , ks(capacity, k_start_)
+        // , lambdas(capacity)
+        // , C_prevs(capacity, 0)
     {}
 
     /** Add an energy
@@ -43,8 +52,9 @@ struct HardConstraintEnergyPool : TombstonePool
         unsigned slot = allocSlot();
 
         // initialize lambda and k
-        lambdas[slot] = 0;
-        ks[slot] = k_start;
+        data[slot].lambda = 0;
+        data[slot].k = k_start;
+        data[slot].C_prev = 0;
 
         return slot;
     }

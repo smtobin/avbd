@@ -5,12 +5,12 @@
 namespace Energy
 {
 
-struct GroundCollisionEnergyInfo
+struct GroundCollisionEnergyInfo : HardConstraintEnergyInfo
 {
     Vec1u particle_indices;
 };
 
-struct GroundCollisionEnergyPool : HardConstraintEnergyPool
+struct GroundCollisionEnergyPool : HardConstraintEnergyPool<GroundCollisionEnergyInfo>
 {
     static constexpr int NumParticlesPerEnergy = 1; // number of particles per constraint
     static constexpr EnergyType Type = EnergyType::GROUND_COLLISION; // type of energy in the EnergyType enum
