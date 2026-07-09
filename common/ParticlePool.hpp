@@ -14,7 +14,7 @@ struct ParticlePool : TombstonePool
     std::vector<Vec3r> velocities;                  // particle velocities
     std::vector<Vec3r> previous_velocities;         // particle previous velocities
     std::vector<Real> masses;                       // particle masses
-    std::vector<bool> in_collision;                 // whether or not particles are in collision
+    std::vector<uint8_t> in_collision;              // whether or not particles are in collision - use uint8 instead of bool to avoid parallel writes to the same byte 
 
     /** Constructor initializes memory
      * @param capacity : the capacity of the memory pool
@@ -58,7 +58,7 @@ struct ParticlePool : TombstonePool
         previous_velocities[slot] = Vec3r::Zero();
 
         // assume particle is not initially in collision
-        in_collision[slot] = false;
+        in_collision[slot] = 0;
 
         return slot;
     }
