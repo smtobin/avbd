@@ -5,6 +5,16 @@
 namespace Energy
 {
 
+struct NeoHookeanEnergyInfo
+{
+    Vec4u particle_indices;
+    Real lambda;
+    Real mu;
+    Real kd;
+    Mat3r Q;
+    Real rest_volume;
+};
+
 /** Pool of memory for the Neo-Hookean energies.
  */
 struct NeoHookeanEnergyPool : TombstonePool
@@ -12,21 +22,23 @@ struct NeoHookeanEnergyPool : TombstonePool
     static constexpr int NumParticlesPerEnergy = 4; // number of particles per energy
     static constexpr EnergyType Type = EnergyType::NEO_HOOKEAN;   // type of energy in the EnergyType enum
 
-    std::vector<Vec4u> particle_indices;    // indices of particles in the element
-    std::vector<Real> lambdas;              // first Lame parameter
-    std::vector<Real> mus;                  // second Lame parameter
-    std::vector<Real> kds;                  // strain-rate damping coefficient
-    std::vector<Mat3r> Qs;                  // rest state matrices (F = XQ^T)
-    std::vector<Real> rest_volumes;         // rest-state volume of the elements
+    // std::vector<Vec4u> particle_indices;    // indices of particles in the element
+    // std::vector<Real> lambdas;              // first Lame parameter
+    // std::vector<Real> mus;                  // second Lame parameter
+    // std::vector<Real> kds;                  // strain-rate damping coefficient
+    // std::vector<Mat3r> Qs;                  // rest state matrices (F = XQ^T)
+    // std::vector<Real> rest_volumes;         // rest-state volume of the elements
+    std::vector<NeoHookeanEnergyInfo> data;
 
     explicit NeoHookeanEnergyPool(unsigned capacity)
         : TombstonePool(capacity)
-        , particle_indices(capacity)
-        , lambdas(capacity)
-        , mus(capacity)
-        , kds(capacity)
-        , Qs(capacity)
-        , rest_volumes(capacity)
+        , data(capacity)
+        // , particle_indices(capacity)
+        // , lambdas(capacity)
+        // , mus(capacity)
+        // , kds(capacity)
+        // , Qs(capacity)
+        // , rest_volumes(capacity)
     {
 
     }
@@ -45,13 +57,20 @@ struct NeoHookeanEnergyPool : TombstonePool
     {
         unsigned slot = allocSlot();
 
+        data[slot].particle_indices = indices;
+        data[slot].lambda = lambda;
+        data[slot].mu = mu;
+        data[slot].kd = kd;
+        data[slot].Q = Q;
+        data[slot].rest_volume = rest_volume;
+
         // copy over the input information
-        particle_indices[slot] = indices;
-        lambdas[slot] = lambda;
-        mus[slot] = mu;
-        kds[slot] = kd;
-        Qs[slot] = Q;
-        rest_volumes[slot] = rest_volume;
+        // particle_indices[slot] = indices;
+        // lambdas[slot] = lambda;
+        // mus[slot] = mu;
+        // kds[slot] = kd;
+        // Qs[slot] = Q;
+        // rest_volumes[slot] = rest_volume;
 
         return slot;
     }

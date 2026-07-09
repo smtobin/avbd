@@ -25,7 +25,7 @@ objects:
   - 
     type: "TetMeshObject"
     name: "test"
-    filename: "../resource/cube8.msh"
+    filename: "../resource/tumor.msh"
     position: [0, 10, 0]
     scaling: [1, 1, 1]
     position-by-com: true

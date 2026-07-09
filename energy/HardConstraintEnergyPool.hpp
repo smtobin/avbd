@@ -5,6 +5,8 @@
 namespace Energy
 {
 
+/** TODO: switch to AoS */
+
 /** Pool of memory for HardConstraintEnergies.
  * Base class for all energies associated with hard constraints.
  * Really just has k (finite stiffness) and lambda (lagrange multipliers)

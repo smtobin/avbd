@@ -43,7 +43,7 @@ struct ParticleAdjacency {
                 for (unsigned k = 0; k < pool.NumParticlesPerEnergy; k++)
                 {
                     // adjacent energies
-                    unsigned p_idx = pool.particle_indices[e_idx][k];
+                    unsigned p_idx = pool.data[e_idx].particle_indices[k];
                     e_valences[p_idx]++;
 
                     // adjacent vertices
@@ -52,7 +52,7 @@ struct ParticleAdjacency {
                         if (k == k2)
                             continue;
 
-                        adj_p_set[p_idx].insert(pool.particle_indices[e_idx][k2]);
+                        adj_p_set[p_idx].insert(pool.data[e_idx].particle_indices[k2]);
                     }
                 }
             }
@@ -81,7 +81,7 @@ struct ParticleAdjacency {
                 // iterate through each particle in the energy
                 for (unsigned short k = 0; k < pool.NumParticlesPerEnergy; k++)
                 {
-                    unsigned p_idx = pool.particle_indices[e_idx][k];
+                    unsigned p_idx = pool.data[e_idx].particle_indices[k];
                     e_entries[cursor[p_idx]++] = {pool.Type, e_idx, k};
                 }
             }

@@ -46,12 +46,19 @@ struct NeoHookeanEnergySolver
     )
     {
         // extract data from energy pool
-        const Vec4u& indices = energies.particle_indices[e_idx];
-        Real V = energies.rest_volumes[e_idx];
-        const Mat3r& Q = energies.Qs[e_idx];
-        Real lambda = energies.lambdas[e_idx];
-        Real mu = energies.mus[e_idx];
-        Real kd = energies.kds[e_idx];
+        // const Vec4u& indices = energies.particle_indices[e_idx];
+        // Real V = energies.rest_volumes[e_idx];
+        // const Mat3r& Q = energies.Qs[e_idx];
+        // Real lambda = energies.lambdas[e_idx];
+        // Real mu = energies.mus[e_idx];
+        // Real kd = energies.kds[e_idx];
+
+        const Vec4u& indices = energies.data[e_idx].particle_indices;
+        Real V = energies.data[e_idx].rest_volume;
+        const Mat3r& Q = energies.data[e_idx].Q;
+        Real lambda = energies.data[e_idx].lambda;
+        Real mu = energies.data[e_idx].mu;
+        Real kd = energies.data[e_idx].kd;
 
         // compute F for this timestep and the previous timestep
         Mat3r F = computeF(
