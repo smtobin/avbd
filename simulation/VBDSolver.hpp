@@ -88,8 +88,7 @@ public:
     }
 
     void _workerIteration(unsigned w_idx)
-    {
-        
+    {   
         Vec3r a_grav(0, -_ctx->params.g_accel, 0);
         Real dt = _ctx->params.dt;
 
@@ -295,36 +294,93 @@ private:
         // }
         
 
-        // accumulate Hessians and gradients from energies
-        for (unsigned e = adj_start; e < adj_end; e++) 
+        // std::cout << "=== Starting Accumulate ===" << std::endl;
+        /**  TODO: this is hard-coded for the case of N NeoHookean energies and 1 GroundCollision, which is the case for the sim currently.
+         * Need to generalize this to more constraints that are not necessarily arranged in this structure.
+         */
+        unsigned e = adj_start;
+        for (; e+3 < adj_end; e+=4)
+        {
+            const ParticleAdjacency::Entry& entry1 = _ctx->adjacency.e_entries[e];
+            const ParticleAdjacency::Entry& entry2 = _ctx->adjacency.e_entries[e+1];
+            const ParticleAdjacency::Entry& entry3 = _ctx->adjacency.e_entries[e+2];
+            const ParticleAdjacency::Entry& entry4 = _ctx->adjacency.e_entries[e+3];
+            Energy::NeoHookeanEnergySolver::accumulate4(
+                entry1.energy_idx,
+                entry2.energy_idx,
+                entry3.energy_idx,
+                entry4.energy_idx,
+                _ctx->energies.neo_hookean,
+                _ctx->particles,
+                entry1.local_vertex_idx,
+                entry2.local_vertex_idx,
+                entry3.local_vertex_idx,
+                entry4.local_vertex_idx,
+                hess,
+                grad,
+                dt
+            );
+        }
+        for (; e < adj_end-1; e++)
         {
             const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
-            if (entry.energy_type == EnergyType::NEO_HOOKEAN)
-            {
-                // std::cout << " NeoHookean constraint " << entry.energy_idx << std::endl;
-                Energy::NeoHookeanEnergySolver::accumulate(
-                    entry.energy_idx,
-                    _ctx->energies.neo_hookean,
-                    _ctx->particles,
-                    entry.local_vertex_idx,
-                    hess,//H_acc[e & 3],
-                    grad,//G_acc[e & 3],
-                    dt
-                );
-            } 
-            else if (entry.energy_type == EnergyType::GROUND_COLLISION) 
-            {
-                Energy::GroundCollisionEnergySolver::accumulate(
-                    entry.energy_idx,
-                    _ctx->energies.ground_collision,
-                    _ctx->particles,
-                    entry.local_vertex_idx,
-                    hess,//H_acc[e & 3],
-                    grad,//G_acc[e & 3],
-                    dt
-                );
-            }
+            Energy::NeoHookeanEnergySolver::accumulate(
+                entry.energy_idx,
+                _ctx->energies.neo_hookean,
+                _ctx->particles,
+                entry.local_vertex_idx,
+                hess,
+                grad,
+                dt
+            );
         }
+        const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
+        if (entry.energy_type == EnergyType::GROUND_COLLISION) 
+        {
+            // std::cout << " GroundCollision constraint " << entry.energy_idx << std::endl;
+            Energy::GroundCollisionEnergySolver::accumulate(
+                entry.energy_idx,
+                _ctx->energies.ground_collision,
+                _ctx->particles,
+                entry.local_vertex_idx,
+                hess,//H_acc[e & 3],
+                grad,//G_acc[e & 3],
+                dt
+            );
+        }
+
+        /** Old (general) version below */
+        // accumulate Hessians and gradients from energies
+        // for (unsigned e = adj_start; e < adj_end; e++) 
+        // {
+        //     const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
+        //     if (entry.energy_type == EnergyType::NEO_HOOKEAN)
+        //     {
+        //         std::cout << " NeoHookean constraint " << entry.energy_idx << std::endl;
+        //         Energy::NeoHookeanEnergySolver::accumulate(
+        //             entry.energy_idx,
+        //             _ctx->energies.neo_hookean,
+        //             _ctx->particles,
+        //             entry.local_vertex_idx,
+        //             hess,//H_acc[e & 3],
+        //             grad,//G_acc[e & 3],
+        //             dt
+        //         );
+        //     } 
+        //     else if (entry.energy_type == EnergyType::GROUND_COLLISION) 
+        //     {
+        //         std::cout << " GroundCollision constraint " << entry.energy_idx << std::endl;
+        //         Energy::GroundCollisionEnergySolver::accumulate(
+        //             entry.energy_idx,
+        //             _ctx->energies.ground_collision,
+        //             _ctx->particles,
+        //             entry.local_vertex_idx,
+        //             hess,//H_acc[e & 3],
+        //             grad,//G_acc[e & 3],
+        //             dt
+        //         );
+        //     }
+        // }
         // Mat3r hess = H_acc[0] + H_acc[1] + H_acc[2] + H_acc[3];
         // Vec3r grad = G_acc[0] + G_acc[1] + G_acc[2] + G_acc[3];
 
