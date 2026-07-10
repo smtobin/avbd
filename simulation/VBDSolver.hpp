@@ -305,17 +305,19 @@ private:
             const ParticleAdjacency::Entry& entry2 = _ctx->adjacency.e_entries[e+1];
             const ParticleAdjacency::Entry& entry3 = _ctx->adjacency.e_entries[e+2];
             const ParticleAdjacency::Entry& entry4 = _ctx->adjacency.e_entries[e+3];
-            Energy::NeoHookeanEnergySolver::accumulate4(
-                entry1.energy_idx,
+            unsigned e_idx[4] = {entry1.energy_idx,
                 entry2.energy_idx,
                 entry3.energy_idx,
-                entry4.energy_idx,
-                _ctx->energies.neo_hookean,
-                _ctx->particles,
-                entry1.local_vertex_idx,
+                entry4.energy_idx};
+            unsigned l_idx[4] = {entry1.local_vertex_idx,
                 entry2.local_vertex_idx,
                 entry3.local_vertex_idx,
-                entry4.local_vertex_idx,
+                entry4.local_vertex_idx};
+            Energy::NeoHookeanEnergySolver::accumulate4(
+                e_idx,
+                _ctx->energies.neo_hookean,
+                _ctx->particles,
+                l_idx,
                 hess,
                 grad,
                 dt
