@@ -175,17 +175,17 @@ static inline void matmul_right_inplace(
     const __m256d f21 = F.a21;
     const __m256d f22 = F.a22;
 
-    F.a00 = fmadd3(f00,f01,f02,Q.a00,Q.a10,Q.a20);
-    F.a01 = fmadd3(f00,f01,f02,Q.a01,Q.a11,Q.a21);
-    F.a02 = fmadd3(f00,f01,f02,Q.a02,Q.a12,Q.a22);
+    F.a00 = fmadd3(f00,Q.a00, f01,Q.a10, f02,Q.a20);
+    F.a01 = fmadd3(f00,Q.a01, f01,Q.a11, f02,Q.a21);
+    F.a02 = fmadd3(f00,Q.a02, f01,Q.a12, f02,Q.a22);
 
-    F.a10 = fmadd3(f10,f11,f12,Q.a00,Q.a10,Q.a20);
-    F.a11 = fmadd3(f10,f11,f12,Q.a01,Q.a11,Q.a21);
-    F.a12 = fmadd3(f10,f11,f12,Q.a02,Q.a12,Q.a22);
+    F.a10 = fmadd3(f10,Q.a00, f11,Q.a10, f12,Q.a20);
+    F.a11 = fmadd3(f10,Q.a01, f11,Q.a11, f12,Q.a21);
+    F.a12 = fmadd3(f10,Q.a02, f11,Q.a12, f12,Q.a22);
 
-    F.a20 = fmadd3(f20,f21,f22,Q.a00,Q.a10,Q.a20);
-    F.a21 = fmadd3(f20,f21,f22,Q.a01,Q.a11,Q.a21);
-    F.a22 = fmadd3(f20,f21,f22,Q.a02,Q.a12,Q.a22);
+    F.a20 = fmadd3(f20,Q.a00, f21,Q.a10, f22,Q.a20);
+    F.a21 = fmadd3(f20,Q.a01, f21,Q.a11, f22,Q.a21);
+    F.a22 = fmadd3(f20,Q.a02, f21,Q.a12, f22,Q.a22);
 }
 
 static inline void matmul_transpose_right(

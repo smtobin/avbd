@@ -470,10 +470,21 @@ struct NeoHookeanEnergySolver
         alignas(32) Real mu[4];
         alignas(32) Real kd[4];
 
-        Vec3r p0[4];
-        Vec3r p1[4];
-        Vec3r p2[4];
-        Vec3r p3[4];
+        alignas(32) Real p0x[4];
+        alignas(32) Real p0y[4];
+        alignas(32) Real p0z[4];
+
+        alignas(32) Real p1x[4];
+        alignas(32) Real p1y[4];
+        alignas(32) Real p1z[4];
+
+        alignas(32) Real p2x[4];
+        alignas(32) Real p2y[4];
+        alignas(32) Real p2z[4];
+
+        alignas(32) Real p3x[4];
+        alignas(32) Real p3y[4];
+        alignas(32) Real p3z[4];
 
         alignas(32) Real q00[4];
         alignas(32) Real q01[4];
@@ -508,68 +519,41 @@ struct NeoHookeanEnergySolver
             b.q20, b.q21, b.q22
         );
 
-        F.a00 = 
-            _mm256_set_pd(
-                b.p0[0].x()-b.p3[0].x(),
-                b.p0[1].x()-b.p3[1].x(),
-                b.p0[2].x()-b.p3[2].x(),
-                b.p0[3].x()-b.p3[3].x());
+        F.a00 = _mm256_sub_pd(
+            _mm256_load_pd(b.p0x),
+            _mm256_load_pd(b.p3x));
 
-        F.a01 =
-            _mm256_set_pd(
-                b.p1[0].x()-b.p3[0].x(),
-                b.p1[1].x()-b.p3[1].x(),
-                b.p1[2].x()-b.p3[2].x(),
-                b.p1[3].x()-b.p3[3].x());
+        F.a10 = _mm256_sub_pd(
+            _mm256_load_pd(b.p0y),
+            _mm256_load_pd(b.p3y));
 
-        F.a02 =
-            _mm256_set_pd(
-                b.p2[0].x()-b.p3[0].x(),
-                b.p2[1].x()-b.p3[1].x(),
-                b.p2[2].x()-b.p3[2].x(),
-                b.p2[3].x()-b.p3[3].x());
+        F.a20 = _mm256_sub_pd(
+            _mm256_load_pd(b.p0z),
+            _mm256_load_pd(b.p3z));
+        
+        F.a01 = _mm256_sub_pd(
+            _mm256_load_pd(b.p1x),
+            _mm256_load_pd(b.p3x));
 
-        F.a10 =
-            _mm256_set_pd(
-                b.p0[0].y()-b.p3[0].y(),
-                b.p0[1].y()-b.p3[1].y(),
-                b.p0[2].y()-b.p3[2].y(),
-                b.p0[3].y()-b.p3[3].y());
+        F.a11 = _mm256_sub_pd(
+            _mm256_load_pd(b.p1y),
+            _mm256_load_pd(b.p3y));
 
-        F.a11 =
-            _mm256_set_pd(
-                b.p1[0].y()-b.p3[0].y(),
-                b.p1[1].y()-b.p3[1].y(),
-                b.p1[2].y()-b.p3[2].y(),
-                b.p1[3].y()-b.p3[3].y());
+        F.a21 = _mm256_sub_pd(
+            _mm256_load_pd(b.p1z),
+            _mm256_load_pd(b.p3z));
 
-        F.a12 =
-            _mm256_set_pd(
-                b.p2[0].y()-b.p3[0].y(),
-                b.p2[1].y()-b.p3[1].y(),
-                b.p2[2].y()-b.p3[2].y(),
-                b.p2[3].y()-b.p3[3].y());
+        F.a02 = _mm256_sub_pd(
+            _mm256_load_pd(b.p2x),
+            _mm256_load_pd(b.p3x));
 
-        F.a20 =
-            _mm256_set_pd(
-                b.p0[0].z()-b.p3[0].z(),
-                b.p0[1].z()-b.p3[1].z(),
-                b.p0[2].z()-b.p3[2].z(),
-                b.p0[3].z()-b.p3[3].z());
+        F.a12 = _mm256_sub_pd(
+            _mm256_load_pd(b.p2y),
+            _mm256_load_pd(b.p3y));
 
-        F.a21 =
-            _mm256_set_pd(
-                b.p1[0].z()-b.p3[0].z(),
-                b.p1[1].z()-b.p3[1].z(),
-                b.p1[2].z()-b.p3[2].z(),
-                b.p1[3].z()-b.p3[3].z());
-
-        F.a22 =
-            _mm256_set_pd(
-                b.p2[0].z()-b.p3[0].z(),
-                b.p2[1].z()-b.p3[1].z(),
-                b.p2[2].z()-b.p3[2].z(),
-                b.p2[3].z()-b.p3[3].z());
+        F.a22 = _mm256_sub_pd(
+            _mm256_load_pd(b.p2z),
+            _mm256_load_pd(b.p3z));
 
         AVX::matmul_right_inplace(F, Q);
     }
@@ -618,10 +602,25 @@ struct NeoHookeanEnergySolver
             batch.mu[lane] = tet.mu;
             batch.kd[lane] = tet.kd;
 
-            batch.p0[lane] = particles.positions[tet.particle_indices[0]];
-            batch.p1[lane] = particles.positions[tet.particle_indices[1]];
-            batch.p2[lane] = particles.positions[tet.particle_indices[2]];
-            batch.p3[lane] = particles.positions[tet.particle_indices[3]];
+            const Vec3r& p0 = particles.positions[tet.particle_indices[0]];
+            const Vec3r& p1 = particles.positions[tet.particle_indices[1]];
+            const Vec3r& p2 = particles.positions[tet.particle_indices[2]];
+            const Vec3r& p3 = particles.positions[tet.particle_indices[3]];
+            batch.p0x[lane] = p0[0];
+            batch.p0y[lane] = p0[1];
+            batch.p0z[lane] = p0[2];
+
+            batch.p1x[lane] = p1[0];
+            batch.p1y[lane] = p1[1];
+            batch.p1z[lane] = p1[2];
+
+            batch.p2x[lane] = p2[0];
+            batch.p2y[lane] = p2[1];
+            batch.p2z[lane] = p2[2];
+
+            batch.p3x[lane] = p3[0];
+            batch.p3y[lane] = p3[1];
+            batch.p3z[lane] = p3[2];
 
             batch.q00[lane] = tet.Q(0,0);
             batch.q01[lane] = tet.Q(0,1);
@@ -656,7 +655,7 @@ struct NeoHookeanEnergySolver
         AVX::Vec3Packet c01, c12, c20;
         AVX::cross_columns_all(F, c01, c12, c20);
 
-        __m256d detF = AVX::determinant_packet(F, c01);
+        __m256d detF = AVX::determinant_packet(F, c12);
 
 
         AVX::Vec3Packet qi = AVX::load(batch.qx, batch.qy, batch.qz);
@@ -716,7 +715,7 @@ struct NeoHookeanEnergySolver
 
         Edot.a00 = _mm256_mul_pd(
             _mm256_sub_pd(
-                _mm256_sub_pd(Edot.a00,_mm256_set1_pd(1.0f)),
+                _mm256_sub_pd(Edot.a00,_mm256_set1_pd(1.0)),
                 Eprev.a00),
             invdt);
 
@@ -734,7 +733,7 @@ struct NeoHookeanEnergySolver
 
         Edot.a11 = _mm256_mul_pd(
             _mm256_sub_pd(
-                _mm256_sub_pd(Edot.a11,_mm256_set1_pd(1.0f)),
+                _mm256_sub_pd(Edot.a11,_mm256_set1_pd(1.0)),
                 Eprev.a11),
             invdt);
 
@@ -752,7 +751,7 @@ struct NeoHookeanEnergySolver
 
         Edot.a22 = _mm256_mul_pd(
             _mm256_sub_pd(
-                _mm256_sub_pd(Edot.a22,_mm256_set1_pd(1.0f)),
+                _mm256_sub_pd(Edot.a22,_mm256_set1_pd(1.0)),
                 Eprev.a22),
             invdt);
 
