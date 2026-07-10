@@ -87,6 +87,9 @@ target_link_libraries(Sim Simulation ${VTK_LIBRARIES})
 add_executable(TestEnergy test/test_energy.cpp)
 target_link_libraries(TestEnergy Energy Eigen3::Eigen)
 
+add_executable(TestNeoHookeanAccumulate test/test_neohookean_accumulate.cpp)
+target_link_libraries(TestNeoHookeanAccumulate Energy Eigen3::Eigen)
+
 
 
 # vtk_module_autoinit is needed
