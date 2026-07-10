@@ -286,6 +286,15 @@ private:
         Mat3r hess = Mat3r::Zero();
         // Mat3r hess = 1e-8 * Mat3r::Ones();
 
+        // Mat3r H_acc[4] = {Mat3r::Zero(), Mat3r::Zero(), Mat3r::Zero(), Mat3r::Zero()};
+        // Vec3r G_acc[4] = {Vec3r::Zero(), Vec3r::Zero(), Vec3r::Zero(), Vec3r::Zero()};
+
+        // for (size_t i = 0; i < incident_elements.size(); ++i) {
+        //     accumulate(incident_elements[i], energies, particles, local_idx,
+        //             H_acc[i & 3], G_acc[i & 3], dt);
+        // }
+        
+
         // accumulate Hessians and gradients from energies
         for (unsigned e = adj_start; e < adj_end; e++) 
         {
@@ -298,8 +307,8 @@ private:
                     _ctx->energies.neo_hookean,
                     _ctx->particles,
                     entry.local_vertex_idx,
-                    hess,
-                    grad,
+                    hess,//H_acc[e & 3],
+                    grad,//G_acc[e & 3],
                     dt
                 );
             } 
@@ -310,12 +319,14 @@ private:
                     _ctx->energies.ground_collision,
                     _ctx->particles,
                     entry.local_vertex_idx,
-                    hess,
-                    grad,
+                    hess,//H_acc[e & 3],
+                    grad,//G_acc[e & 3],
                     dt
                 );
             }
         }
+        // Mat3r hess = H_acc[0] + H_acc[1] + H_acc[2] + H_acc[3];
+        // Vec3r grad = G_acc[0] + G_acc[1] + G_acc[2] + G_acc[3];
 
         // assemble LHS and RHS of single-particle system
         Real mass = _ctx->particles.masses[p_idx];
@@ -331,7 +342,8 @@ private:
         Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
         Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
 
-        Vec3r dx = LHS.partialPivLu().solve(RHS);
+        // Vec3r dx = LHS.partialPivLu().solve(RHS);
+        Vec3r dx = LHS.inverse() * RHS;
 
         // std::cout << "dx: " << dx.transpose() << std::endl;
 
