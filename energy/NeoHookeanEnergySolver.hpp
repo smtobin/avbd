@@ -117,15 +117,11 @@ struct NeoHookeanEnergySolver
         Mat3r FFt;
         FFt.noalias() = F * F.transpose();
 
-        Mat3r E = FFt;
-        E.diagonal().array() -= 1.0;
-        const Mat3r E_dot = 1/dt * (E - E_prev);
+        Mat3r tmp = FFt;
+        tmp.diagonal().array() -= 1.0;      // E = F*F^T - I
+        const Mat3r E_dot = 1/dt * (tmp - E_prev);  // Edot = 1/dt * (E - E_prev)
 
         // hydrostatic gradient
-        Mat3r F_cross;
-        F_cross.col(0) = F.col(1).cross(F.col(2));
-        F_cross.col(1) = F.col(2).cross(F.col(0));
-        F_cross.col(2) = F.col(0).cross(F.col(1));
 
         // Mat3r detF_grad_full = F_cross * Q.transpose();
         // Mat3r hyd_grad_full = V*lambda * (F.determinant() - mu/lambda - 1) * detF_grad_full;
@@ -133,7 +129,11 @@ struct NeoHookeanEnergySolver
         // deviatoric gradient
         // Mat3r dev_grad_full = V*mu * F * Q.transpose();
 
-        const Real hyd_mult = V*lambda * (F.determinant() - mu/lambda - 1);
+        const Real detF =
+            F(0,0)*(F(1,1)*F(2,2)-F(1,2)*F(2,1))
+        - F(0,1)*(F(1,0)*F(2,2)-F(1,2)*F(2,0))
+        + F(0,2)*(F(1,0)*F(2,1)-F(1,1)*F(2,0));
+        const Real hyd_mult = V*lambda * (detF - mu/lambda - 1);
         const Real dev_mult = V*mu;
 
         
@@ -143,67 +143,119 @@ struct NeoHookeanEnergySolver
         {
             const Vec3r qi = Q.row(local_idx);
             const Vec3r Fqi = F*qi;
-            const Vec3r Fcross_qi = F_cross * qi;
+
+            Vec3r Fcross_qi;
+            {
+                // cross product matrix
+                // [f1 x f2   f2 x f0   f0 x f1]
+                Mat3r F_cross;
+                F_cross.col(0) = F.col(1).cross(F.col(2));
+                F_cross.col(1) = F.col(2).cross(F.col(0));
+                F_cross.col(2) = F.col(0).cross(F.col(1));
+                Fcross_qi = F_cross*qi;
+            }
 
             // gradient
-            const Vec3r hyd_grad_i = hyd_mult * Fcross_qi;
-            const Vec3r dev_grad_i = dev_mult * Fqi;
-            const Vec3r damp_grad_i = 2/dt * V * kd * F * E_dot * qi;
-            particle_G += hyd_grad_i + dev_grad_i + damp_grad_i;
+            // hydrostatic contribution
+            particle_G += hyd_mult * Fcross_qi;
+
+            // deviatoric contribution
+            particle_G += dev_mult * Fqi;
+
+            // damping contribution
+            {
+                Vec3r Edot_qi = E_dot * qi;
+                particle_G += (2/dt * V * kd) * (F * Edot_qi);
+            }
 
             // Hessian
-            Mat3r hyd_hess_i;
-            hyd_hess_i.noalias() = (V * lambda) * Fcross_qi * Fcross_qi.transpose();
-            Mat3r dev_hess_i = Mat3r::Zero();
-            dev_hess_i.diagonal().setConstant(V * mu * qi.squaredNorm());
 
-            Mat3r term1 = Mat3r::Zero();
-            Real qi_Edot_qi = qi.transpose() * E_dot * qi;
-            term1.diagonal().setConstant(qi_Edot_qi);
-            Mat3r term2;
-            term2.noalias() = (Fqi * Fqi.transpose() + FFt * qi.squaredNorm());
-            term2 *= 1/dt;
+            // hydrostatic contribution
+            {
+                Mat3r hyd_hess;
+                hyd_hess.noalias() = (V*lambda) * Fcross_qi * Fcross_qi.transpose();
+                particle_H += hyd_hess;
+            }
 
-            const Mat3r damp_hess_i = (2/dt * V * kd) * (term1 + term2);
-            particle_H += hyd_hess_i + dev_hess_i + damp_hess_i;
+            // deviatoric contribution
+            {
+                Mat3r dev_hess = Mat3r::Zero();
+                dev_hess.diagonal().setConstant(V * mu * qi.squaredNorm());
+                particle_H += dev_hess;
+            }
+
+            // damping contribution
+            {
+                Real qi_Edot_qi = qi.transpose() * E_dot * qi;
+                Mat3r damp_hess = Mat3r::Zero();
+                damp_hess.diagonal().setConstant(qi_Edot_qi);
+                particle_H += (2/dt * V * kd) * damp_hess;
+            }
+            {
+                Mat3r damp_hess = FFt * qi.squaredNorm();
+                damp_hess.noalias() += Fqi * Fqi.transpose();
+                particle_H += (2/dt/dt * V * kd) * damp_hess;
+            }
         }
         else if (local_idx == 3)
         {
             // compute Hessian and gradient for the 4th particle
             // gradient
             const Vec3r q4 = Q.row(0) + Q.row(1) + Q.row(2);
-            const Vec3r Fcross_q4 = F_cross * q4;
             const Vec3r Fq4 = F*q4;
+            Vec3r Fcross_q4;
+            {
+                // cross product matrix
+                // [f1 x f2   f2 x f0   f0 x f1]
+                Mat3r F_cross;
+                F_cross.col(0) = F.col(1).cross(F.col(2));
+                F_cross.col(1) = F.col(2).cross(F.col(0));
+                F_cross.col(2) = F.col(0).cross(F.col(1));
+                Fcross_q4 = F_cross*q4;
+            }
 
-            const Vec3r hyd_grad_4 = -hyd_mult * Fcross_q4;
-            const Vec3r dev_grad_4 = -dev_mult * Fq4;
-            const Vec3r damp_grad_4 = (-2/dt * V * kd) * F * (E_dot * q4);
-            particle_G += hyd_grad_4 + dev_grad_4 + damp_grad_4;
+            // hydrostatic contribution
+            particle_G += -hyd_mult * Fcross_q4;
+
+            // deviatoric contribution
+            particle_G += -dev_mult * Fq4;
+
+            // damping contribution
+            {
+                Vec3r Edot_q4 = E_dot * q4;
+                particle_G += (-2/dt * V * kd) * (F * Edot_q4);
+            }
+            
 
             // Hessian
-            const Vec3r a3 = -Fcross_q4;
-                // -detF_grad_full.col(0)
-                // -detF_grad_full.col(1)
-                // -detF_grad_full.col(2);
 
-            const Mat3r hyd_hess =
-                (V*lambda) * a3 * a3.transpose();
+            // hydrostatic contribution
+            { 
+                Mat3r hyd_hess;
+                hyd_hess.noalias() = (V*lambda) * Fcross_q4 * Fcross_q4.transpose();
+                particle_H += hyd_hess;
+            }
 
-            Mat3r dev_hess = Mat3r::Zero();
-            dev_hess.diagonal().setConstant(V*mu * q4.squaredNorm());
+            // deviatoric contribution
+            {
+                Mat3r dev_hess = Mat3r::Zero();
+                dev_hess.diagonal().setConstant(V*mu * q4.squaredNorm());
+                particle_H += dev_hess;
+            }
 
-            Mat3r term1 = Mat3r::Zero();
-            Real q4_Edot_q4 = (q4.transpose() * E_dot * q4);
-            term1.diagonal().setConstant(q4_Edot_q4);
-            Mat3r term2;
-            term2.noalias() = (Fq4 * Fq4.transpose() + FFt * q4.squaredNorm());
-            term2 *= 1/dt;
-
-            const Mat3r damp_hess =  (2/dt * V * kd) * (term1 + term2);
-            particle_H += hyd_hess + dev_hess + damp_hess;
+            // damping contribution
+            {
+                Real q4_Edot_q4 = q4.transpose() * E_dot * q4;
+                Mat3r damp_hess = Mat3r::Zero();
+                damp_hess.diagonal().setConstant(q4_Edot_q4);
+                particle_H += (2/dt * V * kd) * damp_hess;
+            }
+            {
+                Mat3r damp_hess = FFt * q4.squaredNorm();
+                damp_hess.noalias() += Fq4 * Fq4.transpose();
+                particle_H += (2/dt/dt * V * kd) * damp_hess;
+            }
         }
-
-        
     }
 
     /** Computes the Hessian and gradient for all of the particles affected by this constraint.
