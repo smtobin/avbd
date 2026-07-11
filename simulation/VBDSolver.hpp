@@ -358,7 +358,7 @@ private:
         //     const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
         //     if (entry.energy_type == EnergyType::NEO_HOOKEAN)
         //     {
-        //         std::cout << " NeoHookean constraint " << entry.energy_idx << std::endl;
+        //         // std::cout << " NeoHookean constraint " << entry.energy_idx << std::endl;
         //         Energy::NeoHookeanEnergySolver::accumulate(
         //             entry.energy_idx,
         //             _ctx->energies.neo_hookean,
@@ -371,7 +371,7 @@ private:
         //     } 
         //     else if (entry.energy_type == EnergyType::GROUND_COLLISION) 
         //     {
-        //         std::cout << " GroundCollision constraint " << entry.energy_idx << std::endl;
+        //         // std::cout << " GroundCollision constraint " << entry.energy_idx << std::endl;
         //         Energy::GroundCollisionEnergySolver::accumulate(
         //             entry.energy_idx,
         //             _ctx->energies.ground_collision,

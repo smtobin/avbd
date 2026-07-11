@@ -48,6 +48,51 @@ static inline Vec3Packet load(
     return r;
 }
 
+static inline void print_packet(const Mat3x3Packet& p)
+{
+    alignas(32) double a00[4], a01[4], a02[4];
+    alignas(32) double a10[4], a11[4], a12[4];
+    alignas(32) double a20[4], a21[4], a22[4];
+
+    _mm256_store_pd(a00, p.a00);
+    _mm256_store_pd(a01, p.a01);
+    _mm256_store_pd(a02, p.a02);
+
+    _mm256_store_pd(a10, p.a10);
+    _mm256_store_pd(a11, p.a11);
+    _mm256_store_pd(a12, p.a12);
+
+    _mm256_store_pd(a20, p.a20);
+    _mm256_store_pd(a21, p.a21);
+    _mm256_store_pd(a22, p.a22);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        std::cout << "Matrix " << i << ":\n";
+        std::cout << a00[i] << " " << a01[i] << " " << a02[i] << '\n';
+        std::cout << a10[i] << " " << a11[i] << " " << a12[i] << '\n';
+        std::cout << a20[i] << " " << a21[i] << " " << a22[i] << '\n';
+        std::cout << '\n';
+    }
+}
+
+static inline void print_packet(const Vec3Packet& p)
+{
+    alignas(32) double x[4], y[4], z[4];
+
+    _mm256_store_pd(x, p.x);
+    _mm256_store_pd(y, p.y);
+    _mm256_store_pd(z, p.z);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        std::cout << "Vector " << i << ": ("
+                  << x[i] << ", "
+                  << y[i] << ", "
+                  << z[i] << ")\n";
+    }
+}
+
 static inline double hsum_pd(__m256d x)
 {
     __m128d hi = _mm256_extractf128_pd(x, 1);
@@ -194,35 +239,29 @@ static inline void matmul_transpose_right(
 {
     // row 0 dot row 0
     FFt.a00 = fmadd3(
-        F.a00,F.a01,F.a02,
-        F.a00,F.a01,F.a02);
+        F.a00,F.a00, F.a01,F.a01, F.a02,F.a02);
 
     // row 0 dot row 1
     FFt.a01 = fmadd3(
-        F.a00,F.a01,F.a02,
-        F.a10,F.a11,F.a12);
+        F.a00,F.a10, F.a01,F.a11, F.a02,F.a12);
 
     // row 0 dot row 2
     FFt.a02 = fmadd3(
-        F.a00,F.a01,F.a02,
-        F.a20,F.a21,F.a22);
+        F.a00,F.a20, F.a01,F.a21, F.a02,F.a22);
 
 
     // row 1 dot row 1
     FFt.a11 = fmadd3(
-        F.a10,F.a11,F.a12,
-        F.a10,F.a11,F.a12);
+        F.a10,F.a10, F.a11,F.a11, F.a12,F.a12);
 
     // row 1 dot row 2
     FFt.a12 = fmadd3(
-        F.a10,F.a11,F.a12,
-        F.a20,F.a21,F.a22);
+        F.a10,F.a20, F.a11,F.a21, F.a12,F.a22);
 
 
     // row 2 dot row 2
     FFt.a22 = fmadd3(
-        F.a20,F.a21,F.a22,
-        F.a20,F.a21,F.a22);
+        F.a20,F.a20, F.a21,F.a21, F.a22,F.a22);
 
 
     // Symmetry

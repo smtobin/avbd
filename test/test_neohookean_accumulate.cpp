@@ -24,6 +24,10 @@ int main()
     const Vec3r& v2 = mesh.vertex(indices[1]);
     const Vec3r& v3 = mesh.vertex(indices[2]);
     const Vec3r& v4 = mesh.vertex(indices[3]);
+    std::cout << "v1: " << v1.transpose() << std::endl;
+    std::cout << "v2: " << v2.transpose() << std::endl;
+    std::cout << "v3: " << v3.transpose() << std::endl;
+    std::cout << "v4: " << v4.transpose() << std::endl;
     Mat3r X;
     X.col(0) = v1 - v4;
     X.col(1) = v2 - v4;
@@ -37,8 +41,14 @@ int main()
         ctx.particles
     );
 
-    Mat3r H_single;
-    Vec3r G_single;
+    // move the particles around a bit
+    mesh.setVertex(indices[0], v1+Vec3r(0.3,0.3,0.3));
+    mesh.setVertex(indices[1], v2+Vec3r(0.1,0.2,0.3));
+    mesh.setVertex(indices[2], v3+Vec3r(-0.2,-0.3,-0.2));
+    mesh.setVertex(indices[3], v4+Vec3r(-0.1,0.1,0.1));
+
+    Mat3r H_single = Mat3r::Zero();
+    Vec3r G_single = Vec3r::Zero();
     Energy::NeoHookeanEnergySolver::accumulate(
         e_idx,
         ctx.energies.neo_hookean,
@@ -49,8 +59,8 @@ int main()
         1e-3
     );
 
-    Mat3r H4;
-    Vec3r G4;
+    Mat3r H4 = Mat3r::Zero();
+    Vec3r G4 = Vec3r::Zero();
     unsigned e_idx4[4] = {e_idx, e_idx, e_idx, e_idx};
     unsigned l_idx4[4] = {3, 3, 3, 3};
     Energy::NeoHookeanEnergySolver::accumulate4(
@@ -65,5 +75,8 @@ int main()
 
     std::cout << "G single: " << G_single.transpose() << std::endl;
     std::cout << "G AVX: " << G4.transpose() / 4 << std::endl;
+
+    std::cout << "H single:\n" << H_single << std::endl;
+    std::cout << "H AVX:\n" << H4/4 << std::endl;
 
 }

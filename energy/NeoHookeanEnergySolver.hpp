@@ -690,7 +690,8 @@ struct NeoHookeanEnergySolver
         __m256d qi_norm2 = AVX::squaredNorm3_packet(qi);
 
         // gradient
-        __m256d damp_mult = _mm256_mul_pd(sign, _mm256_mul_pd( _mm256_set1_pd(2/dt), _mm256_mul_pd(V,kd) ) );
+        __m256d damp_mult = _mm256_mul_pd( _mm256_set1_pd(2/dt), _mm256_mul_pd(V,kd) );
+        __m256d signed_damp_mult = _mm256_mul_pd(sign, damp_mult);
 
         AVX::Vec3Packet G;
 
@@ -760,9 +761,9 @@ struct NeoHookeanEnergySolver
         AVX::matvec_packet(Edot, qi, Edot_qi);
         AVX::matvec_packet(F, Edot_qi, F_Edot_qi);
 
-        G.x = _mm256_fmadd_pd(damp_mult, F_Edot_qi.x, G.x);
-        G.y = _mm256_fmadd_pd(damp_mult, F_Edot_qi.y, G.y);
-        G.z = _mm256_fmadd_pd(damp_mult, F_Edot_qi.z, G.z);
+        G.x = _mm256_fmadd_pd(signed_damp_mult, F_Edot_qi.x, G.x);
+        G.y = _mm256_fmadd_pd(signed_damp_mult, F_Edot_qi.y, G.y);
+        G.z = _mm256_fmadd_pd(signed_damp_mult, F_Edot_qi.z, G.z);
 
         /** === Hessian === */
 
