@@ -152,26 +152,6 @@ ENERGY_LIST(X)
 
 #undef X
 
-/** Helper for iterating over different energies */
-// Usage:
-//    ForEachEnergy([&]<EnergyType E>() {
-//              // some work
-//      });
-template<std::size_t... Is, typename F>
-constexpr void ForEachEnergy_Impl(std::index_sequence<Is...>, F&& f)
-{
-    (std::forward<F>(f).template operator()<static_cast<EnergyType>(Is)>(), ...);
-}
-
-template<typename F>
-constexpr void ForEachEnergy(F&& f)
-{
-    ForEachEnergy_Impl(
-        std::make_index_sequence<static_cast<std::size_t>(EnergyType::size)>{}, 
-        std::forward<F>(f)    
-    );
-}
-
 
 /** Forward declarations of objects in sim */
 namespace SimObject

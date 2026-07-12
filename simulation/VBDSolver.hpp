@@ -176,7 +176,7 @@ public:
         for (unsigned e_idx = start; e_idx < end; e_idx++)
         {
             if (pool.active[e_idx])
-                EnergyPool::Solver::updateAfterTimeStep(e_idx, pool, particles);
+                EnergyPool::SolverType::updateAfterTimeStep(e_idx, pool, particles);
         }
     }
 
@@ -187,7 +187,7 @@ public:
         for (unsigned e_idx = start; e_idx < end; e_idx++)
         {
             if (pool.active[e_idx])
-                EnergyPool::Solver::updateAfterIteration(e_idx, pool, particles);
+                EnergyPool::SolverType::updateAfterIteration(e_idx, pool, particles);
         }
     }
 
@@ -280,86 +280,87 @@ private:
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
         const PerEnergy<unsigned>& adj_offsets = _ctx->adjacency.e_offsets[p_idx];
+        unsigned adj_end = _ctx->adjacency.e_offsets[p_idx+1][0];
 
         Vec3r grad = Vec3r::Zero();
         Mat3r hess = Mat3r::Zero();
 
         // iterate through energy types
         unsigned num_energies = static_cast<unsigned>(EnergyType::size);
-        ForEachEnergy([&]<EnergyType E>() {
+        Energy::ForEachEnergy([&]<EnergyType E>() {
+            unsigned e_type_idx = static_cast<unsigned>(E);
+            // get the starting and ending offsets from the adjacency list
+            // the start index of the adjacent energies of this type
+            unsigned e_adj = adj_offsets[e_type_idx]; 
+            // the end index (use conditional to wrap around if needed)
+            unsigned final_e_adj = (e_type_idx+1 == num_energies) ? adj_end : adj_offsets[e_type_idx+1];
+
             using Solver = SolverFor<E>::type;
+            const auto& energy_pool = _ctx->energies.template get<E>();
+
+            // if solver has AVX accumulate4 implemented, use that
             if constexpr (Energy::HasAccumulate4<Solver>)
             {
-                // accumulate 4 loop
-                // Solver::accumulate4(...);
+                // process in chunks of 4 using AVX
+                for (; e_adj+3 < final_e_adj; e_adj+=4)
+                {
+                    const ParticleAdjacency::Entry& entry1 = _ctx->adjacency.e_entries[e_adj];
+                    const ParticleAdjacency::Entry& entry2 = _ctx->adjacency.e_entries[e_adj+1];
+                    const ParticleAdjacency::Entry& entry3 = _ctx->adjacency.e_entries[e_adj+2];
+                    const ParticleAdjacency::Entry& entry4 = _ctx->adjacency.e_entries[e_adj+3];
+                    unsigned e_idx[4] = {entry1.energy_idx,
+                        entry2.energy_idx,
+                        entry3.energy_idx,
+                        entry4.energy_idx};
+                    unsigned l_idx[4] = {entry1.local_vertex_idx,
+                        entry2.local_vertex_idx,
+                        entry3.local_vertex_idx,
+                        entry4.local_vertex_idx};
+                    Solver::accumulate4(
+                        e_idx,
+                        energy_pool,
+                        _ctx->particles,
+                        l_idx,
+                        hess,
+                        grad,
+                        dt
+                    );
+                }
+
+                // process remainder
+                for (; e_adj < final_e_adj; e_adj++)
+                {
+                    const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e_adj];
+                    Solver::accumulate(
+                        entry.energy_idx,
+                        energy_pool,
+                        _ctx->particles,
+                        entry.local_vertex_idx,
+                        hess,
+                        grad,
+                        dt
+                    );
+                }
             }
+            // otherwise fall back to normal 1-by-1 computation
             else
             {
-                // normal single loop
+                for (; e_adj < final_e_adj; e_adj++)
+                {
+                    const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e_adj];
+                    Solver::accumulate(
+                        entry.energy_idx,
+                        energy_pool,
+                        _ctx->particles,
+                        entry.local_vertex_idx,
+                        hess,
+                        grad,
+                        dt
+                    );
+                }
             }
         }
         );
-
-        
-        
-
-        // std::cout << "=== Starting Accumulate ===" << std::endl;
-        /**  TODO: this is hard-coded for the case of N NeoHookean energies and 1 GroundCollision, which is the case for the sim currently.
-         * Need to generalize this to more constraints that are not necessarily arranged in this structure.
-         */
-        unsigned e = adj_offsets[0];
-        unsigned adj_end = _ctx->adjacency.e_offsets[p_idx+1][0];    // the end of the range is the start of the next offsets
-        for (; e+3 < adj_end-1; e+=4)
-        {
-            const ParticleAdjacency::Entry& entry1 = _ctx->adjacency.e_entries[e];
-            const ParticleAdjacency::Entry& entry2 = _ctx->adjacency.e_entries[e+1];
-            const ParticleAdjacency::Entry& entry3 = _ctx->adjacency.e_entries[e+2];
-            const ParticleAdjacency::Entry& entry4 = _ctx->adjacency.e_entries[e+3];
-            unsigned e_idx[4] = {entry1.energy_idx,
-                entry2.energy_idx,
-                entry3.energy_idx,
-                entry4.energy_idx};
-            unsigned l_idx[4] = {entry1.local_vertex_idx,
-                entry2.local_vertex_idx,
-                entry3.local_vertex_idx,
-                entry4.local_vertex_idx};
-            Energy::NeoHookeanEnergySolver::accumulate4(
-                e_idx,
-                _ctx->energies.neo_hookean,
-                _ctx->particles,
-                l_idx,
-                hess,
-                grad,
-                dt
-            );
-        }
-        for (; e < adj_end-1; e++)
-        {
-            const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
-            Energy::NeoHookeanEnergySolver::accumulate(
-                entry.energy_idx,
-                _ctx->energies.neo_hookean,
-                _ctx->particles,
-                entry.local_vertex_idx,
-                hess,
-                grad,
-                dt
-            );
-        }
-        const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
-        if (entry.energy_type == EnergyType::GROUND_COLLISION) 
-        {
-            // std::cout << " GroundCollision constraint " << entry.energy_idx << std::endl;
-            Energy::GroundCollisionEnergySolver::accumulate(
-                entry.energy_idx,
-                _ctx->energies.ground_collision,
-                _ctx->particles,
-                entry.local_vertex_idx,
-                hess,//H_acc[e & 3],
-                grad,//G_acc[e & 3],
-                dt
-            );
-        }
 
         // assemble LHS and RHS of single-particle system
         Real mass = _ctx->particles.masses[p_idx];

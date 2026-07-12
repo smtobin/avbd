@@ -11,6 +11,9 @@ namespace Energy
 /** Implements the stable Neo-Hookean per-element energies, seen in Macklin et al. 2021 */
 struct NeoHookeanEnergySolver
 {
+    /** Public typedefs */
+    using PoolType = NeoHookeanEnergyPool;
+
     /** Required - does nothing */
     static void updateAfterIteration(
         unsigned /* e_idx */,

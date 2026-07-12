@@ -22,19 +22,13 @@ struct NeoHookeanEnergyPool : TombstonePool
 {
     static constexpr int NumParticlesPerEnergy = 4; // number of particles per energy
     static constexpr EnergyType Type = EnergyType::NEO_HOOKEAN;   // type of energy in the EnergyType enum
-    using Solver = NeoHookeanEnergySolver;  // the solver struct for this pool
+    using SolverType = NeoHookeanEnergySolver;  // the solver struct for this pool
      
     std::vector<NeoHookeanEnergyInfo> data;
 
     explicit NeoHookeanEnergyPool(unsigned capacity)
         : TombstonePool(capacity)
         , data(capacity)
-        // , particle_indices(capacity)
-        // , lambdas(capacity)
-        // , mus(capacity)
-        // , kds(capacity)
-        // , Qs(capacity)
-        // , rest_volumes(capacity)
     {
 
     }

@@ -5,10 +5,34 @@
 namespace Energy
 {
 
+/** Helper for iterating over different energies.
+ */
+// Usage:
+//    ForEachEnergy([&]<EnergyType E>() {
+//              // some work
+//      });
+template<std::size_t... Is, typename F>
+constexpr void ForEachEnergy_Impl(std::index_sequence<Is...>, F&& f)
+{
+    (std::forward<F>(f).template operator()<static_cast<EnergyType>(Is)>(), ...);
+}
+
+template<typename F>
+constexpr void ForEachEnergy(F&& f)
+{
+    ForEachEnergy_Impl(
+        std::make_index_sequence<static_cast<std::size_t>(EnergyType::size)>{}, 
+        std::forward<F>(f)    
+    );
+}
+
+
+
+/** EnergySolver concepts */
 template<typename Solver>
 concept HasAccumulate4 = requires(
     unsigned e_idx[4],
-    const NeoHookeanEnergyPool& energies,
+    const Solver::PoolType& energies,
     ParticlePool& particles,
     unsigned local_idx[4],
     Mat3r& particle_H,
