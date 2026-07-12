@@ -98,11 +98,12 @@ using Mat6r = Eigen::Matrix<Real, 6, 6>;
 using MatXr = Eigen::Matrix<Real,-1,-1>;
 
 /** Enum of energy types */
-enum class EnergyType
-{
-    NEO_HOOKEAN = 0,
-    GROUND_COLLISION
-};
+// enum class EnergyType
+// {
+//     NEO_HOOKEAN = 0,
+//     GROUND_COLLISION,
+//     size    // stores the number of different energies
+// };
 
 /** Forward declarations */
 namespace Energy
@@ -118,6 +119,61 @@ namespace Energy
     struct GroundCollisionEnergySolver;
 }
 
+
+/** Using macros, define the EnergyType enum and a mapping to the corresponding Solver type. */
+// when a new energy is added, we must update the list below
+#define ENERGY_LIST(X) \
+    X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
+    X(GROUND_COLLISION, GroundCollisionEnergySolver)
+
+// generate the enum
+enum class EnergyType
+{
+#define X(name, solver) name,
+    ENERGY_LIST(X)
+#undef X
+    size    // size = total number of energies
+};
+
+// generate the mapping from energy type -> solver type
+// Use:
+//   SolverFor<EnergyType::NeoHookean>::type ==> Energy::NeoHookeanEnergySolver
+template<EnergyType>
+struct SolverFor;
+
+#define X(name, solver)            \
+template<>                         \
+struct SolverFor<EnergyType::name> \
+{                                  \
+    using type = Energy::solver;   \
+};
+
+ENERGY_LIST(X)
+
+#undef X
+
+/** Helper for iterating over different energies */
+// Usage:
+//    ForEachEnergy([&]<EnergyType E>() {
+//              // some work
+//      });
+template<std::size_t... Is, typename F>
+constexpr void ForEachEnergy_Impl(std::index_sequence<Is...>, F&& f)
+{
+    (std::forward<F>(f).template operator()<static_cast<EnergyType>(Is)>(), ...);
+}
+
+template<typename F>
+constexpr void ForEachEnergy(F&& f)
+{
+    ForEachEnergy_Impl(
+        std::make_index_sequence<static_cast<std::size_t>(EnergyType::size)>{}, 
+        std::forward<F>(f)    
+    );
+}
+
+
+/** Forward declarations of objects in sim */
 namespace SimObject
 {
     class Object_Base;

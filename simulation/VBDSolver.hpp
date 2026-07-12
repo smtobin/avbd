@@ -2,6 +2,7 @@
 
 #include "common/common.hpp"
 #include "common/SpinBarrier.hpp"
+#include "common/EnergyUtils.hpp"
 #include "simulation/SimulationContext.hpp"
 
 #include "energy/NeoHookeanEnergySolver.hpp"
@@ -278,37 +279,42 @@ private:
     {
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
-        unsigned adj_start = _ctx->adjacency.e_offsets[p_idx];
-        unsigned adj_end   = _ctx->adjacency.e_offsets[p_idx + 1];
+        const PerEnergy<unsigned>& adj_offsets = _ctx->adjacency.e_offsets[p_idx];
 
         Vec3r grad = Vec3r::Zero();
         Mat3r hess = Mat3r::Zero();
-        // Mat3r hess = 1e-8 * Mat3r::Ones();
 
-        // Mat3r H_acc[4] = {Mat3r::Zero(), Mat3r::Zero(), Mat3r::Zero(), Mat3r::Zero()};
-        // Vec3r G_acc[4] = {Vec3r::Zero(), Vec3r::Zero(), Vec3r::Zero(), Vec3r::Zero()};
+        // iterate through energy types
+        unsigned num_energies = static_cast<unsigned>(EnergyType::size);
+        ForEachEnergy([&]<EnergyType E>() {
+            using Solver = SolverFor<E>::type;
+            if constexpr (Energy::HasAccumulate4<Solver>)
+            {
+                // accumulate 4 loop
+                // Solver::accumulate4(...);
+            }
+            else
+            {
+                // normal single loop
+            }
+        }
+        );
 
-        // for (size_t i = 0; i < incident_elements.size(); ++i) {
-        //     accumulate(incident_elements[i], energies, particles, local_idx,
-        //             H_acc[i & 3], G_acc[i & 3], dt);
-        // }
+        
         
 
         // std::cout << "=== Starting Accumulate ===" << std::endl;
         /**  TODO: this is hard-coded for the case of N NeoHookean energies and 1 GroundCollision, which is the case for the sim currently.
          * Need to generalize this to more constraints that are not necessarily arranged in this structure.
          */
-        unsigned e = adj_start;
+        unsigned e = adj_offsets[0];
+        unsigned adj_end = _ctx->adjacency.e_offsets[p_idx+1][0];    // the end of the range is the start of the next offsets
         for (; e+3 < adj_end-1; e+=4)
         {
             const ParticleAdjacency::Entry& entry1 = _ctx->adjacency.e_entries[e];
             const ParticleAdjacency::Entry& entry2 = _ctx->adjacency.e_entries[e+1];
             const ParticleAdjacency::Entry& entry3 = _ctx->adjacency.e_entries[e+2];
             const ParticleAdjacency::Entry& entry4 = _ctx->adjacency.e_entries[e+3];
-            // std::cout << "(New) NeoHookean constraint " << entry1.energy_idx << ", type: " << (unsigned)entry1.energy_type << std::endl;
-            // std::cout << "(New) NeoHookean constraint " << entry2.energy_idx << ", type: " << (unsigned)entry2.energy_type << std::endl;
-            // std::cout << "(New) NeoHookean constraint " << entry3.energy_idx << ", type: " << (unsigned)entry3.energy_type << std::endl;
-            // std::cout << "(New) NeoHookean constraint " << entry4.energy_idx << ", type: " << (unsigned)entry4.energy_type << std::endl;
             unsigned e_idx[4] = {entry1.energy_idx,
                 entry2.energy_idx,
                 entry3.energy_idx,
@@ -330,7 +336,6 @@ private:
         for (; e < adj_end-1; e++)
         {
             const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
-            // std::cout << "(New) NeoHookean constraint " << entry.energy_idx << ", type: " << (unsigned)entry.energy_type << std::endl;
             Energy::NeoHookeanEnergySolver::accumulate(
                 entry.energy_idx,
                 _ctx->energies.neo_hookean,
@@ -356,55 +361,10 @@ private:
             );
         }
 
-        /** Old (general) version below */
-        // accumulate Hessians and gradients from energies
-        // Mat3r hess_old = Mat3r::Zero();
-        // Vec3r grad_old = Vec3r::Zero();
-        // for (unsigned e = adj_start; e < adj_end; e++) 
-        // {
-        //     const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
-        //     // std::cout << "(Old) Constraint " << entry.energy_idx << ", type: " << (unsigned)entry.energy_type << std::endl;
-        //     if (entry.energy_type == EnergyType::NEO_HOOKEAN)
-        //     {
-                
-        //         Energy::NeoHookeanEnergySolver::accumulate(
-        //             entry.energy_idx,
-        //             _ctx->energies.neo_hookean,
-        //             _ctx->particles,
-        //             entry.local_vertex_idx,
-        //             hess_old,//H_acc[e & 3],
-        //             grad_old,//G_acc[e & 3],
-        //             dt
-        //         );
-        //     } 
-        //     else if (entry.energy_type == EnergyType::GROUND_COLLISION) 
-        //     {
-        //         // std::cout << " GroundCollision constraint " << entry.energy_idx << std::endl;
-        //         Energy::GroundCollisionEnergySolver::accumulate(
-        //             entry.energy_idx,
-        //             _ctx->energies.ground_collision,
-        //             _ctx->particles,
-        //             entry.local_vertex_idx,
-        //             hess_old,//H_acc[e & 3],
-        //             grad_old,//G_acc[e & 3],
-        //             dt
-        //         );
-        //     }
-        // }
-
-        // Mat3r hess = H_acc[0] + H_acc[1] + H_acc[2] + H_acc[3];
-        // Vec3r grad = G_acc[0] + G_acc[1] + G_acc[2] + G_acc[3];
-
         // assemble LHS and RHS of single-particle system
         Real mass = _ctx->particles.masses[p_idx];
         const Vec3r& p = _ctx->particles.positions[p_idx];
         const Vec3r& y = _ctx->particles.inertial_positions[p_idx];
-
-        // std::cout << "mass: " << mass << std::endl;
-        // std::cout << "position: " << p.transpose() << std::endl;
-        // std::cout << "inertial position: " << y.transpose() << std::endl;
-        // std::cout << "grad: " << grad.transpose() << std::endl;
-        // std::cout << "hess:\n" << hess << std::endl;
 
         Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
         Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
