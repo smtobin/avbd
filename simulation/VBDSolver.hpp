@@ -299,12 +299,16 @@ private:
          * Need to generalize this to more constraints that are not necessarily arranged in this structure.
          */
         unsigned e = adj_start;
-        for (; e+3 < adj_end; e+=4)
+        for (; e+3 < adj_end-1; e+=4)
         {
             const ParticleAdjacency::Entry& entry1 = _ctx->adjacency.e_entries[e];
             const ParticleAdjacency::Entry& entry2 = _ctx->adjacency.e_entries[e+1];
             const ParticleAdjacency::Entry& entry3 = _ctx->adjacency.e_entries[e+2];
             const ParticleAdjacency::Entry& entry4 = _ctx->adjacency.e_entries[e+3];
+            // std::cout << "(New) NeoHookean constraint " << entry1.energy_idx << ", type: " << (unsigned)entry1.energy_type << std::endl;
+            // std::cout << "(New) NeoHookean constraint " << entry2.energy_idx << ", type: " << (unsigned)entry2.energy_type << std::endl;
+            // std::cout << "(New) NeoHookean constraint " << entry3.energy_idx << ", type: " << (unsigned)entry3.energy_type << std::endl;
+            // std::cout << "(New) NeoHookean constraint " << entry4.energy_idx << ", type: " << (unsigned)entry4.energy_type << std::endl;
             unsigned e_idx[4] = {entry1.energy_idx,
                 entry2.energy_idx,
                 entry3.energy_idx,
@@ -326,6 +330,7 @@ private:
         for (; e < adj_end-1; e++)
         {
             const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
+            // std::cout << "(New) NeoHookean constraint " << entry.energy_idx << ", type: " << (unsigned)entry.energy_type << std::endl;
             Energy::NeoHookeanEnergySolver::accumulate(
                 entry.energy_idx,
                 _ctx->energies.neo_hookean,
@@ -353,19 +358,22 @@ private:
 
         /** Old (general) version below */
         // accumulate Hessians and gradients from energies
+        // Mat3r hess_old = Mat3r::Zero();
+        // Vec3r grad_old = Vec3r::Zero();
         // for (unsigned e = adj_start; e < adj_end; e++) 
         // {
         //     const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e];
+        //     // std::cout << "(Old) Constraint " << entry.energy_idx << ", type: " << (unsigned)entry.energy_type << std::endl;
         //     if (entry.energy_type == EnergyType::NEO_HOOKEAN)
         //     {
-        //         // std::cout << " NeoHookean constraint " << entry.energy_idx << std::endl;
+                
         //         Energy::NeoHookeanEnergySolver::accumulate(
         //             entry.energy_idx,
         //             _ctx->energies.neo_hookean,
         //             _ctx->particles,
         //             entry.local_vertex_idx,
-        //             hess,//H_acc[e & 3],
-        //             grad,//G_acc[e & 3],
+        //             hess_old,//H_acc[e & 3],
+        //             grad_old,//G_acc[e & 3],
         //             dt
         //         );
         //     } 
@@ -377,12 +385,13 @@ private:
         //             _ctx->energies.ground_collision,
         //             _ctx->particles,
         //             entry.local_vertex_idx,
-        //             hess,//H_acc[e & 3],
-        //             grad,//G_acc[e & 3],
+        //             hess_old,//H_acc[e & 3],
+        //             grad_old,//G_acc[e & 3],
         //             dt
         //         );
         //     }
         // }
+
         // Mat3r hess = H_acc[0] + H_acc[1] + H_acc[2] + H_acc[3];
         // Vec3r grad = G_acc[0] + G_acc[1] + G_acc[2] + G_acc[3];
 
