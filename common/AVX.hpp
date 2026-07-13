@@ -270,6 +270,43 @@ static inline void matmul_transpose_right(
     FFt.a21 = FFt.a12;
 }
 
+static inline void matmul_transpose_left(
+    const Mat3x3Packet& F,
+    Mat3x3Packet& FtF)
+{
+    // col 0 dot col 0
+    FtF.a00 = fmadd3(
+        F.a00,F.a00, F.a10,F.a10, F.a20,F.a20);
+
+    // col 0 dot col 1
+    FtF.a01 = fmadd3(
+        F.a00,F.a01, F.a10,F.a11, F.a20,F.a21);
+
+    // col 0 dot col 2
+    FtF.a02 = fmadd3(
+        F.a00,F.a02, F.a10,F.a12, F.a20,F.a22);
+
+
+    // col 1 dot col 1
+    FtF.a11 = fmadd3(
+        F.a01,F.a01, F.a11,F.a11, F.a21,F.a21);
+
+    // col 1 dot col 2
+    FtF.a12 = fmadd3(
+        F.a01,F.a02, F.a11,F.a12, F.a21,F.a22);
+
+
+    // col 2 dot col 2
+    FtF.a22 = fmadd3(
+        F.a02,F.a02, F.a12,F.a12, F.a22,F.a22);
+
+
+    // Symmetry
+    FtF.a10 = FtF.a01;
+    FtF.a20 = FtF.a02;
+    FtF.a21 = FtF.a12;
+}
+
 static inline void matvec_columns(
     const Vec3Packet& c0,
     const Vec3Packet& c1,

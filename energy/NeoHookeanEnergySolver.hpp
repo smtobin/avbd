@@ -453,6 +453,9 @@ struct NeoHookeanEnergySolver
         // compute rate of change of Green strain
         AVX::Mat3x3Packet FFt;
         AVX::matmul_transpose_right(F, FFt);
+
+        AVX::Mat3x3Packet FtF;
+        AVX::matmul_transpose_left(F, FtF);
         
         __m256d qi_norm2 = AVX::squaredNorm3_packet(qi);
 
@@ -475,51 +478,51 @@ struct NeoHookeanEnergySolver
             _mm256_mul_pd(hyd_mult,Fcross_qi.z),
             _mm256_mul_pd(dev_mult,Fqi.z));
 
-        // E_dot = (FFt-I-Eprev)/dt
+        // E_dot = ((1/2 *(FtF-I) -Eprev)/dt
 
-        AVX::Mat3x3Packet Edot = FFt;
+        AVX::Mat3x3Packet Edot = FtF;
         const __m256d invdt =
             _mm256_set1_pd(1/dt);
 
         Edot.a00 = _mm256_mul_pd(
             _mm256_sub_pd(
-                _mm256_sub_pd(Edot.a00,_mm256_set1_pd(1.0)),
+                _mm256_mul_pd(_mm256_set1_pd(0.5), _mm256_sub_pd(Edot.a00,_mm256_set1_pd(1.0))),
                 Eprev.a00),
             invdt);
 
         Edot.a01 = _mm256_mul_pd(
-            _mm256_sub_pd(Edot.a01,Eprev.a01),
+            _mm256_sub_pd(_mm256_mul_pd(_mm256_set1_pd(0.5), Edot.a01), Eprev.a01),
             invdt);
 
         Edot.a02 = _mm256_mul_pd(
-            _mm256_sub_pd(Edot.a02,Eprev.a02),
+            _mm256_sub_pd(_mm256_mul_pd(_mm256_set1_pd(0.5), Edot.a02), Eprev.a02),
             invdt);
 
         Edot.a10 = _mm256_mul_pd(
-            _mm256_sub_pd(Edot.a10,Eprev.a10),
+            _mm256_sub_pd(_mm256_mul_pd(_mm256_set1_pd(0.5), Edot.a10), Eprev.a10),
             invdt);
 
         Edot.a11 = _mm256_mul_pd(
             _mm256_sub_pd(
-                _mm256_sub_pd(Edot.a11,_mm256_set1_pd(1.0)),
+                _mm256_mul_pd(_mm256_set1_pd(0.5), _mm256_sub_pd(Edot.a11,_mm256_set1_pd(1.0))),
                 Eprev.a11),
             invdt);
 
         Edot.a12 = _mm256_mul_pd(
-            _mm256_sub_pd(Edot.a12,Eprev.a12),
+            _mm256_sub_pd(_mm256_mul_pd(_mm256_set1_pd(0.5), Edot.a12), Eprev.a12),
             invdt);
 
         Edot.a20 = _mm256_mul_pd(
-            _mm256_sub_pd(Edot.a20,Eprev.a20),
+            _mm256_sub_pd(_mm256_mul_pd(_mm256_set1_pd(0.5), Edot.a20), Eprev.a20),
             invdt);
 
         Edot.a21 = _mm256_mul_pd(
-            _mm256_sub_pd(Edot.a21,Eprev.a21),
+            _mm256_sub_pd(_mm256_mul_pd(_mm256_set1_pd(0.5), Edot.a21), Eprev.a21),
             invdt);
 
         Edot.a22 = _mm256_mul_pd(
             _mm256_sub_pd(
-                _mm256_sub_pd(Edot.a22,_mm256_set1_pd(1.0)),
+                _mm256_mul_pd(_mm256_set1_pd(0.5), _mm256_sub_pd(Edot.a22,_mm256_set1_pd(1.0))),
                 Eprev.a22),
             invdt);
 
@@ -548,7 +551,7 @@ struct NeoHookeanEnergySolver
         AVX::add_diagonal(H, diag);
 
         // damping
-        __m256d alpha = _mm256_mul_pd(damp_mult, invdt);
+        __m256d alpha = _mm256_mul_pd(_mm256_mul_pd(_mm256_set1_pd(0.5), damp_mult), invdt);
         H.a00 = AVX::madd_outer(H.a00, alpha, qi_norm2, FFt.a00, Fqi.x, Fqi.x);
         H.a01 = AVX::madd_outer(H.a01, alpha, qi_norm2, FFt.a01, Fqi.x, Fqi.y);
         H.a02 = AVX::madd_outer(H.a02, alpha, qi_norm2, FFt.a02, Fqi.x, Fqi.z);
