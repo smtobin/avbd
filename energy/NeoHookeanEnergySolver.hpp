@@ -14,6 +14,42 @@ struct NeoHookeanEnergySolver
     /** Public typedefs */
     using PoolType = NeoHookeanEnergyPool;
 
+    /** Energy functional */
+    static Real energy(
+        unsigned e_idx,
+        const NeoHookeanEnergyPool& energies,
+        ParticlePool& particles,
+        Real dt
+    )
+    {
+        const Vec4u& indices = energies.data[e_idx].particle_indices;
+        const Mat3r& Q = energies.data[e_idx].Q;
+        const Real V = energies.data[e_idx].rest_volume;
+        const Real kd = energies.data[e_idx].kd;
+        const Real mu = energies.data[e_idx].mu;
+        const Real lambda = energies.data[e_idx].lambda;
+
+        Mat3r F;
+        computeF(
+            particles.positions[indices[0]],
+            particles.positions[indices[1]],
+            particles.positions[indices[2]],
+            particles.positions[indices[3]],
+            Q,
+            F
+        );
+
+        Mat3r E = 0.5*( F.transpose()*F - Mat3r::Identity() );
+        Mat3r Edot = 1/dt*(E - energies.data[e_idx].E_prev);
+        Real damp_energy = V * kd * Edot.squaredNorm();
+
+        Real detF_fac = (F.determinant() - mu/lambda - 1);
+        Real hyd_energy = 0.5 * lambda * V * detF_fac * detF_fac;
+        Real dev_energy = 0.5 * mu * V * ( (F.transpose()*F).trace() - 3);
+
+        return hyd_energy + dev_energy + damp_energy;
+    }
+
     /** Required - does nothing */
     static void updateAfterIteration(
         unsigned /* e_idx */,
@@ -38,7 +74,8 @@ struct NeoHookeanEnergySolver
         const Vec4u& indices = energies.data[e_idx].particle_indices;
         const Mat3r& Q = energies.data[e_idx].Q;
 
-        Mat3r F_prev;computeF(
+        Mat3r F_prev;
+        computeF(
             particles.previous_positions[indices[0]],
             particles.previous_positions[indices[1]],
             particles.previous_positions[indices[2]],
@@ -47,7 +84,7 @@ struct NeoHookeanEnergySolver
             F_prev
         );
 
-        energies.data[e_idx].E_prev = F_prev.transpose() * F_prev - Mat3r::Identity();
+        energies.data[e_idx].E_prev = 0.5 * (F_prev.transpose() * F_prev - Mat3r::Identity());
     }
 
     /** Helper function to compute the deformation gradient F given 4 vertices and the rest-state matrix Q.
@@ -157,8 +194,8 @@ struct NeoHookeanEnergySolver
         const Real dev_mult = V*mu;
 
         // compute rate of change of Green strain
-        Mat3r FFt;
-        FFt.noalias() = F * F.transpose();
+        Mat3r FtF;
+        FtF.noalias() = F.transpose() * F;
         
         const Real qi_norm2 = qi.squaredNorm();
 
@@ -167,8 +204,8 @@ struct NeoHookeanEnergySolver
         particle_G += sign * hyd_mult * Fcross_qi;
         particle_G += sign * dev_mult * Fqi;
 
-        Mat3r E_dot = FFt;
-        E_dot.diagonal().array() -= 1.0;
+        Mat3r E_dot = 0.5 * FtF;
+        E_dot.diagonal().array() -= 0.5;
         E_dot -= E_prev;
         E_dot *= 1/dt;
 
@@ -184,7 +221,7 @@ struct NeoHookeanEnergySolver
         Real qi_Edot_qi = qi.transpose() * E_dot * qi;
         particle_H.diagonal().array() += damp_mult_factor * qi_Edot_qi;
 
-        particle_H += (damp_mult_factor/dt) * (FFt * qi_norm2 + Fqi * Fqi.transpose());
+        particle_H += (0.5 * damp_mult_factor/dt) * (F*F.transpose() * qi_norm2 + Fqi * Fqi.transpose());
     }
 
     struct Batch4

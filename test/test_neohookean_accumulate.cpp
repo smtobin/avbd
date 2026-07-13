@@ -34,7 +34,7 @@ int main()
     X.col(2) = v3 - v4;
     Mat3r Q = X.inverse();
 
-    unsigned e_idx = ctx.energies.neo_hookean.addEnergy(indices, 1e7, 1e6, 0.1, Q, 5);
+    unsigned e_idx = ctx.energies.neo_hookean.addEnergy(indices, 1e7, 1e6, 10, Q, 5);
     Energy::NeoHookeanEnergySolver::updateAfterTimeStep(
         e_idx,
         ctx.energies.neo_hookean,
@@ -42,10 +42,10 @@ int main()
     );
 
     // move the particles around a bit
-    // mesh.setVertex(indices[0], v1+Vec3r(0.3,0.3,0.3));
-    // mesh.setVertex(indices[1], v2+Vec3r(0.1,0.2,0.3));
-    // mesh.setVertex(indices[2], v3+Vec3r(-0.2,-0.3,-0.2));
-    // mesh.setVertex(indices[3], v4+Vec3r(-0.1,0.1,0.1));
+    mesh.setVertex(indices[0], v1+Vec3r(0.3,0.3,0.3));
+    mesh.setVertex(indices[1], v2+Vec3r(0.1,0.2,0.3));
+    mesh.setVertex(indices[2], v3+Vec3r(-0.2,-0.3,-0.2));
+    mesh.setVertex(indices[3], v4+Vec3r(-0.1,0.1,0.1));
 
     Real dt = 1e-3;
     for (unsigned l_idx = 0; l_idx < 4; l_idx++)
@@ -81,6 +81,76 @@ int main()
 
         std::cout << "H single:\n" << H_single << std::endl;
         std::cout << "H AVX:\n" << H4/4 << std::endl;
+    }
+
+    /** Use finite differences to check linearizations */
+    std::cout << "\n === FINITE DIFFERENCE CHECK === " << std::endl;
+    for (unsigned l_idx = 0; l_idx < 4; l_idx++)
+    {
+        Mat3r H_orig = Mat3r::Zero();
+        Vec3r G_orig = Vec3r::Zero();
+        Energy::NeoHookeanEnergySolver::accumulate(
+            e_idx,
+            ctx.energies.neo_hookean,
+            ctx.particles,
+            l_idx,
+            H_orig,
+            G_orig,
+            dt
+        );
+
+        Real E_orig = Energy::NeoHookeanEnergySolver::energy(
+            e_idx,
+            ctx.energies.neo_hookean,
+            ctx.particles,
+            dt
+        );
+        std::cout << "E_orig: " << E_orig << std::endl;
+
+        Vec3r G_fd = Vec3r::Zero();
+        Mat3r H_fd = Mat3r::Zero();
+        for (unsigned k = 0; k < 3; k++)
+        {
+            Real delta = 1e-6;
+            Vec3r delta_vec = Vec3r::Zero();
+            delta_vec[k] = delta;
+
+            Vec3r vi_cur = mesh.vertex(indices[l_idx]);
+            mesh.setVertex(indices[l_idx], vi_cur + delta_vec);
+
+            Mat3r H_new = Mat3r::Zero();
+            Vec3r G_new = Vec3r::Zero();
+            Energy::NeoHookeanEnergySolver::accumulate(
+                e_idx,
+                ctx.energies.neo_hookean,
+                ctx.particles,
+                l_idx,
+                H_new,
+                G_new,
+                dt
+            );
+            Real E_new = Energy::NeoHookeanEnergySolver::energy(
+                e_idx,
+                ctx.energies.neo_hookean,
+                ctx.particles,
+                dt
+            );
+            std::cout << "E_new: " << E_new << std::endl;
+
+            mesh.setVertex(indices[l_idx], vi_cur);
+            
+            G_fd[k] = (E_new - E_orig) / delta;
+            H_fd.col(k) = (G_new - G_orig) / delta;
+        }
+
+        Mat3r H_diff = H_fd - H_orig;
+        std::cout << "Local idx " << l_idx << std::endl;
+        std::cout << "G_orig: " << G_orig.transpose() << std::endl;
+        std::cout << "G_fd: " << G_fd.transpose() << std::endl;
+        std::cout << "H_orig:\n" << H_orig << std::endl;
+        std::cout << "H_fd:\n" << H_fd << std::endl;
+        std::cout << "Local idx " << l_idx << " H_diff:\n" << H_diff << std::endl;
+
     }
 
     
