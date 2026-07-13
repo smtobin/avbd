@@ -34,14 +34,21 @@ struct OrientedParticlePool : TombstonePool
         , positions(capacity)
         , rotations(capacity)
         , inertial_positions(capacity)
+        , inertial_rotations(capacity)
         , previous_positions(capacity)
+        , previous_rotations(capacity)
         , last_iter_positions(capacity)
         , last_last_iter_positions(capacity)
+        , last_iter_rotations(capacity)
+        , last_last_iter_rotations(capacity)
         , velocities(capacity)
+        , angular_velocities(capacity)
         , previous_velocities(capacity)
+        , previous_angular_velocities(capacity)
         , masses(capacity)
         , rotational_inertias(capacity)
         , in_collision(capacity)
+        , fixed(capacity)
     {
 
     }

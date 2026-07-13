@@ -21,5 +21,5 @@ RigidObject_Base::RigidObject_Base(Sim::SimulationContext* ctx, const Config::Ri
 
 const Vec3r& RigidObject_Base::position() const { return _ctx->oriented_particles.positions[_com]; }
 const Quaternion& RigidObject_Base::rotation() const { return _ctx->oriented_particles.rotations[_com]; }
-
+bool RigidObject_Base::fixed() const { return _ctx->oriented_particles.fixed[_com]; }
 } // namespace SimObject

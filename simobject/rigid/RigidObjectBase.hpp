@@ -18,6 +18,7 @@ public:
 
     const Vec3r& position() const;
     const Quaternion& rotation() const;
+    bool fixed() const;
 };
 
 } // namespace SimObject

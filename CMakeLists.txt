@@ -45,6 +45,10 @@ add_library(Common)
 add_subdirectory("common")
 target_link_libraries(Common Eigen3::Eigen assimp gmsh)
 
+add_library(Collision)
+add_subdirectory("collision")
+target_link_libraries(Collision Eigen3::Eigen Common SimObject)
+
 # add_library(Collision)
 # add_subdirectory("collision")
 # target_link_libraries(Collision Eigen3::Eigen Common)
@@ -71,7 +75,7 @@ target_link_libraries(Graphics Eigen3::Eigen ${VTK_LIBRARIES} Common)
 
 add_library(Simulation)
 add_subdirectory("simulation")
-target_link_libraries(Simulation Eigen3::Eigen ${VTK_LIBRARIES} Common SimObject Energy Graphics yaml-cpp)
+target_link_libraries(Simulation Eigen3::Eigen ${VTK_LIBRARIES} Common Collision SimObject Energy Graphics yaml-cpp)
 
 
 #####################################################

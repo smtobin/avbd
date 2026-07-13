@@ -11,6 +11,8 @@
 #include "config/SimulationConfig.hpp"
 #include "config/SimulationRenderConfig.hpp"
 
+#include "collision/CollisionDetector.hpp"
+
 #include "simobject/TetMeshObject.hpp"
 #include "simobject/rigid/RigidSphere.hpp"
 
@@ -53,38 +55,11 @@ class Simulation
         // using ObjPtrType = std::unique_ptr<typename ConfigType::SimObjectType>;
         using ObjType = typename ConfigType::SimObjectType;
         using ObjPtrType = std::unique_ptr<ObjType>;
-        // ObjType* new_obj_ptr = nullptr;
-        // if constexpr (std::is_base_of_v<SimObject::ObjectGroup_Base, ObjType>)
-        // {
-        //     _object_groups.template push_back<ObjPtrType>(std::make_unique<ObjType>(obj_config));
-        //     new_obj_ptr = _object_groups.template get<ObjPtrType>().back().get();
-        //     new_obj_ptr->setup();
 
-            
-
-        //     // add the ObjectGroup's constraints to the solver
-        //     _addConstraintsFromObject(new_obj_ptr, obj_config.projectorType());
-        // }
-        // else
-        // {
-            ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
-            new_obj_ptr->setup();
-            // _objects.template emplace_back<ObjPtrType>(std::make_unique<ObjType>(obj_config));
-            // new_obj_ptr = _objects.template get<ObjPtrType>().back().get();
-            // new_obj_ptr->setup();
-        // }
+        ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
+        new_obj_ptr->setup();
 
         _graphics_scene.addObject(new_obj_ptr.get(), obj_config.renderConfig());
-
-        // if the particles of this object should be logged, create logging outputs for them
-        // if (obj_config.logParticles() && _logger)
-        // {
-        //     int particle_index = 0;
-        //     new_obj_ptr->for_each_particle([&] (const Particle* particle) {
-        //         const std::string var_name = new_obj_ptr->name() + "_particle" + std::to_string(particle_index++);
-        //         _logger->addOutput(var_name, particle);
-        //     });
-        // }
 
         _objects.push_back(std::move(new_obj_ptr));
     }
@@ -175,6 +150,9 @@ class Simulation
 
     /** Responsible for visualization in the sim */
     Graphics::GraphicsScene _graphics_scene;
+
+    /** Responsible for collision detection in the sim */
+    Collision::CollisionDetector _collision_detector;
 
     /** Simulation params */
     Config::SimulationConfig _config;
