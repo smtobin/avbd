@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config/ObjectConfig.hpp"
+#include "config/RigidObjectConfig.hpp"
 
 namespace SimObject
 {
@@ -10,17 +10,17 @@ namespace SimObject
 namespace Config
 {
 
-class RigidSphereConfig : public ObjectConfig
+class RigidSphereConfig : public RigidObjectConfig
 {
 public:
     using SimObjectType = SimObject::RigidSphere;
 
     explicit RigidSphereConfig()
-        : ObjectConfig()
+        : RigidObjectConfig()
     {}
 
     explicit RigidSphereConfig(const YAML::Node& node)
-        : ObjectConfig(node)
+        : RigidObjectConfig(node)
     {
         _extractParameter("radius", node, _radius);
     }

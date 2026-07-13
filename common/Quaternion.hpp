@@ -6,6 +6,11 @@ struct Quaternion
 {
     Real x,y,z,w;
 
+    Quaternion()
+        : x(0), y(0), z(0), w(1)
+    {
+    }
+
     Quaternion(const Vec4r& q)
         : x(q[0]), y(q[1]), z(q[2]), w(q[3])
     {
@@ -14,6 +19,11 @@ struct Quaternion
     Quaternion(Real x_, Real y_, Real z_, Real w_)
         : x(x_), y(y_), z(z_), w(w_)
     {
+    }
+
+    static Quaternion Identity()
+    {
+        return Quaternion(0, 0, 0, 1);
     }
 
     Quaternion conjugate() const

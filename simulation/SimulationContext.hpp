@@ -31,7 +31,6 @@ struct SimulationContext
         : particles(1000)
         , oriented_particles(1000)
         , energies(1000)
-        , thread_pool(std::thread::hardware_concurrency())
     {
         
     }

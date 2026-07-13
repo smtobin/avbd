@@ -13,7 +13,7 @@ int main()
     gmsh::initialize();
     
     // create SimulationContext
-    Sim::SimulationContext ctx(1000, 5000);
+    Sim::SimulationContext ctx(1000, 0, 5000);
 
     // load ParticleTetMesh
     ParticleTetMesh mesh = MeshUtils::loadTetMeshFromGmshFile("../resource/cube2.msh", ctx.particles);

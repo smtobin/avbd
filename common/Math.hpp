@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/Quaternion.hpp"
 #include <iostream>
 
 
@@ -239,6 +240,28 @@ static Vec3r XYZEulerAnglesFromRotMat(const Mat3r& R)
     }
 
     return 180/M_PI * Vec3r(theta_x, theta_y, theta_z);
+}
+
+static Quaternion QuaternionFromXYZEulerAngles(const Vec3r& eul_xyz)
+{
+    Real x = eul_xyz[0] * M_PI / 180.0;
+    Real y = eul_xyz[1] * M_PI / 180.0;
+    Real z = eul_xyz[2] * M_PI / 180.0;
+
+    Real cx = std::cos(x * 0.5);
+    Real sx = std::sin(x * 0.5);
+
+    Real cy = std::cos(y * 0.5);
+    Real sy = std::sin(y * 0.5);
+
+    Real cz = std::cos(z * 0.5);
+    Real sz = std::sin(z * 0.5);
+
+    Quaternion qx(sx, 0, 0, cx);
+    Quaternion qy(0, sy, 0, cy);
+    Quaternion qz(0, 0, sz, cz);
+
+    return qz*qy*qx;
 }
 
 /** Projects a point p onto the line segment defined by ab.

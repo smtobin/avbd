@@ -12,7 +12,7 @@
 #include "config/SimulationRenderConfig.hpp"
 
 #include "simobject/TetMeshObject.hpp"
-#include "simobject/RigidSphere.hpp"
+#include "simobject/rigid/RigidSphere.hpp"
 
 #include <vector>
 #include <deque>

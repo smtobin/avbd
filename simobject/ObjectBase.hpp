@@ -16,6 +16,12 @@ namespace SimObject
 
 class Object_Base
 {
+protected:
+    Sim::SimulationContext* _ctx;
+
+    std::string _name;
+
+
 public:
     Object_Base(Sim::SimulationContext* ctx, const Config::ObjectConfig& config)
         : _ctx(ctx), _name(config.name())
@@ -40,10 +46,7 @@ public:
     // virtual void for_each_quadratic_energy(std::function<void(QuadraticEnergy*)> func) = 0;
     // virtual void for_each_quadratic_energy(std::function<void(QuadraticEnergy*)> func) const = 0;
 
-protected:
-    Sim::SimulationContext* _ctx;
 
-    std::string _name;
 };
 
 } // namespace SimObject
