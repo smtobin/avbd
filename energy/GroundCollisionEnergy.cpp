@@ -31,7 +31,7 @@ Vec3r GroundCollisionEnergy::gradient(int index, Real /* dt */) const
     }
     else
     {
-        _particle->in_collision = true;
+        _particle->in_collision = 1;
         return Vec3r(0, _k_cur[0]*_particle->position[1], 0);
     }
 }

@@ -19,6 +19,16 @@ struct EnergyRegistry
         , ground_collision(capacity)
     {}
 
+    /** Statically-typed getter for a specific energy type */
+    template<EnergyType E>
+    auto& get()
+    {
+        if constexpr (E == EnergyType::NEO_HOOKEAN)
+            return neo_hookean;
+        else if constexpr (E == EnergyType::GROUND_COLLISION)
+            return ground_collision;
+    }
+
     /** Apply a function to each set of energies. */
     template <typename Func>
     void forEachEnergyType(Func&& f)

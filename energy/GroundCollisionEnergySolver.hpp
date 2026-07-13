@@ -8,6 +8,9 @@ namespace Energy
 
 struct GroundCollisionConstraintSolver
 {
+    /** Public typedefs */
+    using PoolType = GroundCollisionEnergyPool;
+    
     static Real evaluateConstraint(
         unsigned c_idx,
         const GroundCollisionEnergyPool& energies,

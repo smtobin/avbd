@@ -7,6 +7,7 @@
 struct ParticlePool : TombstonePool
 {
     std::vector<Vec3r> positions;                   // particle positions
+    std::vector<Vec3r> buffered_positions;          // position buffer to avoid race conditions for 
     std::vector<Vec3r> inertial_positions;          // particle inertial positions ('y' in the VBD paper)
     std::vector<Vec3r> previous_positions;          // particle previous positions
     std::vector<Vec3r> last_iter_positions;         // particle position at the end of the previous iteration (useful for Chebyshev acceleration)
@@ -14,7 +15,7 @@ struct ParticlePool : TombstonePool
     std::vector<Vec3r> velocities;                  // particle velocities
     std::vector<Vec3r> previous_velocities;         // particle previous velocities
     std::vector<Real> masses;                       // particle masses
-    std::vector<bool> in_collision;                 // whether or not particles are in collision
+    std::vector<uint8_t> in_collision;              // whether or not particles are in collision - use uint8 instead of bool to avoid parallel writes to the same byte 
 
     /** Constructor initializes memory
      * @param capacity : the capacity of the memory pool
@@ -22,6 +23,7 @@ struct ParticlePool : TombstonePool
     explicit ParticlePool(unsigned capacity)
         : TombstonePool(capacity)
         , positions(capacity)
+        , buffered_positions(capacity)
         , inertial_positions(capacity)
         , previous_positions(capacity)
         , last_iter_positions(capacity)
@@ -58,7 +60,7 @@ struct ParticlePool : TombstonePool
         previous_velocities[slot] = Vec3r::Zero();
 
         // assume particle is not initially in collision
-        in_collision[slot] = false;
+        in_collision[slot] = 0;
 
         return slot;
     }
