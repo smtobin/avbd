@@ -31,6 +31,12 @@ public:
         _extractParameter("scaling", node, _scaling);
     }
 
+    explicit TetMeshObjectConfig(const std::string& filename)
+        : ObjectConfig()
+    {
+        _filename.value = filename;
+    }
+
     bool positionByCOM() const { return _position_by_com.value; }
 
     std::string filename() const { return _filename.value; }

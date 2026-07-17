@@ -7,13 +7,10 @@ void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitive
 {
     // compute AABBs and Morton codes
     computeAABB_MortonCode(particle_pool, col_pool);
-
     // radix sort by Morton code
     radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.totalSize());
-
     // construct the radix tree
     constructTree(col_pool, lbvh);
-
     // coalesce bounding boxes using radix tree
     assembleBVH(col_pool, lbvh);
 }
@@ -25,7 +22,7 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, Coll
     for (unsigned p_idx : col_pool)
     {
         // AABB
-        AABB box;
+        AABB box = AABB::empty();
         for (unsigned k = 0; k < col_pool.num_particles[p_idx]; k++)
         {
             box.expand(particle_pool.positions[col_pool.particle_indices[p_idx][k]]);
@@ -97,7 +94,9 @@ void LBVHBuilder::constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh)
 {
     int n = static_cast<int>(col_pool.totalSize());
     lbvh.resize(n);
-    lbvh.parent.assign(lbvh.parent.size(), INVALID);
+    lbvh.parent.assign(lbvh.parent.size(), LBVH::INVALID);
+    lbvh.left.assign(lbvh.left.size(), LBVH::INVALID);
+    lbvh.right.assign(lbvh.right.size(), LBVH::INVALID);
 
     auto delta = [&](int i, int j)
     {
@@ -179,7 +178,7 @@ void LBVHBuilder::constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh)
 
     // find root - start at an arbitrary leaf node and go upwards
     unsigned node = 0;
-    while (lbvh.parent[node] != INVALID)
+    while (lbvh.parent[node] != LBVH::INVALID)
         node = lbvh.parent[node];
     lbvh.root = node;
 
@@ -214,14 +213,15 @@ void LBVHBuilder::assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh)
             unsigned prim = col_pool.sorted_order[lbvh.leaf_start[l_idx] + i];
             box.expand(col_pool.aabb[prim]);
         }
+
         lbvh.min_x[l_idx] = box.min[0]; lbvh.min_y[l_idx] = box.min[1]; lbvh.min_z[l_idx] = box.min[2];
         lbvh.max_x[l_idx] = box.max[0]; lbvh.max_y[l_idx] = box.max[1]; lbvh.max_z[l_idx] = box.max[2];
 
         unsigned node = lbvh.parent[l_idx];
-        while (node != INVALID)
+        while (node != LBVH::INVALID)
         {
             if (visited[node].fetch_add(1) == 0)
-                return; // first thread here - the sibling will finish the union
+                break; // first thread here - the sibling will finish the union
 
             // merge the AABB
             unsigned l = lbvh.left[node];
@@ -230,9 +230,9 @@ void LBVHBuilder::assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh)
             lbvh.min_x[node] = std::min(lbvh.min_x[l], lbvh.min_x[r]);
             lbvh.min_y[node] = std::min(lbvh.min_y[l], lbvh.min_y[r]);
             lbvh.min_z[node] = std::min(lbvh.min_z[l], lbvh.min_z[r]);
-            lbvh.max_x[node] = std::min(lbvh.max_x[l], lbvh.max_x[r]);
-            lbvh.max_y[node] = std::min(lbvh.max_y[l], lbvh.max_y[r]);
-            lbvh.max_z[node] = std::min(lbvh.max_z[l], lbvh.max_z[r]);
+            lbvh.max_x[node] = std::max(lbvh.max_x[l], lbvh.max_x[r]);
+            lbvh.max_y[node] = std::max(lbvh.max_y[l], lbvh.max_y[r]);
+            lbvh.max_z[node] = std::max(lbvh.max_z[l], lbvh.max_z[r]);
 
             lbvh.subtree_size[node] = lbvh.subtree_size[l] + lbvh.subtree_size[r];
 

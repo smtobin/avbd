@@ -8,6 +8,7 @@ namespace Collision
 
 void CollisionPrimitivePool::addObject(const SimObject::TetMeshObject& mesh_obj)
 {
+    std::cout << "CollisionPrimitivePool::addObject" << std::endl;
     const ParticleTetMesh& mesh = mesh_obj.mesh();
     for (const auto& f : mesh.faces())
     {

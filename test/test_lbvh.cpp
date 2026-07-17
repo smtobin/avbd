@@ -3,7 +3,26 @@
 #include "collision/LBVHBuilder.hpp"
 #include "collision/LBVHTraversal.hpp"
 
-int main()
+#include "simobject/TetMeshObject.hpp"
+
+#include "simulation/SimulationContext.hpp"
+
+#include <vtkActor.h>
+#include <vtkAppendPolyData.h>
+#include <vtkCamera.h>
+#include <vtkCubeSource.h>
+#include <vtkNamedColors.h>
+#include <vtkNew.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkProperty.h>
+#include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtkInteractorStyleTrackballCamera.h>
+#include <vtkOpenGLRenderer.h>
+
+#include <gmsh.h>
+
+void testRadixTree()
 {
     int capacity = 1000;
     Collision::CollisionPrimitivePool col_pool(capacity);
@@ -41,8 +60,173 @@ int main()
         std::cout << "Node " << i << ": Left=" << bvh.left[i] << " Right=" << bvh.right[i] << " Parent=" << bvh.parent[i] << " Leaf count=" << bvh.leaf_count[i] << std::endl;
     }
     bvh.printTreeWithInfo(col_pool);
+}
+
+void visualizeBVH(const Collision::LBVH& lbvh)
+{
+    // find max depth
+    std::vector<unsigned> depths = lbvh.nodeDepths();
+
+    unsigned max_depth = *std::max_element(depths.begin(), depths.end());
+
+    std::cout << "Max depth: " << max_depth << std::endl;
+
+    // build geometry for each level
+    std::vector<vtkSmartPointer<vtkAppendPolyData>> appenders(max_depth + 1);
+
+    for (auto& a : appenders)
+        a = vtkSmartPointer<vtkAppendPolyData>::New();
+
+    for (unsigned i = 0; i < depths.size(); ++i)
+    {
+        auto cube = vtkSmartPointer<vtkCubeSource>::New();
+
+        cube->SetBounds(
+            lbvh.min_x[i], lbvh.max_x[i],
+            lbvh.min_y[i], lbvh.max_y[i],
+            lbvh.min_z[i], lbvh.max_z[i]);
+
+        cube->Update();
+
+        // Vec3r min_( lbvh.min_x[i],
+        //     lbvh.min_y[i],
+        //     lbvh.min_z[i]);
+        // Vec3r max_(lbvh.max_x[i],
+        //     lbvh.max_y[i],
+        //     lbvh.max_z[i]);
+        // std::cout << "Depth " << depths[i] << " AABB " << min_.transpose() << " to " << max_.transpose() << std::endl;
+
+        appenders[depths[i]]->AddInputData(cube->GetOutput());
+    }
+
+    for (auto& a : appenders)
+        a->Update();
+
+    // create render window and renderer
+    vtkNew<vtkOpenGLRenderer> renderer;
+    renderer->SetBackground(0.1, 0.1, 0.15);
+
+    vtkNew<vtkRenderWindow> render_window;
+    render_window->AddRenderer(renderer);
+    render_window->SetSize(1200, 900);
+
+    vtkNew<vtkRenderWindowInteractor> interactor;
+    vtkNew<vtkInteractorStyleTrackballCamera> style;
+    interactor->SetInteractorStyle(style);
+    interactor->SetRenderWindow(render_window);
+
+    // render each level separately
+    vtkNew<vtkNamedColors> colors;
+
+    std::vector<std::array<double,3>> palette =
+    {
+        {1.0,0.0,0.0},
+        {1.0,0.5,0.0},
+        {1.0,1.0,0.0},
+        {0.0,1.0,0.0},
+        {0.0,1.0,1.0},
+        {0.0,0.4,1.0},
+        {0.7,0.0,1.0}
+    };
+
+    for (unsigned d = 0; d <= max_depth; ++d)
+    {
+        vtkNew<vtkPolyDataMapper> mapper;
+        mapper->SetInputConnection(appenders[d]->GetOutputPort());
+
+        vtkNew<vtkActor> actor;
+        actor->SetMapper(mapper);
+
+        auto c = palette[d % palette.size()];
+
+        actor->GetProperty()->SetColor(c[0], c[1], c[2]);
+
+        // actor->GetProperty()->SetOpacity(0.15);
+        actor->GetProperty()->SetRepresentationToWireframe();
+        actor->GetProperty()->SetLineWidth(2.0);
+        actor->GetProperty()->SetOpacity(1.0);
+
+        renderer->AddActor(actor);
+    }
+
+    renderer->ResetCamera();
+    render_window->Render();
+    interactor->Initialize();
+    interactor->Start();
+}
+
+void testFewTrianglesBVH()
+{
+    Collision::CollisionPrimitivePool col_pool(1000);
+    std::vector<std::array<Vec3r, 3>> triangle_vertices = {
+        {
+            Vec3r(0.0, 0.0, 0.0),
+            Vec3r(1.0, 0.0, 0.5),
+            Vec3r(0.0, 1.0, 0.0)
+        },
+        {
+            Vec3r(1.0, 1.0, 1.0),
+            Vec3r(1.2, 1.0, 1.2),
+            Vec3r(1.4, 1.2, 1.2)
+        },
+        {
+            Vec3r(0.6, 0.8, 0.8),
+            Vec3r(0.4, 0.6, 0.6),
+            Vec3r(0.8, 0.4, 0.6)
+        }
+    };
+
+    std::vector<std::array<unsigned, 3>> triangles;
+
+    Sim::SimulationContext ctx;
+    for (const auto& tri : triangle_vertices)
+    {
+        std::array<unsigned, 3> new_tri;
+        for (unsigned v_idx = 0; v_idx < 3; v_idx++)
+        {
+            unsigned idx = ctx.particles.addParticle(tri[v_idx], 0);
+            new_tri[v_idx] = idx;
+        }
+        triangles.push_back(new_tri);
+
+        unsigned c_idx = col_pool.allocSlot();
+        col_pool.type[c_idx] = Collision::PrimitiveType::Triangle;
+        col_pool.particle_indices[c_idx][0] = new_tri[0];
+        col_pool.particle_indices[c_idx][1] = new_tri[1];
+        col_pool.particle_indices[c_idx][2] = new_tri[2];
+        col_pool.num_particles[c_idx] = 3;
+    }
+
+    Collision::LBVH lbvh;
+    Collision::LBVHBuilder::buildBVH(ctx.particles, col_pool, lbvh);
+
+    visualizeBVH(lbvh);
 
     
+}
 
+void testTetMeshBVH()
+{
+    Sim::SimulationContext ctx;
 
+    Config::TetMeshObjectConfig mesh_config("../resource/cube2.msh");
+    SimObject::TetMeshObject mesh_obj(&ctx, mesh_config);
+    mesh_obj.setup();
+
+    Collision::CollisionPrimitivePool col_pool(1000);
+    col_pool.addObject(mesh_obj);
+
+    Collision::LBVH lbvh;
+    Collision::LBVHBuilder::buildBVH(ctx.particles, col_pool, lbvh);
+
+    visualizeBVH(lbvh);
+}
+
+int main()
+{
+    gmsh::initialize();
+
+    testRadixTree();
+    testTetMeshBVH();
+    testFewTrianglesBVH();
 }

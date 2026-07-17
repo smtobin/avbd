@@ -10,8 +10,6 @@ namespace Collision
 
 struct LBVHBuilder
 {
-    static constexpr unsigned INVALID = std::numeric_limits<unsigned>::max();
-
     static void buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh);
 
     static void computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool);

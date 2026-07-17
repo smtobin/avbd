@@ -16,6 +16,8 @@ namespace Collision
  */
 struct LBVH
 {
+    static constexpr unsigned INVALID = std::numeric_limits<unsigned>::max();
+    
     std::vector<Real> min_x, min_y, min_z;  // bounding box min coords
     std::vector<Real> max_x, max_y, max_z;  // bounding box max coords
     std::vector<unsigned> left, right;      // left and right children
@@ -39,18 +41,20 @@ struct LBVH
 
     unsigned numPrimitives() const { return (parent.size() + 1)/2; }
 
-    void printTree()
+    void printTree() const
     {
         _printTreeImpl(root);
     }
 
-    void printTreeWithInfo(const CollisionPrimitivePool& pool)
+    void printTreeWithInfo(const CollisionPrimitivePool& pool) const
     {
         _printTreeWithInfoImpl(root, pool);
     }
 
+    std::vector<unsigned> nodeDepths() const;
+
 private:
-    void _printTreeImpl(unsigned node, const std::string& prefix = "", bool is_left = true)
+    void _printTreeImpl(unsigned node, const std::string& prefix = "", bool is_left = true) const
     {
         std::string node_str;
         if (node >= numPrimitives())
@@ -73,7 +77,7 @@ private:
                 false);
     }
 
-    void _printTreeWithInfoImpl(unsigned node, const CollisionPrimitivePool& pool, const std::string& prefix = "", bool is_left = true);
+    void _printTreeWithInfoImpl(unsigned node, const CollisionPrimitivePool& pool, const std::string& prefix = "", bool is_left = true) const;
 };
 
 } // namespace Collision

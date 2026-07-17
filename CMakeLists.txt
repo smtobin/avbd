@@ -95,7 +95,7 @@ add_executable(TestNeoHookeanAccumulate test/test_neohookean_accumulate.cpp)
 target_link_libraries(TestNeoHookeanAccumulate Energy Eigen3::Eigen)
 
 add_executable(TestLBVH test/test_lbvh.cpp)
-target_link_libraries(TestLBVH Eigen3::Eigen SimObject Collision)
+target_link_libraries(TestLBVH Eigen3::Eigen SimObject Collision gmsh ${VTK_LIBRARIES})
 
 
 
@@ -103,6 +103,11 @@ target_link_libraries(TestLBVH Eigen3::Eigen SimObject Collision)
 
 vtk_module_autoinit(
   TARGETS Sim
+  MODULES ${VTK_LIBRARIES}
+)
+
+vtk_module_autoinit(
+  TARGETS TestLBVH
   MODULES ${VTK_LIBRARIES}
 )
 
