@@ -147,8 +147,8 @@ public:
     /** Compute start and end indices for worker thread when iterating over a TombstonePool. */
     std::pair<unsigned, unsigned> _computeStartEnd(unsigned w_idx, const TombstonePool& pool)
     {
-        unsigned num = pool.highest_index+1;
-        return _computeStartEnd(w_idx, pool.highest_index+1);
+        unsigned num = pool.totalSize();
+        return _computeStartEnd(w_idx, pool.totalSize());
     }
 
     /** Compute start and end indices for worker thread when iterating over a number of objects. */

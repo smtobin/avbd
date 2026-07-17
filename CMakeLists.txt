@@ -94,6 +94,9 @@ target_link_libraries(TestEnergy Energy Eigen3::Eigen)
 add_executable(TestNeoHookeanAccumulate test/test_neohookean_accumulate.cpp)
 target_link_libraries(TestNeoHookeanAccumulate Energy Eigen3::Eigen)
 
+add_executable(TestLBVH test/test_lbvh.cpp)
+target_link_libraries(TestLBVH Eigen3::Eigen SimObject Collision)
+
 
 
 # vtk_module_autoinit is needed

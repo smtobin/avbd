@@ -169,6 +169,12 @@ namespace Config
     class RigidSphereConfig;
 }
 
+namespace Collision
+{
+    struct CollisionPrimitivePool;
+    struct LBVH;
+}
+
 using ObjectConfigs_TypeList = TypeList<
     Config::RigidSphereConfig,
     Config::TetMeshObjectConfig

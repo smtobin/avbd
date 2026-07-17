@@ -23,6 +23,7 @@ struct LBVH
     std::vector<unsigned> leaf_start;       // index into sorted order where this leaf's primitives begin
     std::vector<unsigned> leaf_count;       // how many consecutive primitives belong to this leaf
     std::vector<unsigned> subtree_size;     // total leaves under this node (leaves included)
+    unsigned root;
 
     void resize(unsigned num_primitives)
     {
@@ -33,7 +34,46 @@ struct LBVH
         parent.resize(num_nodes);
         leaf_start.resize(num_nodes, 0);
         leaf_count.resize(num_nodes, 0);
+        subtree_size.resize(num_nodes, 0);
     }
+
+    unsigned numPrimitives() const { return (parent.size() + 1)/2; }
+
+    void printTree()
+    {
+        _printTreeImpl(root);
+    }
+
+    void printTreeWithInfo(const CollisionPrimitivePool& pool)
+    {
+        _printTreeWithInfoImpl(root, pool);
+    }
+
+private:
+    void _printTreeImpl(unsigned node, const std::string& prefix = "", bool is_left = true)
+    {
+        std::string node_str;
+        if (node >= numPrimitives())
+            node_str = "I" + std::to_string(node - numPrimitives());
+        else
+            node_str = "L" + std::to_string(node);
+
+        std::cout << prefix
+                << (is_left ? "├── " : "└── ")
+                << node_str << '\n';
+
+        if (leaf_count[node] > 0) return;
+
+        _printTreeImpl(left[node],
+                prefix + (is_left ? "│   " : "    "),
+                true);
+
+        _printTreeImpl(right[node],
+                prefix + (is_left ? "│   " : "    "),
+                false);
+    }
+
+    void _printTreeWithInfoImpl(unsigned node, const CollisionPrimitivePool& pool, const std::string& prefix = "", bool is_left = true);
 };
 
 } // namespace Collision

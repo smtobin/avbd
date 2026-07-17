@@ -9,7 +9,7 @@ void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitive
     computeAABB_MortonCode(particle_pool, col_pool);
 
     // radix sort by Morton code
-    radixSort(col_pool.morton_code, col_pool.sorted_order);
+    radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.totalSize());
 
     // construct the radix tree
     constructTree(col_pool, lbvh);
@@ -39,8 +39,8 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, Coll
     }
 
     // Morton code
-    Vec3r extent = scene_bounds.max - scene_bounds.min;
-    extent = extent.cwiseMax(Vec3r(1e-6)); // guard against degenerate axes
+    Vec3r extent = scene_box.max - scene_box.min;
+    extent = extent.cwiseMax(1e-6); // guard against degenerate axes
     for (unsigned p_idx : col_pool)
     {
         // normalize centroid between [0,1]^3
@@ -50,13 +50,13 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, Coll
     }
 }
 
-void LBVHBuilder::radixSort(const std::vector<uint64_t>& unsorted, std::vector<unsigned>& sorted_order)
+void LBVHBuilder::radixSort(const std::vector<uint64_t>& unsorted, std::vector<unsigned>& sorted_order, unsigned size)
 {
 
-    sorted_order.resize(unsorted.size());
+    sorted_order.resize(size);
     std::iota(sorted_order.begin(), sorted_order.end(), 0);
 
-    std::vector<unsigned> temp(unsorted.size());
+    std::vector<unsigned> temp(size);
 
     constexpr int BITS = 8;
     constexpr int BUCKETS = 1 << BITS;
@@ -95,11 +95,11 @@ void LBVHBuilder::radixSort(const std::vector<uint64_t>& unsorted, std::vector<u
 
 void LBVHBuilder::constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh)
 {
-    unsigned n = col_pool.morton_code.size();
+    int n = static_cast<int>(col_pool.totalSize());
     lbvh.resize(n);
     lbvh.parent.assign(lbvh.parent.size(), INVALID);
 
-    auto delta = [&](unsigned i, unsigned j)
+    auto delta = [&](int i, int j)
     {
         if (j < 0 || j >= n)
             return -1;
@@ -113,7 +113,7 @@ void LBVHBuilder::constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh)
     };
 
     // iterate over internal nodes
-    for (unsigned i = 0; i < internal.size(); i++)
+    for (int i = 0; i < n-1; i++)
     {
         // "direction" of interval
         int d = (delta(i, i + 1) - delta(i, i - 1) >= 0) ? 1 : -1;
@@ -152,7 +152,7 @@ void LBVHBuilder::constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh)
 
 
         // index of the current internal node in the global LBVH arrays
-        unsigned global_idx = i+n;
+        unsigned global_idx = static_cast<unsigned>(i) + n;
 
         if (std::min(i, j) == gamma)
         {
@@ -176,13 +176,15 @@ void LBVHBuilder::constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh)
             lbvh.parent[n + gamma + 1] = global_idx;
         }
     }
-}
 
-void LBVHBuilder::assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh)
-{
+    // find root - start at an arbitrary leaf node and go upwards
+    unsigned node = 0;
+    while (lbvh.parent[node] != INVALID)
+        node = lbvh.parent[node];
+    lbvh.root = node;
+
     // process leaves
-    unsigned n = col_pool.morton_code.size();
-    for (unsigned l_idx = 0; l_idx < n; l_idx++)
+    for (int l_idx = 0; l_idx < n; l_idx++)
     {
         lbvh.leaf_start[l_idx] = l_idx;
         lbvh.leaf_count[l_idx] = 1;
@@ -190,13 +192,17 @@ void LBVHBuilder::assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh)
     }
 
     // internal nodes
-    for (unsigned idx = 0; idx < n-1; idx++)
+    for (int idx = 0; idx+1 < n; idx++)
     {
         lbvh.leaf_count[n + idx] = 0;
     }
+}
+
+void LBVHBuilder::assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh)
+{
+    unsigned n = col_pool.totalSize();
 
     // refit pass
-
     std::vector<std::atomic<uint8_t>> visited(2 * n - 1);
 
     // start at leaves, then walk up

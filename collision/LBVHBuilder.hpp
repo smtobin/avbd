@@ -10,16 +10,16 @@ namespace Collision
 
 struct LBVHBuilder
 {
-    constexpr unsigned INVALID = std::numeric_limits<unsigned>::max();
+    static constexpr unsigned INVALID = std::numeric_limits<unsigned>::max();
 
     static void buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh);
 
     static void computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool);
-    static void radixSort(const std::vector<uint64_t>& unsorted, std::vector<unsigned>& sorted_order);
+    static void radixSort(const std::vector<uint64_t>& unsorted, std::vector<unsigned>& sorted_order, unsigned size);
     static void constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh);
-    static void assembleBVH(CollisionPrimtivePool& col_pool, LBVH& lbvh);
+    static void assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh);
 
-    inline int commonPrefixLen(uint64_t code_i, unsigned i, uint64_t code_j, unsigned j)
+    static inline int commonPrefixLen(uint64_t code_i, unsigned i, uint64_t code_j, unsigned j)
     {
         if (code_i == code_j)
         {
@@ -42,9 +42,9 @@ struct LBVHBuilder
 
     static inline uint32_t morton3D_32(const Vec3r& p_normalized)
     {
-        Real x = std::clamp(p_normalized.x * 1024.0, 0.0, 1023.0);
-        Real y = std::clamp(p_normalized.y * 1024.0, 0.0, 1023.0);
-        Real z = std::clamp(p_normalized.z * 1024.0, 0.0, 1023.0);
+        Real x = std::clamp(p_normalized[0] * 1024.0, 0.0, 1023.0);
+        Real y = std::clamp(p_normalized[1] * 1024.0, 0.0, 1023.0);
+        Real z = std::clamp(p_normalized[2]* 1024.0, 0.0, 1023.0);
         uint32_t xx = expandBits10(static_cast<uint32_t>(x));
         uint32_t yy = expandBits10(static_cast<uint32_t>(y));
         uint32_t zz = expandBits10(static_cast<uint32_t>(z));
@@ -64,9 +64,9 @@ struct LBVHBuilder
 
     static inline uint64_t morton3D_64(const Vec3r& p_normalized)
     {
-        Real x = std::clamp(p_normalized.x * 2097152.0, 0.0, 2097151.0); // 2^21
-        Real y = std::clamp(p_normalized.y * 2097152.0, 0.0, 2097151.0);
-        Real z = std::clamp(p_normalized.z * 2097152.0, 0.0, 2097151.0);
+        Real x = std::clamp(p_normalized[0] * 2097152.0, 0.0, 2097151.0); // 2^21
+        Real y = std::clamp(p_normalized[1] * 2097152.0, 0.0, 2097151.0);
+        Real z = std::clamp(p_normalized[2] * 2097152.0, 0.0, 2097151.0);
         uint64_t xx = expandBits21(static_cast<uint64_t>(x));
         uint64_t yy = expandBits21(static_cast<uint64_t>(y));
         uint64_t zz = expandBits21(static_cast<uint64_t>(z));

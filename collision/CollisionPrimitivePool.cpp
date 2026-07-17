@@ -13,7 +13,9 @@ void CollisionPrimitivePool::addObject(const SimObject::TetMeshObject& mesh_obj)
     {
         unsigned slot = allocSlot();
         type[slot] = PrimitiveType::Triangle;
-        particle_indices[slot] = f;
+        particle_indices[slot][0] = f[0];
+        particle_indices[slot][1] = f[1];
+        particle_indices[slot][2] = f[2];
         num_particles[slot] = 3;
         object_id[slot] = 0; /** TODO: (07/17/26) Fill this out */
     }

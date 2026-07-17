@@ -45,6 +45,9 @@ struct TombstonePool
     TombstonePool(TombstonePool&&) = default;
     TombstonePool& operator=(TombstonePool&&) = default;
 
+    /** The total size of the pool, from index 0 to the highest active index */
+    unsigned totalSize() const { return highest_index+1; }
+
     /** Allocates space for a new element based on the free slots.
      * @returns the index of the slot that has been allocated for the new element.
      */

@@ -13,7 +13,7 @@ struct AABB
 
     static AABB empty()
     {
-        return { Vec3r(std::numeric_limits<Real>::max()), Vec3r(std::numeric_limits<Real>::lowest()) };
+        return { std::numeric_limits<Real>::max()*Vec3r::Ones(), std::numeric_limits<Real>::lowest()*Vec3r::Ones() };
     }
 
     void expand(const Vec3r& p)
@@ -30,8 +30,8 @@ struct AABB
 
     void pad(Real margin)
     {
-        min -= Vec3r(margin);
-        max += Vec3r(margin);
+        min.array() -= margin;
+        max.array() += margin;
     }
 
     Vec3r center()  const { return (min + max) * Real(0.5); }
