@@ -186,6 +186,7 @@ void LBVHBuilder::assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh)
     {
         lbvh.leaf_start[l_idx] = l_idx;
         lbvh.leaf_count[l_idx] = 1;
+        lbvh.subtree_size[l_idx] = 1;
     }
 
     // internal nodes
@@ -226,6 +227,8 @@ void LBVHBuilder::assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh)
             lbvh.max_x[node] = std::min(lbvh.max_x[l], lbvh.max_x[r]);
             lbvh.max_y[node] = std::min(lbvh.max_y[l], lbvh.max_y[r]);
             lbvh.max_z[node] = std::min(lbvh.max_z[l], lbvh.max_z[r]);
+
+            lbvh.subtree_size[node] = lbvh.subtree_size[l] + lbvh.subtree_size[r];
 
             node = lbvh.parent[node];
         }

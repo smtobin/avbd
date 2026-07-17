@@ -22,6 +22,7 @@ struct LBVH
     std::vector<unsigned> parent;           // parent
     std::vector<unsigned> leaf_start;       // index into sorted order where this leaf's primitives begin
     std::vector<unsigned> leaf_count;       // how many consecutive primitives belong to this leaf
+    std::vector<unsigned> subtree_size;     // total leaves under this node (leaves included)
 
     void resize(unsigned num_primitives)
     {

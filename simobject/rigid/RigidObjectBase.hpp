@@ -16,6 +16,7 @@ protected:
 public:
     RigidObject_Base(Sim::SimulationContext* ctx, const Config::RigidObjectConfig& config);
 
+    unsigned com() const { return _com; }
     const Vec3r& position() const;
     const Quaternion& rotation() const;
     bool fixed() const;

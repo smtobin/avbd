@@ -1,0 +1,32 @@
+#include "collision/CollisionPrimitivePool.hpp"
+
+#include "simobject/TetMeshObject.hpp"
+#include "simobject/rigid/RigidSphere.hpp"
+
+namespace Collision
+{
+
+void CollisionPrimitivePool::addObject(const SimObject::TetMeshObject& mesh_obj)
+{
+    const ParticleTetMesh& mesh = mesh_obj.mesh();
+    for (const auto& f : mesh.faces())
+    {
+        unsigned slot = allocSlot();
+        type[slot] = PrimitiveType::Triangle;
+        particle_indices[slot] = f;
+        num_particles[slot] = 3;
+        object_id[slot] = 0; /** TODO: (07/17/26) Fill this out */
+    }
+}
+
+void CollisionPrimitivePool::addObject(const SimObject::RigidSphere& sphere)
+{
+    /** TODO: (07/17/26) mark that this particle is oriented */
+    unsigned slot = allocSlot();
+    type[slot] = PrimitiveType::RigidSphere;
+    particle_indices[slot] = {sphere.com()};
+    num_particles[slot] = 1;
+    object_id[slot] = 0; /** TODO: (07/17/26) Fill this out */
+}
+
+} // namespace Collision

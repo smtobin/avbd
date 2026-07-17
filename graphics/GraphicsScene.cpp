@@ -249,7 +249,7 @@ void GraphicsScene::update()
 
 void GraphicsScene::addObject(const SimObject::TetMeshObject* mesh_obj, const Config::MeshRenderConfig& render_config)
 {
-    std::unique_ptr<MeshGraphicsObject> mesh_go = std::make_unique<MeshGraphicsObject>(mesh_obj->mesh(), render_config);
+    std::unique_ptr<MeshGraphicsObject> mesh_go = std::make_unique<MeshGraphicsObject>(&mesh_obj->mesh(), render_config);
     _renderer->AddActor(mesh_go->actor());
 
     _graphics_objects.push_back(std::move(mesh_go));

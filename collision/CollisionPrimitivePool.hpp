@@ -49,6 +49,14 @@ struct CollisionPrimitivePool : TombstonePool
     {
 
     }
+
+    /** Add objects
+     * 
+     * TODO: (07/17/26) Make this store object id and a pointer to update with changing topology
+     * Not really necessary right now
+     */
+    void addObject(const SimObject::TetMeshObject& mesh_obj);
+    void addObject(const SimObject::RigidSphere& sphere);
 };
 
 } // namespace Collision
