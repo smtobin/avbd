@@ -65,7 +65,7 @@ struct LBVHTraversal
         traversePair(bvh, l, r, out_pairs);
     }
 
-    void traverseSelfIterative(const LBVH& bvh, unsigned root,
+    static void traverseSelfIterative(const LBVH& bvh, unsigned root,
                             std::vector<std::pair<unsigned,unsigned>>& out_pairs)
     {
         // stack of node pairs to test against each other
@@ -96,7 +96,7 @@ struct LBVHTraversal
             {
                 if (node_a < node_b)    // avoid adding both (a,b) and (b,a), and avoid (a,a)
                     out_pairs.push_back({node_a, node_b});
-                return;
+                continue;
             }
 
             // if both nodes are the same, we are colliding this subtree against itself

@@ -173,6 +173,11 @@ void testFewTrianglesBVH()
             Vec3r(0.6, 0.8, 0.8),
             Vec3r(0.4, 0.6, 0.6),
             Vec3r(0.8, 0.4, 0.6)
+        },
+        {
+            Vec3r(0.7, 1.1, 1.3),
+            Vec3r(1.1, 1.2, 1.4),
+            Vec3r(0.6, 0.7, 0.7)
         }
     };
 
@@ -200,8 +205,26 @@ void testFewTrianglesBVH()
     Collision::LBVH lbvh;
     Collision::LBVHBuilder::buildBVH(ctx.particles, col_pool, lbvh);
 
-    visualizeBVH(lbvh);
+    std::vector<std::pair<unsigned, unsigned>> collision_pairs;
+    Collision::LBVHTraversal::traverseSelfIterative(lbvh, lbvh.root, collision_pairs);
+    for (const auto& collision_pair : collision_pairs)
+    {
+        std::cout << "Potential collision between nodes " << collision_pair.first << " and " << collision_pair.second << std::endl;
+        std::cout << "BVH Node A - Prim type: " << static_cast<unsigned>(col_pool.type[collision_pair.first]) << "  Particles: ";
+        for (unsigned k = 0; k < col_pool.num_particles[collision_pair.first]; k++)
+        {
+            std::cout << col_pool.particle_indices[collision_pair.first][k] << ", ";
+        }
+        std::cout << std::endl;
+        std::cout << "BVH Node B - Prim type: " << static_cast<unsigned>(col_pool.type[collision_pair.second]) << "  Particles: ";
+        for (unsigned k = 0; k < col_pool.num_particles[collision_pair.first]; k++)
+        {
+            std::cout << col_pool.particle_indices[collision_pair.second][k] << ", ";
+        }
+        std::cout << std::endl;
+    }    
 
+    visualizeBVH(lbvh);
     
 }
 
