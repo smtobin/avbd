@@ -2,6 +2,8 @@
 
 #include "common/common.hpp"
 #include "common/TombstonePool.hpp"
+#include "common/ParticlePool.hpp"
+#include "common/OrientedParticlePool.hpp"
 #include "collision/AABB.hpp"
 #include "collision/SDFPrimitivePool.hpp"
 
@@ -55,6 +57,47 @@ struct CollisionPrimitivePool : TombstonePool
         , sorted_order(capacity)
     {
 
+    }
+
+    /** AABB for an object */
+    inline AABB globalBounds(unsigned p_idx, const ParticlePool& particle_pool, const OrientedParticlePool& oriented_particle_pool) const
+    {
+        switch(type[p_idx])
+        {
+            case PrimitiveType::Triangle:
+            {
+                AABB box = AABB::empty();
+                for (unsigned k = 0; k < 3; k++)
+                {
+                    // expand box based on each triangle vertex
+                    box.expand(particle_pool.positions[particle_indices[p_idx][k]]);
+                }
+                return box;
+            }
+            case PrimitiveType::RigidSDF:
+            {
+                // index of the SDF params in the SDF pool
+                unsigned sdf_idx = particle_indices[p_idx][0];
+                AABB local = SDF::localBounds(sdf_pool.params[sdf_idx]);
+                
+                // transform local AABB to global
+                Vec3r center = 0.5 * (local.min + local.max);
+                Vec3r extent = 0.5 * (local.max - local.min);
+
+                // index of the oriented particle in the oriented particle pool
+                unsigned op_idx = sdf_pool.particles[sdf_idx];
+                Vec3r world_center = oriented_particle_pool.rotations[op_idx] * center + oriented_particle_pool.positions[op_idx];
+                
+                Mat3r abs_R = oriented_particle_pool.rotations[op_idx].toRotationMatrix().cwiseAbs();
+                Vec3r world_extent = abs_R * extent;
+
+                return { world_center - world_extent,  world_center + world_extent };
+            }
+            case PrimitiveType::RodSegment:
+            {
+                throw std::runtime_error("globalBounds not implemented for RodSegment!");
+            }
+        }
     }
 
     /** Add objects

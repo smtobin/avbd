@@ -97,6 +97,8 @@ using Mat4r = Eigen::Matrix<Real, 4, 4>;
 using Mat6r = Eigen::Matrix<Real, 6, 6>;
 using MatXr = Eigen::Matrix<Real,-1,-1>;
 
+using Quaternion = Eigen::Quaternion<Real>;
+
 /** Enum of energy types */
 // enum class EnergyType
 // {

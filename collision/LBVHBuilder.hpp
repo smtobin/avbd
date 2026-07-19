@@ -2,6 +2,7 @@
 
 #include "common/common.hpp"
 #include "common/ParticlePool.hpp"
+#include "common/OrientedParticlePool.hpp"
 #include "collision/CollisionPrimitivePool.hpp"
 #include "collision/LBVH.hpp"
 
@@ -10,9 +11,9 @@ namespace Collision
 
 struct LBVHBuilder
 {
-    static void buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh);
+    static void buildBVH(const ParticlePool& particle_pool, const OrientedParticlePool& oriented_particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh);
 
-    static void computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool);
+    static void computeAABB_MortonCode(const ParticlePool& particle_pool, const OrientedParticlePool& oriented_particle_pool, CollisionPrimitivePool& col_pool);
     static void radixSort(const std::vector<uint64_t>& unsorted, std::vector<unsigned>& sorted_order, unsigned size);
     static void constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh);
     static void assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh);

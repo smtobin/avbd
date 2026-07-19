@@ -25,14 +25,23 @@ public:
         _extractParameter("radius", node, _radius);
     }
 
-    // explicit RigidSphereConfig(const std::string& name, const Vec3r& initial_position, const Vec3r& initial_rotation,
-    //     const Vec3r& initial_velocity, const Vec3r& initial_angular_velocity, bool collisions,
-    //     Real density, bool fixed,
-    //     Real radius)
-    //     : XPBDRigidBodyConfig(name, initial_position, initial_rotation, initial_velocity, initial_angular_velocity, collisions, density, fixed)
-    // {
-    //     _radius.value = radius;
-    // }
+    explicit RigidSphereConfig(
+        const std::string& name,
+        const Vec3r& initial_position,
+        const Vec3r& initial_rotation,
+        const Vec3r& initial_velocity,
+        const Vec3r& initial_angular_velocity,
+        bool collisions,
+        Real mu_s,
+        Real mu_d,
+        Real density,
+        bool fixed,
+        Real radius
+    )
+        : RigidObjectConfig(name, initial_position, initial_rotation, initial_velocity, initial_angular_velocity, collisions, mu_s, mu_d, density, fixed)
+    {
+        _radius.value = radius;
+    }
 
     Real radius() const { return _radius.value; }
 

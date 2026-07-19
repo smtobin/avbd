@@ -4,6 +4,8 @@
 #include "collision/LBVHTraversal.hpp"
 
 #include "simobject/TetMeshObject.hpp"
+#include "simobject/rigid/RigidSphere.hpp"
+
 
 #include "simulation/SimulationContext.hpp"
 
@@ -203,7 +205,7 @@ void testFewTrianglesBVH()
     }
 
     Collision::LBVH lbvh;
-    Collision::LBVHBuilder::buildBVH(ctx.particles, col_pool, lbvh);
+    Collision::LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, col_pool, lbvh);
 
     std::vector<std::pair<unsigned, unsigned>> collision_pairs;
     Collision::LBVHTraversal::traverseSelfIterative(lbvh, lbvh.root, collision_pairs);
@@ -228,6 +230,46 @@ void testFewTrianglesBVH()
     
 }
 
+void testSpheresBVH()
+{
+    Collision::CollisionPrimitivePool col_pool(10, 10);
+    Sim::SimulationContext ctx(100, 100, 100);
+    std::vector<Vec3r> sphere_locs = {
+        Vec3r(1.0, 0.5, 0.2),
+        Vec3r(0.6, 0.5, 0.4),
+        Vec3r(0.2, 0.4, 0.3)
+    };
+    std::vector<Real> sphere_rads = {
+        0.5, 0.2, 0.4
+    };
+
+    std::vector<SimObject::RigidSphere> spheres;
+    for (unsigned i = 0; i < sphere_locs.size(); i++)
+    {
+        Config::RigidSphereConfig sphere_config(
+            "sphere",
+            sphere_locs[i],
+            Vec3r::Zero(),
+            Vec3r::Zero(),
+            Vec3r::Zero(),
+            true,
+            0.5,
+            0.2,
+            1000,
+            false,
+            sphere_rads[i]
+        );
+        spheres.emplace_back(&ctx, sphere_config);
+        col_pool.addObject(spheres.back());
+    }
+
+    Collision::LBVH lbvh;
+    Collision::LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, col_pool, lbvh);
+    visualizeBVH(lbvh);
+
+
+}
+
 void testTetMeshBVH()
 {
     Sim::SimulationContext ctx;
@@ -240,7 +282,7 @@ void testTetMeshBVH()
     col_pool.addObject(mesh_obj);
 
     Collision::LBVH lbvh;
-    Collision::LBVHBuilder::buildBVH(ctx.particles, col_pool, lbvh);
+    Collision::LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, col_pool, lbvh);
 
     visualizeBVH(lbvh);
 }
@@ -252,4 +294,5 @@ int main()
     testRadixTree();
     testTetMeshBVH();
     testFewTrianglesBVH();
+    testSpheresBVH();
 }

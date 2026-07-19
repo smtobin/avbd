@@ -3,10 +3,10 @@
 namespace Collision
 {
 
-void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh)
+void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, const OrientedParticlePool& oriented_particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh)
 {
     // compute AABBs and Morton codes
-    computeAABB_MortonCode(particle_pool, col_pool);
+    computeAABB_MortonCode(particle_pool, oriented_particle_pool, col_pool);
     // radix sort by Morton code
     radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.totalSize());
     // construct the radix tree
@@ -15,24 +15,27 @@ void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitive
     assembleBVH(col_pool, lbvh);
 }
 
-void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool)
+void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, const OrientedParticlePool& oriented_particle_pool, CollisionPrimitivePool& col_pool)
 {
     // iterate through primtivies and compute AABB, centroid, and Morton code
     AABB scene_box;
     for (unsigned p_idx : col_pool)
     {
         // AABB
-        AABB box = AABB::empty();
-        for (unsigned k = 0; k < col_pool.num_particles[p_idx]; k++)
-        {
-            box.expand(particle_pool.positions[col_pool.particle_indices[p_idx][k]]);
-        }
-        col_pool.aabb[p_idx] = box;
+        // AABB box = AABB::empty();
+        // for (unsigned k = 0; k < col_pool.num_particles[p_idx]; k++)
+        // {
+        //     box.expand(particle_pool.positions[col_pool.particle_indices[p_idx][k]]);
+        // }
+        // col_pool.aabb[p_idx] = box;
+
+        col_pool.aabb[p_idx] = col_pool.globalBounds(p_idx, particle_pool, oriented_particle_pool);
+
 
         // centroid
-        col_pool.centroid[p_idx] = box.center();
+        col_pool.centroid[p_idx] = col_pool.aabb[p_idx].center();
 
-        scene_box.expand(box);
+        scene_box.expand(col_pool.aabb[p_idx]);
     }
 
     // Morton code
