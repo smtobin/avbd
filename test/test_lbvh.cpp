@@ -25,7 +25,7 @@
 void testRadixTree()
 {
     int capacity = 1000;
-    Collision::CollisionPrimitivePool col_pool(capacity);
+    Collision::CollisionPrimitivePool col_pool(capacity, 0);
 
     Collision::LBVH bvh;
     /** Test radix tree construction using the example from Karras 2012 */
@@ -157,7 +157,7 @@ void visualizeBVH(const Collision::LBVH& lbvh)
 
 void testFewTrianglesBVH()
 {
-    Collision::CollisionPrimitivePool col_pool(1000);
+    Collision::CollisionPrimitivePool col_pool(1000, 0);
     std::vector<std::array<Vec3r, 3>> triangle_vertices = {
         {
             Vec3r(0.0, 0.0, 0.0),
@@ -236,7 +236,7 @@ void testTetMeshBVH()
     SimObject::TetMeshObject mesh_obj(&ctx, mesh_config);
     mesh_obj.setup();
 
-    Collision::CollisionPrimitivePool col_pool(1000);
+    Collision::CollisionPrimitivePool col_pool(1000, 0);
     col_pool.addObject(mesh_obj);
 
     Collision::LBVH lbvh;

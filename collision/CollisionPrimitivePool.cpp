@@ -24,10 +24,10 @@ void CollisionPrimitivePool::addObject(const SimObject::TetMeshObject& mesh_obj)
 
 void CollisionPrimitivePool::addObject(const SimObject::RigidSphere& sphere)
 {
-    /** TODO: (07/17/26) mark that this particle is oriented */
     unsigned slot = allocSlot();
-    type[slot] = PrimitiveType::RigidSphere;
-    particle_indices[slot] = {sphere.com()};
+    type[slot] = PrimitiveType::RigidSDF;
+    unsigned sdf_slot = sdf_pool.addObject(sphere);
+    particle_indices[slot] = {sdf_slot};
     num_particles[slot] = 1;
     object_id[slot] = 0; /** TODO: (07/17/26) Fill this out */
 }
