@@ -10,10 +10,36 @@
 namespace Collision
 {
 
+/** The type of primitive
+ * 
+ * This is used for storage in the CollisionPrimitivePool.
+ * 
+ * RodSegment: a segment of a rod, generally one element (not implemented)
+ * Triangle: a triangular face in a mesh - defined by the 3 vertices
+ * RigidSDF: a rigid object represented by its SDF. See SDFType enum for supported SDF types.
+ */
 enum class PrimitiveType : uint8_t {
     RodSegment,
     Triangle,
     RigidSDF
+};
+
+/** The type of collision geometry
+ * 
+ * This is used for dispatching the proper narrow-phase collision subroutine.
+ * Basically just makes a flat list of supported geometry in the sim, including the types of rigid SDFs supported.
+ */
+enum class CollisionGeometryType : uint8_t {
+    Triangle=0,
+    RodSegment,
+
+    // rigid SDF types
+    Sphere,
+    Box,
+    Capsule,
+
+    // total number of collision geometries
+    Count
 };
 
 
@@ -57,6 +83,28 @@ struct CollisionPrimitivePool : TombstonePool
         , sorted_order(capacity)
     {
 
+    }
+
+    /** Get the CollisionGeometryType for a primitive in the pool */
+    inline CollisionGeometryType getCollisionGeometryType(unsigned p_idx)
+    {
+        switch(type[p_idx])
+        {
+            case PrimitiveType::RodSegment:
+                return CollisionGeometryType::RodSegment;
+            case PrimitiveType::Triangle:
+                return CollisionGeometryType::Triangle;
+            case PrimitiveType::RigidSDF:
+                switch(sdf_pool.params[particle_indices[p_idx][0]].type)
+                {
+                    case SDFType::Sphere:
+                        return CollisionGeometryType::Sphere;
+                    case SDFType::Box:
+                        return CollisionGeometryType::Box;
+                    case SDFType::Capsule:
+                        return CollisionGeometryType::Capsule;
+                }
+        }
     }
 
     /** AABB for an object */

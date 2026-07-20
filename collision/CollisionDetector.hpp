@@ -8,14 +8,25 @@ namespace Collision
 struct CollisionDetector
 {
 private:
-    static bool _collision_table_initialized;
-    // using NarrowPhaseFn = bool(*)(const Primitive&, const Primitive&, Contact&);
-    // constexpr static NarrowPhaseFn _collision_table[(size_t)PrimitiveType::Count][(size_t)PrimitiveType::Count] =
-    // {
+    /** Generates a unique constexpr collision key for each pair of colliding objects that we can switch over. */
+    static constexpr unsigned _makeCollisionKey(CollisionGeometryType a, CollisionGeometryType b)
+    {
+        unsigned ia = static_cast<unsigned>(a);
+        unsigned ib = static_cast<unsigned>(b);
 
-    // }
-    static void _initCollisionTable();
+        if (ia > ib)
+            std::swap(ia, ib);
 
+        return (ia << 8) | ib;
+    }
+    
+    /** Perform narrow-phase collision detection. */
+    inline static void _narrowPhaseCollisionDetection(const std::vector<std::pair<unsigned, unsigned>>& potential_collisions);
+
+    /** Specific subroutines for primitive-primitive narrow-phase collision checks */
+    inline static void _triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere);
+    inline static void _triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2);
+    inline static void _sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2);
     
 
 public:
