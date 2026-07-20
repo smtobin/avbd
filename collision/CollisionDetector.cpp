@@ -27,6 +27,31 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 
 }
 
+bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigned pi, unsigned pj)
+{
+    // always test different objects
+    if (cpool.object_id[pi] == cpool.object_id[pj])
+        return false;
+
+    // check if primitives share vertex
+    // if so, skip the collision
+    const auto& inds_i = cpool.particle_indices[pi];
+    const auto& inds_j = cpool.particle_indices[pj];
+    unsigned cnt_i = cpool.num_particles[pi];
+    unsigned cnt_j = cpool.num_particles[pj];
+
+    for (unsigned i = 0; i < cnt_i; i++)
+    {
+        for (unsigned j = 0; j < cnt_j; j++)
+        {
+            if (inds_i[i] == inds_j[j])
+                return true;
+        }
+    }
+
+    return false;
+}
+
 void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& ctx, const std::vector<std::pair<unsigned, unsigned>>& potential_collisions)
 {
     /** TODO: (07/19/26) Parallelize this? */
@@ -38,6 +63,9 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
          */
         unsigned a = potential_collision.first;
         unsigned b = potential_collision.second;
+
+        if (_shouldSkip(ctx.collision_pool, a, b))
+            continue;
 
         CollisionGeometryType type_a = ctx.collision_pool.getCollisionGeometryType(a);
         CollisionGeometryType type_b = ctx.collision_pool.getCollisionGeometryType(b);
@@ -106,12 +134,14 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
 
 void CollisionDetector::_triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2)
 {
-    
+    /** TODO: (07/20/26) triangle-triangle collision detection */
+    throw std::runtime_error("Triangle-triangle collision detection not implemented.")
 }
 
 void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2)
 {
-
+    /** TODO: (07/20/26) sphere-sphere collision detection */
+    throw std::runtime_error("Sphere-sphere collision detetction not implemented.");
 }
 
 } // namespace Collision

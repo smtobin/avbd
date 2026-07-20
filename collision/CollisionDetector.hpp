@@ -20,6 +20,9 @@ private:
         return (ia << 8) | ib;
     }
     
+    /** Helper to skip adjacent primitives before running narrow-phase collision detection */
+    inline static bool _shouldSkip(const CollisionPrimitivePool& cpool, unsigned pi, unsigned pj);
+
     /** Perform narrow-phase collision detection. */
     inline static void _narrowPhaseCollisionDetection(const std::vector<std::pair<unsigned, unsigned>>& potential_collisions);
 
