@@ -7,6 +7,8 @@
 #include "common/ColorList.hpp"
 #include "common/ThreadPool.hpp"
 #include "energy/EnergyRegistry.hpp"
+#include "collision/CollisionPrimitivePool.hpp"
+#include "collision/LBVH.hpp"
 #include "simulation/SimulationParams.hpp"
 
 namespace Sim
@@ -24,6 +26,10 @@ struct SimulationContext
     ParticleAdjacency adjacency;
     ColorList coloring;
 
+    // collision detection
+    Collision::CollisionPrimitivePool collision_pool;
+    Collision::LBVH lbvh;
+
     // simulation parameters
     SimulationParams params;
 
@@ -35,10 +41,11 @@ struct SimulationContext
         
     }
 
-    SimulationContext(unsigned particles_capacity, unsigned oriented_particles_capacity, unsigned energies_capacity)
+    SimulationContext(unsigned particles_capacity, unsigned oriented_particles_capacity, unsigned energies_capacity, unsigned collision_primitive_capacity)
      : particles(particles_capacity)
      , oriented_particles(oriented_particles_capacity)
      , energies(energies_capacity)
+     , collision_pool(collision_primitive_capacity)
     {
         
     }

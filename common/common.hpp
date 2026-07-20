@@ -177,6 +177,11 @@ namespace Collision
     struct LBVH;
 }
 
+namespace Sim
+{
+    struct SimulationContext;
+}
+
 using ObjectConfigs_TypeList = TypeList<
     Config::RigidSphereConfig,
     Config::TetMeshObjectConfig

@@ -1,5 +1,10 @@
 #include "collision/CollisionDetector.hpp"
 
+#include "simulation/SimulationContext.hpp"
+
+#include "collision/LBVHBuilder.hpp"
+#include "collision/LBVHTraversal.hpp"
+
 namespace Collision
 {
 
@@ -15,48 +20,40 @@ void CollisionDetector::_initCollisionTable()
     if (_collision_table_initialized)
         return;
     
-    // first type is a tet mesh
-    _collision_table[static_cast<int>(ColliderType::TET_MESH)][static_cast<int>(ColliderType::TET_MESH)] = [](CollisionDetector* detector, void* a, void* b) {
-        CollisionDetector::_checkCollision(detector, static_cast<SimObject::TetMeshObject*>(a), static_cast<SimObject::TetMeshObject*>(b));
-    };
-    _collision_table[static_cast<int>(ColliderType::TET_MESH)][static_cast<int>(ColliderType::SPHERE)] = [](CollisionDetector* detector, void* a, void* b) {
-        CollisionDetector::_checkCollision(detector, static_cast<SimObject::TetMeshObject*>(a), static_cast<SimObject::TetMeshObject*>(b));
-    };
-
-    // first type is a sphere
-    _collision_table[static_cast<int>(ColliderType::SPHERE)][static_cast<int>(ColliderType::SPHERE)] = [](CollisionDetector* detector, void* a, void* b) {
-        CollisionDetector::_checkCollision(detector, static_cast<SimObject::RigidSphere*>(a), static_cast<SimObject::RigidSphere*>(b));
-    };
-
-    _collision_table[static_cast<int>(ColliderType::SPHERE)][static_cast<int>(ColliderType::TET_MESH)] = [](CollisionDetector* detector, void* a, void* b) {
-        CollisionDetector::_checkCollision(detector, static_cast<SimObject::TetMeshObject*>(b), static_cast<SimObject::RigidSphere*>(a));
-    };
+    // first type is a triangle in a mesh
+    _collision_table[static_cast<unsigned>(PrimitiveType::Triangle)][static_cast<unsigned>(PrimitiveType::Triangle)] = CollisionDetector::_triangleTriangleCollision;
 
     
 
     _collision_table_initialized = true;
 }
 
-CollisionDetector::CollisionDetector()
+void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 {
+    if (!_collision_table_initialized)
+        _initCollisionTable();
+
+    // build BVH
+    LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, ctx.collision_pool, ctx.lbvh);
+
+    // traverse BVH for potential collisions
+    std::vector<std::pair<unsigned, unsigned>> potential_collisions;
+    LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, potential_collisions);
+
+    // narrow-phase collision detection
+    /** TODO: (07/19/26) Parallelize this? */
+    for (const auto& potential_collision : potential_collisions)
+    {
+        /** TODO: (07/19/26) Need to figure this out and get it straight and document it:
+         * Potential collisions = pairs of (leaf) nodes in the BVH. Leaf node index <=> primitive index in collision pool?
+         * Or is it leaf node index <=> sorted order index ==> primitive index?
+         */
+        PrimitiveType type1 = ctx.collision_pool.type[potential_collision.first];
+        PrimitiveType type2 = ctx.collision_pool.type[potential_collision.second];
+
+
+    }
 
 }
-
-void CollisionDetector::_checkCollision(CollisionDetector* detector, SimObject::RigidSphere* sphere1, SimObject::RigidSphere* sphere2)
-{
-    // no sphere-sphere contact
-    return;
-}
-void CollisionDetector::_checkCollision(CollisionDetector* detector, SimObject::TetMeshObject* mesh_obj, SimObject::RigidSphere* sphere)
-{
-    std::cout << "Checking for potential mesh-sphere collision" << std::endl;
-}
-void CollisionDetector::_checkCollision(CollisionDetector* detector, SimObject::TetMeshObject* mesh_obj1, SimObject::TetMeshObject* mesh_obj2)
-{
-    // no mesh-mesh contact
-    return;
-}
-
-
 
 } // namespace Collision
