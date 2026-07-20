@@ -26,7 +26,12 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     // , _g_accel(sim_config.gAccel())
     // , _viewer_refresh_time_ms(1000.0/30.0)
     , _ctx(10000, 1000, 20000, 10000, 1000)
-    , _solver(&_ctx, sim_config.solverIters(), sim_config.iterAcceleration(), std::thread::hardware_concurrency())
+    , _solver(
+        &_ctx,
+        sim_config.solverIters(),
+        sim_config.iterAcceleration(),
+        sim_config.numThreads() ? sim_config.numThreads() : std::thread::hardware_concurrency()
+    )
     , _graphics_scene(sim_config.renderConfig())
     , _config(sim_config)
 {
