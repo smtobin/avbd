@@ -44,7 +44,6 @@ enum class CollisionGeometryType : uint8_t {
 
 
 /** Storage of different collision primitives. Used in collision detection and generating the LBVH. */
-/** TODO: Think about integration of oriented particles (07/16/26) */
 struct CollisionPrimitivePool : TombstonePool
 {
     /** Collision primitive storage */
@@ -54,7 +53,7 @@ struct CollisionPrimitivePool : TombstonePool
     // if the PrimitveType == RigidSDF, then particle_indices[0] is the index in the SDFPrimitivePool
     std::vector<std::array<unsigned, 3>> particle_indices;
     std::vector<uint8_t> num_particles;     // number of particles for each primitive (not sure if this is really necessary)
-    std::vector<unsigned> object_id;        /** TODO: (07/19/26) do something with object ID */
+    std::vector<unsigned> object_id;
 
     SDFPrimitivePool sdf_pool;  // storage of extra data for SDFs
 
