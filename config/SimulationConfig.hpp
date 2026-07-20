@@ -72,6 +72,10 @@ class SimulationConfig : public Config_Base
             {
                 _object_configs.template emplace_back<TetMeshObjectConfig>(obj_node);
             }
+            else if (type == "RigidSphere")
+            {
+                _object_configs.template emplace_back<RigidSphereConfig>(obj_node);
+            }
             else
             {
                 std::cerr << "Unknown type of object! \"" << type << "\" is not a type of simulation object." << std::endl;

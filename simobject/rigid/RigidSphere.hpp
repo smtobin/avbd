@@ -1,3 +1,5 @@
+#pragma once
+
 #include "simobject/rigid/RigidObjectBase.hpp"
 
 #include "config/RigidSphereConfig.hpp"

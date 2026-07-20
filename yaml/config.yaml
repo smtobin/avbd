@@ -41,3 +41,7 @@ objects:
     draw-edges: True
     draw-faces: True
     color: [1.0, 0.5, 0]
+
+  - 
+    type: "RigidSphere"
+    fixed: true
