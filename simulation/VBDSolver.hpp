@@ -9,6 +9,7 @@
 #include "energy/GroundCollisionEnergySolver.hpp"
 
 #include <chrono>
+#include <thread>
 
 namespace Sim
 {

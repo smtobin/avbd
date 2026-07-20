@@ -5,12 +5,12 @@ set(SIMULATION_DIR "./")
 
 set(SIMULATION_HEADERS
     ${SIMULATION_DIR}/Simulation.hpp
-    ${SIMULATION_DIR}/SimulationLogger.hpp
+    # ${SIMULATION_DIR}/SimulationLogger.hpp
 )
 
 set(SIMULATION_SOURCES
     ${SIMULATION_DIR}/Simulation.cpp
-    ${SIMULATION_DIR}/SimulationLogger.cpp
+    # ${SIMULATION_DIR}/SimulationLogger.cpp
 )
 
 target_sources(Simulation

@@ -233,7 +233,7 @@ void testFewTrianglesBVH()
 void testSpheresBVH()
 {
     Collision::CollisionPrimitivePool col_pool(10, 10);
-    Sim::SimulationContext ctx(100, 100, 100);
+    Sim::SimulationContext ctx;
     std::vector<Vec3r> sphere_locs = {
         Vec3r(1.0, 0.5, 0.2),
         Vec3r(0.6, 0.5, 0.4),

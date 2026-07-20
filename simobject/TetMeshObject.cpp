@@ -1,6 +1,7 @@
 #include "simobject/TetMeshObject.hpp"
 
 #include "common/mesh/MeshUtils.hpp"
+#include "common/Math.hpp"
 #include "simulation/SimulationContext.hpp"
 
 namespace SimObject

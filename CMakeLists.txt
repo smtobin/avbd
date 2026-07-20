@@ -53,9 +53,9 @@ target_link_libraries(Collision Eigen3::Eigen Common SimObject)
 # add_subdirectory("collision")
 # target_link_libraries(Collision Eigen3::Eigen Common)
 
-add_library(Energy)
-add_subdirectory("energy")
-target_link_libraries(Energy Eigen3::Eigen Common)
+# add_library(Energy)
+# add_subdirectory("energy")
+# target_link_libraries(Energy Eigen3::Eigen Common)
 
 # add_library(Solver)
 # add_subdirectory("solver")
@@ -75,7 +75,7 @@ target_link_libraries(Graphics Eigen3::Eigen ${VTK_LIBRARIES} Common)
 
 add_library(Simulation)
 add_subdirectory("simulation")
-target_link_libraries(Simulation Eigen3::Eigen ${VTK_LIBRARIES} Common Collision SimObject Energy Graphics yaml-cpp)
+target_link_libraries(Simulation Eigen3::Eigen ${VTK_LIBRARIES} Common Collision SimObject Graphics yaml-cpp)
 
 
 #####################################################
@@ -88,11 +88,8 @@ target_link_libraries(Sim Simulation ${VTK_LIBRARIES})
 ###################################################
 # TESTS
 ###################################################
-add_executable(TestEnergy test/test_energy.cpp)
-target_link_libraries(TestEnergy Energy Eigen3::Eigen)
-
 add_executable(TestNeoHookeanAccumulate test/test_neohookean_accumulate.cpp)
-target_link_libraries(TestNeoHookeanAccumulate Energy Eigen3::Eigen)
+target_link_libraries(TestNeoHookeanAccumulate gmsh Common Eigen3::Eigen)
 
 add_executable(TestLBVH test/test_lbvh.cpp)
 target_link_libraries(TestLBVH Eigen3::Eigen SimObject Collision gmsh ${VTK_LIBRARIES})

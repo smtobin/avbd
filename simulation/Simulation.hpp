@@ -3,7 +3,7 @@
 #include "common/common.hpp"
 
 #include "simulation/SimulationContext.hpp"
-#include "simulation/SimulationLogger.hpp"
+// #include "simulation/SimulationLogger.hpp"
 #include "simulation/VBDSolver.hpp"
 
 #include "graphics/GraphicsScene.hpp"
@@ -146,7 +146,7 @@ class Simulation
     std::vector<std::unique_ptr<SimObject::Object_Base>> _objects;
 
     /** Responsible for logging various simulation quantities. */
-    std::unique_ptr<SimulationLogger> _logger;
+    // std::unique_ptr<SimulationLogger> _logger;
 
     /** Responsible for visualization in the sim */
     Graphics::GraphicsScene _graphics_scene;

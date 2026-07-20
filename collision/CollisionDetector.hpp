@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "collision/CollisionPrimitivePool.hpp"
 
 namespace Collision
 {
@@ -24,7 +25,7 @@ private:
     inline static bool _shouldSkip(const CollisionPrimitivePool& cpool, unsigned pi, unsigned pj);
 
     /** Perform narrow-phase collision detection. */
-    inline static void _narrowPhaseCollisionDetection(const std::vector<std::pair<unsigned, unsigned>>& potential_collisions);
+    inline static void _narrowPhaseCollisionDetection(Sim::SimulationContext& ctx, const std::vector<std::pair<unsigned, unsigned>>& potential_collisions);
 
     /** Specific subroutines for primitive-primitive narrow-phase collision checks */
     inline static void _triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere);

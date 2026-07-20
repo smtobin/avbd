@@ -381,7 +381,7 @@ inline Vec3r barycentricCoordinates(const Vec3r& p, const Vec3r& a, const Vec3r&
  * 
  * adapted from: https://github.com/RenderKit/embree/blob/master/tutorials/common/math/closest_point.h
  */
-inline Vec3r closestPoint_PointTriangle(const Vec3r& p, const Vec3r& a, const Vec3r& b, const Vec3r& c)
+inline static Vec3r closestPoint_PointTriangle(const Vec3r& p, const Vec3r& a, const Vec3r& b, const Vec3r& c)
 {
     const Vec3r ab = b - a;
     const Vec3r ac = c - a;
@@ -443,7 +443,7 @@ inline Vec3r closestPoint_PointTriangle(const Vec3r& p, const Vec3r& a, const Ve
  * @param p2,q2 : line segment 2
  * @param s,t (output) the interpolation parameters for the closest points on segment 1 and segment 2, respectively
  */
-inline void closestPoint_SegmentSegment(const Vec3r& p1, const Vec3r& q1, const Vec3r& p2, const Vec3r& q2, Real& s, Real& t)
+inline static void closestPoint_SegmentSegment(const Vec3r& p1, const Vec3r& q1, const Vec3r& p2, const Vec3r& q2, Real& s, Real& t)
 {
     Vec3r d1 = q1 - p1; // Direction vector of segment S1
     Vec3r d2 = q2 - p2; // Direction vector of segment S2
@@ -457,9 +457,7 @@ inline void closestPoint_SegmentSegment(const Vec3r& p1, const Vec3r& q1, const 
     if (a <= EPSILON && e <= EPSILON) {
         // Both segments degenerate into points
         s = t = 0.0;
-        Vec3r c1 = p1;
-        Vec3r c2 = p2;
-        return (c1-c2).squaredNorm();
+        return;
     }
     if (a <= EPSILON) {
         // First segment degenerates into a point
@@ -497,4 +495,5 @@ inline void closestPoint_SegmentSegment(const Vec3r& p1, const Vec3r& q1, const 
             }
         }
     }
+}
 };

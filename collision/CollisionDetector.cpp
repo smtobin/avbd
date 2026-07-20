@@ -12,9 +12,6 @@ namespace Collision
 
 void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 {
-    if (!_collision_table_initialized)
-        _initCollisionTable();
-
     // build BVH
     LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, ctx.collision_pool, ctx.lbvh);
 
@@ -23,7 +20,7 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
     LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, potential_collisions);
 
     // narrow-phase collision detection
-    _narrowPhaseCollisionDetection(potential_collisions);
+    _narrowPhaseCollisionDetection(ctx, potential_collisions);
 
 }
 
@@ -95,7 +92,7 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
                 break;
             }
 
-            case default:
+            default:
             {
                 throw std::runtime_error("Unsupported collision!");
             }
@@ -121,7 +118,7 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     const Vec3r& p = ctx.oriented_particles.positions[sphere_idx];
 
     // closest point on triangle to sphere center
-    Vec3r tri_cp = Math::closestPointOnTriangle(p, v1, v2, v3);
+    Vec3r tri_cp = Math::closestPoint_PointTriangle(p, v1, v2, v3);
 
     // check distance between closest point and sphere center
     Real dist = (tri_cp - p).norm();
@@ -135,7 +132,7 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
 void CollisionDetector::_triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2)
 {
     /** TODO: (07/20/26) triangle-triangle collision detection */
-    throw std::runtime_error("Triangle-triangle collision detection not implemented.")
+    throw std::runtime_error("Triangle-triangle collision detection not implemented.");
 }
 
 void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2)

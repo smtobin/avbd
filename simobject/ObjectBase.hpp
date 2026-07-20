@@ -1,16 +1,10 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/Particle.hpp"
 #include "config/ObjectConfig.hpp"
 
 #include <functional>
 #include <atomic>
-
-namespace Sim
-{
-    class SimulationContext;
-}
 
 namespace SimObject
 {
@@ -42,6 +36,9 @@ public:
     Object_Base(const Object_Base&) = delete;
     Object_Base& operator=(const Object_Base&) = delete;
 
+    Object_Base(Object_Base&&) = default;
+    Object_Base& operator=(Object_Base&&) = default;
+
     virtual ~Object_Base() = default;
 
     /** Name of the object */
@@ -51,7 +48,7 @@ public:
     virtual void setup() = 0;
 
     /** Object ID */
-    void id() { return _id; }
+    unsigned id() const { return _id; }
 
 };
 

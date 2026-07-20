@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/Particle.hpp"
 
 #include <string>
 #include <fstream>
