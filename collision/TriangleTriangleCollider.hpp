@@ -40,6 +40,8 @@ struct TriangleTriangleCollider
         TriangleTriangleContact& tri_contact
     )
     {
+        /** TODO: (07/20/26) check for coplanarity and test this subroutine */
+
         // extract vertices from particle pool
         // triangle A
         const Vec3r& a1 = pool.positions[a_idx1];
@@ -191,66 +193,38 @@ struct TriangleTriangleCollider
         // face contact
         else
         {
-            // vertices and edges of reference face
-            Vec3r ref1, ref2, ref3, ref_n;
-            Vec3r ref_e12, ref_e13, ref_e23;
+            // code 9 = triangle A's normal is MSA
+            // code 10 = triangle B's normal is MSA
+            bool a_is_ref = (code == 9);
 
-            // stores the clipped polygon (triangle-triangle clipping may produce up to 6 points)
-            Vec3r poly[6];
-            // triangle A is reference face
-            if (code == 9)
-            {
-                ref1 = a1; ref2 = a2; ref3 = a3; ref_n = n_a;
-                ref_e12 = e12_a; ref_e13 = e13_a; ref_e23 = e23_a;
+            // reference triangle (the face)
+            const Vec3r& r1  = a_is_ref ? a1 : b1;
+            unsigned     ri1 = a_is_ref ? a_idx1 : b_idx1;
+            unsigned     ri2 = a_is_ref ? a_idx2 : b_idx2;
+            unsigned     ri3 = a_is_ref ? a_idx3 : b_idx3;
 
-                poly[0] = b1; poly[1] = b2; poly[2] = b3;
-            }
-            // triangle B is reference face
-            else if (code == 10)
-            {
-                ref1 = b1; ref2 = b2; ref3 = b3; ref_n = n_b;
-                ref_e12 = e12_b; ref_e13 = e13_b; ref_e23 = e23_b;
+            // incident triangle (contributes the point)
+            const Vec3r& i1  = a_is_ref ? b1 : a1;
+            const Vec3r& i2  = a_is_ref ? b2 : a2;
+            const Vec3r& i3  = a_is_ref ? b3 : a3;
+            unsigned     ii1 = a_is_ref ? b_idx1 : a_idx1;
+            unsigned     ii2 = a_is_ref ? b_idx2 : a_idx2;
+            unsigned     ii3 = a_is_ref ? b_idx3 : a_idx3;
 
-                poly[0] = a1; poly[1] = a2; poly[2] = a3;
-            }
-            unsigned count = 3;
-            Vec3r tmp[6];
+            // normal already points from the reference face toward the incident triangle
+            // so the deepest-penetrating incident vertex is just the one with the smallest projection onto it
+            Real d1 = (i1 - r1).dot(normal);
+            Real d2 = (i2 - r1).dot(normal);
+            Real d3 = (i3 - r1).dot(normal);
 
-            // clip against the three edge planes so that the other triangle is within infinite triangular prism of the reference face
-            auto clip_edge_plane = [&](const Vec3r& edge, const Vec3r& edge_vert)
-            {
-                Vec3r side_normal = ref_n.cross(edge);
-                Real side_offset = side_normal.dot(edge_vert);
+            unsigned deep_idx = ii1;
+            Real deep_d = d1;
+            if (d2 < deep_d) { deep_d = d2; deep_idx = ii2; }
+            if (d3 < deep_d) { deep_d = d3; deep_idx = ii3; }
 
-                count = _clipPolygonPlane(
-                    poly,
-                    count,
-                    tmp,
-                    side_normal,
-                    side_offset
-                );
-                std::swap(poly,tmp);
-            };
-
-            clip_edge_plane(ref_e12, ref1);
-            clip_edge_plane(ref_e13, ref1);
-            clip_edge_plane(ref_e23, ref2);
-
-            // keep only penetrating points
-            Real face_offset = ref_n.dot(ref1);
-            for (unsigned i = 0; i < count; i++)
-            {
-                Real depth = face_offset - ref_n.dot(poly[i]);
-
-                if (depth >= 0)
-                {
-                    // contact - this point is part of the contact manifold
-                }
-            }
-
-            
-            
-
+            tri_contact.edge_edge = false;
+            tri_contact.PointFaceContact = { deep_idx, ri1, ri2, ri3 };
+            return true;
         }
 
     }
@@ -268,64 +242,6 @@ private:
         Real p3 = v3.dot(axis);
 
         return { std::min({p1, p2, p3}), std::max({p1, p2, p3}) };
-    }
-
-    /** 3D Sutherland-Hodgman clipping algorithm
-     * @param in vertices for input shape
-     * @param count number of input vertices
-     * @param out clipped output vertices
-     * @param plane_normal the plane normal that the polygon is being clipped within
-     * @param plane_offset offset along the plane normal where the plane is in 3D space
-     */
-    static unsigned _clipPolygonPlane(
-        const Vec3r* in,
-        unsigned count,
-        Vec3r* out,
-        const Vec3r& plane_normal,
-        Real plane_offset)
-    {
-        unsigned out_count = 0;
-
-        for (unsigned i = 0; i < count; i++)
-        {
-            const Vec3r& a = in[i].p;
-            const Vec3r& b = in[(i+1)%count].p;
-
-            Real da = plane_normal.dot(a) - plane_offset;
-            Real db = plane_normal.dot(b) - plane_offset;
-
-            bool inside_a = da <= 0;
-            bool inside_b = db <= 0;
-
-            // if both are "inside" the plane, then keep the next vertex (b)
-            if (inside_a && inside_b)
-            {
-                // keep B
-                out[out_count++] = b;
-            }
-            // if a is inside but b is outside, then the edge from a to b intersects the plane
-            // keep the intersection point
-            else if (inside_a && !inside_b)
-            {
-                // leaving plane
-                Real t = da / (da-db);
-
-                out[out_count++] = a + (b-a)*t;
-            }
-            // if a is outside and b is inside, then the edge from a to b intersects the plane
-            // keep both the intersection point and the next vertex (b)
-            else if (!inside_a && inside_b)
-            {
-                // entering plane
-                Real t = da / (da-db);
-
-                out[out_count++] = a + (b-a)*t;
-
-                out[out_count++] = b;
-            }
-        }
-
-        return out_count;
     }
 
 };
