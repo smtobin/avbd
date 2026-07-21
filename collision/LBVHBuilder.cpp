@@ -3,11 +3,11 @@
 namespace Collision
 {
 
-void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, const OrientedParticlePool& oriented_particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh)
+void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh)
 {
     // std::cout << "Building BVH..." << std::endl;
     // compute AABBs and Morton codes
-    computeAABB_MortonCode(particle_pool, oriented_particle_pool, col_pool);
+    computeAABB_MortonCode(particle_pool, col_pool);
     // radix sort by Morton code
     radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.totalSize());
     // construct the radix tree
@@ -17,13 +17,13 @@ void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, const OrientedPart
     // std::cout << "Done." << std::endl;
 }
 
-void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, const OrientedParticlePool& oriented_particle_pool, CollisionPrimitivePool& col_pool)
+void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool)
 {
     // iterate through primtivies and compute AABB, centroid, and Morton code
     AABB scene_box = AABB::empty();
     for (unsigned p_idx : col_pool)
     {
-        col_pool.aabb[p_idx] = col_pool.globalBounds(p_idx, particle_pool, oriented_particle_pool);
+        col_pool.aabb[p_idx] = col_pool.globalBounds(p_idx, particle_pool);
 
         // centroid
         col_pool.centroid[p_idx] = col_pool.aabb[p_idx].center();

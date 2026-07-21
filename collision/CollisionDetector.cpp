@@ -13,7 +13,7 @@ namespace Collision
 void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 {
     // build BVH
-    LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, ctx.collision_pool, ctx.lbvh);
+    LBVHBuilder::buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh);
 
     // traverse BVH for potential collisions
     std::vector<std::pair<unsigned, unsigned>> potential_collisions;
@@ -123,7 +123,7 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     const Vec3r& v3 = ctx.particles.positions[triangle_idx[2]];
 
     // extract current sphere center
-    const Vec3r& p = ctx.oriented_particles.positions[sphere_idx];
+    const Vec3r& p = ctx.particles.positions[sphere_idx];
 
     // closest point on triangle to sphere center
     Vec3r tri_cp = Math::closestPoint_PointTriangle(p, v1, v2, v3);

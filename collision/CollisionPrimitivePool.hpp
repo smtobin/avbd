@@ -3,7 +3,6 @@
 #include "common/common.hpp"
 #include "common/TombstonePool.hpp"
 #include "common/ParticlePool.hpp"
-#include "common/OrientedParticlePool.hpp"
 #include "collision/AABB.hpp"
 #include "collision/SDFPrimitivePool.hpp"
 
@@ -107,7 +106,7 @@ struct CollisionPrimitivePool : TombstonePool
     }
 
     /** AABB for an object */
-    inline AABB globalBounds(unsigned p_idx, const ParticlePool& particle_pool, const OrientedParticlePool& oriented_particle_pool) const
+    inline AABB globalBounds(unsigned p_idx, const ParticlePool& particle_pool) const
     {
         switch(type[p_idx])
         {
@@ -133,9 +132,10 @@ struct CollisionPrimitivePool : TombstonePool
 
                 // index of the oriented particle in the oriented particle pool
                 unsigned op_idx = sdf_pool.particles[sdf_idx];
-                Vec3r world_center = oriented_particle_pool.rotations[op_idx] * center + oriented_particle_pool.positions[op_idx];
+                const Quaternion& rotation = particle_pool.rotation_pool.rotations[particle_pool.rotation_idx[op_idx]];
+                Vec3r world_center = rotation * center + particle_pool.positions[op_idx];
                 
-                Mat3r abs_R = oriented_particle_pool.rotations[op_idx].toRotationMatrix().cwiseAbs();
+                Mat3r abs_R = rotation.toRotationMatrix().cwiseAbs();
                 Vec3r world_extent = abs_R * extent;
 
                 return { world_center - world_extent,  world_center + world_extent };

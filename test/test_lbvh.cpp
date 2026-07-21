@@ -207,7 +207,7 @@ void testFewTrianglesBVH()
     }
 
     Collision::LBVH lbvh;
-    Collision::LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, col_pool, lbvh);
+    Collision::LBVHBuilder::buildBVH(ctx.particles, col_pool, lbvh);
 
     std::vector<std::pair<unsigned, unsigned>> collision_pairs;
     Collision::LBVHTraversal::traverseSelfIterative(lbvh, lbvh.root, collision_pairs);
@@ -315,7 +315,7 @@ void testSpheresAndMeshBVH()
         ctx.collision_pool.num_particles[c_idx] = 3;
     }
 
-    Collision::LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, ctx.collision_pool, ctx.lbvh);
+    Collision::LBVHBuilder::buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh);
     
     std::cout << "Morton codes: " << std::endl;
     for (unsigned i = 0; i < ctx.collision_pool.totalSize(); i++)
@@ -370,7 +370,7 @@ void testTetMeshBVH()
     col_pool.addObject(mesh_obj);
 
     Collision::LBVH lbvh;
-    Collision::LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, col_pool, lbvh);
+    Collision::LBVHBuilder::buildBVH(ctx.particles, col_pool, lbvh);
 
     visualizeBVH(lbvh);
 }

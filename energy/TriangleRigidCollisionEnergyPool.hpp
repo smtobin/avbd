@@ -8,14 +8,13 @@ namespace Energy
 
 struct TriangleRigidCollisionEnergyInfo : HardConstraintEnergyInfo
 {
-    Vec3u particle_indices;
-    Vec1u oriented_particle_indices;
+    Vec4u particle_indices;
     Collision::SDFShapeParams* sdf_params;
 };
 
 struct TriangleRigidCollisionEnergyPool : HardConstraintEnergyPool<TriangleRigidCollisionEnergyInfo>
 {
-    static constexpr int NumParticlesPerEnergy = 3;
+    static constexpr int NumParticlesPerEnergy = 4;
     static constexpr EnergyType Type = EnergyType::TRIANGLE_RIGID_COLLISION;
     using SolverType = TriangleRigidCollisionEnergySolver;
 
@@ -37,7 +36,7 @@ struct TriangleRigidCollisionEnergyPool : HardConstraintEnergyPool<TriangleRigid
         data[slot].particle_indices[0] = p_idx1;
         data[slot].particle_indices[1] = p_idx2;
         data[slot].particle_indices[2] = p_idx3;
-        data[slot].oriented_particle_indices[0] = op_idx;
+        data[slot].particle_indices[3] = op_idx;
         data[slot].sdf_params = sdf_params;
 
         return slot;

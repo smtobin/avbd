@@ -2,7 +2,6 @@
 
 #include "common/common.hpp"
 #include "common/ParticlePool.hpp"
-#include "common/OrientedParticlePool.hpp"
 #include "common/ParticleAdjacency.hpp"
 #include "common/ColorList.hpp"
 #include "energy/EnergyRegistry.hpp"
@@ -18,7 +17,6 @@ struct SimulationContext
 {
     // memory pools
     ParticlePool particles;
-    OrientedParticlePool oriented_particles;
     Energy::EnergyRegistry energies;
 
     // adjacency information for particles
@@ -33,8 +31,7 @@ struct SimulationContext
     SimulationParams params;
 
     SimulationContext()
-        : particles(1000)
-        , oriented_particles(1000)
+        : particles(1000, 1000)
         , energies(1000)
         , collision_pool(1000, 1000)
     {
@@ -48,8 +45,7 @@ struct SimulationContext
         unsigned collision_primitive_capacity,
         unsigned collision_sdf_capacity
     )
-     : particles(particles_capacity)
-     , oriented_particles(oriented_particles_capacity)
+     : particles(particles_capacity, oriented_particles_capacity)
      , energies(energies_capacity)
      , collision_pool(collision_primitive_capacity, collision_sdf_capacity)
     {

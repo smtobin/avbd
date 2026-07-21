@@ -14,8 +14,8 @@ RigidSphere::RigidSphere(Sim::SimulationContext* ctx, const Config::RigidSphereC
     // moment of inertia = 2/5 * m * r^2
     Vec3r rot_inertia = 0.4 * mass * _radius * _radius * Vec3r::Ones();
     // rigid object base constructor creates particle, we need to set the inertia
-    _ctx->oriented_particles.masses[_com] = mass;
-    _ctx->oriented_particles.rotational_inertias[_com] = rot_inertia;
+    _ctx->particles.masses[_com] = mass;
+    _ctx->particles.rotation_pool.rotational_inertias[_ctx->particles.rotation_idx[_com]] = rot_inertia;
 
 }
 
