@@ -17,6 +17,7 @@ struct TriangleRigidCollisionConstraintSolver
         ParticlePool& particles
     )
     {
+        std::cout << "TriangleRigidCollision::evaluateConstraint" << std::endl;
         const Vec3r& n = energies.data[c_idx].normal;
         const Vec4u& indices = energies.data[c_idx].particle_indices;
 

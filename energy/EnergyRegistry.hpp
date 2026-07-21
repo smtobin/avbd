@@ -40,14 +40,14 @@ struct EnergyRegistry
     {
         f(neo_hookean);
         f(ground_collision);
-        // f(triangle_rigid_collision);
+        f(triangle_rigid_collision);
     }
     template <typename Func>
     void forEachEnergyType(Func&& f) const
     {
         f(neo_hookean);
         f(ground_collision);
-        // f(triangle_rigid_collision);
+        f(triangle_rigid_collision);
     }
 
     /** Apply a function only to energies derived from a hard constraint */

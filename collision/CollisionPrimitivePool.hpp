@@ -132,7 +132,7 @@ struct CollisionPrimitivePool : TombstonePool
 
                 // index of the oriented particle in the oriented particle pool
                 unsigned op_idx = sdf_pool.particles[sdf_idx];
-                const Quaternion& rotation = particle_pool.rotation_pool.rotations[particle_pool.rotation_idx[op_idx]];
+                const Quaternion& rotation = particle_pool.rotation(op_idx);
                 Vec3r world_center = rotation * center + particle_pool.positions[op_idx];
                 
                 Mat3r abs_R = rotation.toRotationMatrix().cwiseAbs();

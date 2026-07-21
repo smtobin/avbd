@@ -380,7 +380,7 @@ int main()
     gmsh::initialize();
 
     // testRadixTree();
-    // testTetMeshBVH();
-    // testFewTrianglesBVH();
+    testTetMeshBVH();
+    testFewTrianglesBVH();
     testSpheresAndMeshBVH();
 }
