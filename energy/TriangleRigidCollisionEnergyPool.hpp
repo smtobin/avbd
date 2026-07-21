@@ -8,8 +8,11 @@ namespace Energy
 
 struct TriangleRigidCollisionEnergyInfo : HardConstraintEnergyInfo
 {
-    Vec4u particle_indices;
-    Collision::SDFShapeParams* sdf_params;
+    Vec4u particle_indices;     // particle indices - first 3 indices are the triangle vertices, last index is the rigid body
+    Collision::SDFShapeParams* sdf_params;  // pointer to SDF parameters - will be used to reevaluate the constraint
+    Vec3r normal;   // collision normal
+    Vec3r barys;    // barycentric coordinates of the contact point on the face
+    Vec3r cp_rb_local;  // contact point on the rigid body, in the rigid body's local frame
 };
 
 struct TriangleRigidCollisionEnergyPool : HardConstraintEnergyPool<TriangleRigidCollisionEnergyInfo>
@@ -28,7 +31,16 @@ struct TriangleRigidCollisionEnergyPool : HardConstraintEnergyPool<TriangleRigid
      * @param op_idx the particle index of the rigid body
      * @param sdf_params a pointer to the SDF parameters for the rigid body
      */
-    unsigned addEnergy(unsigned p_idx1, unsigned p_idx2, unsigned p_idx3, unsigned op_idx, Collision::SDFShapeParams* sdf_params)
+    unsigned addEnergy(
+        unsigned p_idx1, 
+        unsigned p_idx2, 
+        unsigned p_idx3, 
+        unsigned op_idx, 
+        Collision::SDFShapeParams* sdf_params,
+        const Vec3r& normal,
+        const Vec3r& barys,
+        const Vec3r& cp_rb_local
+    )
     {
         // parent will call allocSlot()
         unsigned slot = HardConstraintEnergyPool::addEnergy();
@@ -38,6 +50,9 @@ struct TriangleRigidCollisionEnergyPool : HardConstraintEnergyPool<TriangleRigid
         data[slot].particle_indices[2] = p_idx3;
         data[slot].particle_indices[3] = op_idx;
         data[slot].sdf_params = sdf_params;
+        data[slot].normal = normal;
+        data[slot].barys = barys;
+        data[slot].cp_rb_local = cp_rb_local;
 
         return slot;
     }

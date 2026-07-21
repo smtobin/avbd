@@ -7,6 +7,7 @@
 
 #include "energy/NeoHookeanEnergySolver.hpp"
 #include "energy/GroundCollisionEnergySolver.hpp"
+#include "energy/TriangleRigidCollisionEnergySolver.hpp"
 
 #include <chrono>
 #include <thread>
@@ -278,6 +279,8 @@ private:
 
     void _solveParticle(unsigned p_idx, Real dt)
     {
+        if (_ctx->particles.isOriented(p_idx))
+            return;
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
         const PerEnergy<unsigned>& adj_offsets = _ctx->adjacency.e_offsets[p_idx];

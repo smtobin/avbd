@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/AABB.hpp"
+#include "collision/AABB.hpp"
 
 namespace Collision
 {
