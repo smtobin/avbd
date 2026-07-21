@@ -114,10 +114,12 @@ namespace Energy
     /** Pools */
     struct NeoHookeanEnergyPool;
     struct GroundCollisionEnergyPool;
+    struct TriangleRigidCollisionEnergyPool;
 
     /** Solvers */
     struct NeoHookeanEnergySolver;
     struct GroundCollisionEnergySolver;
+    struct TriangleRigidCollisionEnergySolver;
 }
 
 
@@ -125,7 +127,8 @@ namespace Energy
 // when a new energy is added, we must update the list below
 #define ENERGY_LIST(X) \
     X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
-    X(GROUND_COLLISION, GroundCollisionEnergySolver)
+    X(GROUND_COLLISION, GroundCollisionEnergySolver) \
+    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver)
 
 // generate the enum
 enum class EnergyType

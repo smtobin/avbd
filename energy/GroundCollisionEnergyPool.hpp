@@ -16,11 +16,8 @@ struct GroundCollisionEnergyPool : HardConstraintEnergyPool<GroundCollisionEnerg
     static constexpr EnergyType Type = EnergyType::GROUND_COLLISION; // type of energy in the EnergyType enum
     using SolverType = GroundCollisionEnergySolver;     // solver class type
 
-    std::vector<GroundCollisionEnergyInfo> data;
-
     explicit GroundCollisionEnergyPool(unsigned capacity)
         : HardConstraintEnergyPool(capacity, 1e2, 0)
-        , data(capacity)
     {
 
     }
