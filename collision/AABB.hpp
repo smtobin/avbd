@@ -13,7 +13,7 @@ struct AABB
 
     static AABB empty()
     {
-        return { std::numeric_limits<Real>::max()*Vec3r::Ones(), std::numeric_limits<Real>::lowest()*Vec3r::Ones() };
+        return { Vec3r::Constant(std::numeric_limits<Real>::max()), Vec3r::Constant(std::numeric_limits<Real>::lowest()) };
     }
 
     void expand(const Vec3r& p)
@@ -44,4 +44,11 @@ struct AABB
     }
 };
 
-} // namespace Colision
+
+inline std::ostream& operator<<(std::ostream& os, const Collision::AABB& aabb)
+{
+    os << aabb.min.transpose() << " to " << aabb.max.transpose();
+    return os;
+}
+
+} // namespace Collision

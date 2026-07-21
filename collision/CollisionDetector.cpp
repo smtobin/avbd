@@ -27,7 +27,7 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigned pi, unsigned pj)
 {
     // always test different objects
-    if (cpool.object_id[pi] == cpool.object_id[pj])
+    if (cpool.object_id[pi] != cpool.object_id[pj])
         return false;
 
     // check if primitives share vertex
@@ -36,6 +36,15 @@ bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigne
     const auto& inds_j = cpool.particle_indices[pj];
     unsigned cnt_i = cpool.num_particles[pi];
     unsigned cnt_j = cpool.num_particles[pj];
+
+    // std::cout << " Checking primitives " << pi << " and " << pj << "..." << std::endl;
+    // std::cout << "  Primitive i: ";
+    // for (unsigned ind : inds_i) std::cout << ind << ", ";
+    // std::cout << std::endl << "  Primitive j: ";
+    // for (unsigned ind : inds_j) std::cout << ind << ", ";
+    // std::cout << std::endl;
+    // std::cout << "  AABB i: " << cpool.aabb[pi] << std::endl;
+    // std::cout << "  AABB j: " << cpool.aabb[pj] << std::endl;
 
     for (unsigned i = 0; i < cnt_i; i++)
     {
@@ -54,12 +63,10 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
     /** TODO: (07/19/26) Parallelize this? */
     for (const auto& potential_collision : potential_collisions)
     {
-        /** TODO: (07/19/26) Need to figure this out and get it straight and document it:
-         * Potential collisions = pairs of (leaf) nodes in the BVH. Leaf node index <=> primitive index in collision pool?
-         * Or is it leaf node index <=> sorted order index ==> primitive index?
-         */
-        unsigned a = potential_collision.first;
-        unsigned b = potential_collision.second;
+        // potential collisions are pairs of LBVH leaf node indices, which correspond to the collision pool's sorted order
+        // extract the primitive indices by indexing in the sorted order array
+        unsigned a = ctx.collision_pool.sorted_order[potential_collision.first];
+        unsigned b = ctx.collision_pool.sorted_order[potential_collision.second];
 
         if (_shouldSkip(ctx.collision_pool, a, b))
             continue;
@@ -103,6 +110,7 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
 
 void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere)
 {
+    std::cout << "Testing sphere-triangle collision..." << std::endl;
     const auto& triangle_idx = ctx.collision_pool.particle_indices[triangle];
 
     unsigned sdf_idx = ctx.collision_pool.particle_indices[sphere][0];
@@ -132,7 +140,8 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
 void CollisionDetector::_triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2)
 {
     /** TODO: (07/20/26) triangle-triangle collision detection */
-    throw std::runtime_error("Triangle-triangle collision detection not implemented.");
+    // std::cout << "Testing triangle-triangle collision..." << std::endl;
+    // throw std::runtime_error("Triangle-triangle collision detection not implemented.");
 }
 
 void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2)

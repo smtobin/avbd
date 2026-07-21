@@ -45,3 +45,5 @@ objects:
   - 
     type: "RigidSphere"
     fixed: true
+    position: [0, 0, 0]
+    radius: 1

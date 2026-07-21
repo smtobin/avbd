@@ -1,5 +1,6 @@
 #include "simulation/Simulation.hpp"
 #include "common/Math.hpp"
+#include "collision/CollisionDetector.hpp"
 
 #include <chrono>
 #include <thread>
@@ -196,6 +197,7 @@ void Simulation::notifyLeftMouseButtonReleased()
 
 void Simulation::_timeStep()
 {
+    Collision::CollisionDetector::detectCollisionsAndRecolor(_ctx);
     // std::cout << "t=" << _time << std::endl;
 
     // let the solver do the iterations

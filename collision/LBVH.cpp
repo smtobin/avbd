@@ -16,8 +16,13 @@ void LBVH::_printTreeWithInfoImpl(unsigned node, const CollisionPrimitivePool& p
         node_str = "L" + std::to_string(node);
 
     std::stringstream morton_code_ss;
+    morton_code_ss << "(" << "aabb=[" << min_x[node] << ", " << min_y[node] << ", " << min_z[node]
+            << "] to [" << max_x[node] << ", " << max_y[node] << ", " << max_z[node] << "]";
     if (node < numPrimitives())
-        morton_code_ss << "(code=" << std::bitset<64>(pool.morton_code[pool.sorted_order[node]]) << ")";
+        morton_code_ss << ", "
+            << "code=" << std::bitset<64>(pool.morton_code[pool.sorted_order[node]]) << ")";
+    else
+        morton_code_ss << ")";
 
     std::cout << prefix
             << (is_left ? "├── " : "└── ")

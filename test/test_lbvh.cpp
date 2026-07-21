@@ -24,6 +24,8 @@
 
 #include <gmsh.h>
 
+#include <bitset>
+
 void testRadixTree()
 {
     int capacity = 1000;
@@ -230,17 +232,16 @@ void testFewTrianglesBVH()
     
 }
 
-void testSpheresBVH()
+void testSpheresAndMeshBVH()
 {
-    Collision::CollisionPrimitivePool col_pool(10, 10);
     Sim::SimulationContext ctx;
     std::vector<Vec3r> sphere_locs = {
         Vec3r(1.0, 0.5, 0.2),
-        Vec3r(0.6, 0.5, 0.4),
-        Vec3r(0.2, 0.4, 0.3)
+        Vec3r(1.6, 0.5, 0.4),
+        Vec3r(1.2, 0.4, 0.3)
     };
     std::vector<Real> sphere_rads = {
-        0.5, 0.2, 0.4
+        0.05, 0.02, 0.04
     };
 
     std::vector<SimObject::RigidSphere> spheres;
@@ -260,14 +261,101 @@ void testSpheresBVH()
             sphere_rads[i]
         );
         spheres.emplace_back(&ctx, sphere_config);
-        col_pool.addObject(spheres.back());
+        ctx.collision_pool.addObject(spheres.back());
     }
 
-    Collision::LBVH lbvh;
-    Collision::LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, col_pool, lbvh);
-    visualizeBVH(lbvh);
+    // Config::TetMeshObjectConfig mesh_config("../resource/cube2.msh");
+    // SimObject::TetMeshObject mesh_obj(&ctx, mesh_config);
+    // mesh_obj.setup();
 
+    // ctx.collision_pool.addObject(mesh_obj);
 
+    std::vector<std::array<Vec3r, 3>> triangle_vertices = {
+        {
+            Vec3r(0.0, 0.0, 0.0),
+            Vec3r(1.0, 0.0, 0.5),
+            Vec3r(0.0, 1.0, 0.0)
+        }
+        // ,
+        // {
+        //     Vec3r(1.0, 1.0, 1.0),
+        //     Vec3r(1.2, 1.0, 1.2),
+        //     Vec3r(1.4, 1.2, 1.2)
+        // }
+        // ,
+        // {
+        //     Vec3r(0.6, 0.8, 0.8),
+        //     Vec3r(0.4, 0.6, 0.6),
+        //     Vec3r(0.8, 0.4, 0.6)
+        // },
+        // {
+        //     Vec3r(0.7, 1.1, 1.3),
+        //     Vec3r(1.1, 1.2, 1.4),
+        //     Vec3r(0.6, 0.7, 0.7)
+        // }
+    };
+
+    std::vector<std::array<unsigned, 3>> triangles;
+
+    for (const auto& tri : triangle_vertices)
+    {
+        std::array<unsigned, 3> new_tri;
+        for (unsigned v_idx = 0; v_idx < 3; v_idx++)
+        {
+            unsigned idx = ctx.particles.addParticle(tri[v_idx], 0);
+            new_tri[v_idx] = idx;
+        }
+        triangles.push_back(new_tri);
+
+        unsigned c_idx = ctx.collision_pool.allocSlot();
+        ctx.collision_pool.type[c_idx] = Collision::PrimitiveType::Triangle;
+        ctx.collision_pool.particle_indices[c_idx][0] = new_tri[0];
+        ctx.collision_pool.particle_indices[c_idx][1] = new_tri[1];
+        ctx.collision_pool.particle_indices[c_idx][2] = new_tri[2];
+        ctx.collision_pool.num_particles[c_idx] = 3;
+    }
+
+    Collision::LBVHBuilder::buildBVH(ctx.particles, ctx.oriented_particles, ctx.collision_pool, ctx.lbvh);
+    
+    std::cout << "Morton codes: " << std::endl;
+    for (unsigned i = 0; i < ctx.collision_pool.totalSize(); i++)
+    {
+        std::cout << " " << i << ": " << std::bitset<64>(ctx.collision_pool.morton_code[i]) << std::endl;
+    }
+
+    std::cout << "Sorted order:" << std::endl;
+    for (unsigned i = 0; i < ctx.collision_pool.totalSize(); i++)
+    {
+        std::cout << " " << i << ": " << std::bitset<64>(ctx.collision_pool.morton_code[ctx.collision_pool.sorted_order[i]]) << std::endl;
+    }
+
+    ctx.lbvh.printTreeWithInfo(ctx.collision_pool);
+
+    std::vector<std::pair<unsigned, unsigned>> collision_pairs;
+    Collision::LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, collision_pairs);
+    for (const auto& collision_pair : collision_pairs)
+    {
+        if (ctx.collision_pool.object_id[collision_pair.first] == ctx.collision_pool.object_id[collision_pair.second])
+            continue;
+
+        unsigned p1 = ctx.collision_pool.sorted_order[collision_pair.first];
+        unsigned p2 = ctx.collision_pool.sorted_order[collision_pair.second];
+        std::cout << "Potential collision between nodes " << collision_pair.first << " and " << collision_pair.second << std::endl;
+        std::cout << "BVH Node A - Prim type: " << static_cast<unsigned>(ctx.collision_pool.type[p1]) << "  Particles: ";
+        for (unsigned k = 0; k < ctx.collision_pool.num_particles[p1]; k++)
+        {
+            std::cout << ctx.collision_pool.particle_indices[p1][k] << ", ";
+        }
+        std::cout << std::endl;
+        std::cout << "BVH Node B - Prim type: " << static_cast<unsigned>(ctx.collision_pool.type[p2]) << "  Particles: ";
+        for (unsigned k = 0; k < ctx.collision_pool.num_particles[p2]; k++)
+        {
+            std::cout << ctx.collision_pool.particle_indices[p2][k] << ", ";
+        }
+        std::cout << std::endl;
+    }  
+
+    visualizeBVH(ctx.lbvh);
 }
 
 void testTetMeshBVH()
@@ -291,8 +379,8 @@ int main()
 {
     gmsh::initialize();
 
-    testRadixTree();
-    testTetMeshBVH();
-    testFewTrianglesBVH();
-    testSpheresBVH();
+    // testRadixTree();
+    // testTetMeshBVH();
+    // testFewTrianglesBVH();
+    testSpheresAndMeshBVH();
 }

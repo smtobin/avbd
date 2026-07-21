@@ -59,6 +59,7 @@ class Simulation
         ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
         new_obj_ptr->setup();
 
+        _ctx.collision_pool.addObject(*new_obj_ptr);
         _graphics_scene.addObject(new_obj_ptr.get(), obj_config.renderConfig());
 
         _objects.push_back(std::move(new_obj_ptr));
@@ -90,6 +91,7 @@ class Simulation
             // new_obj_ptr->setup();
         // }
 
+        _ctx.collision_pool.addObject(*new_obj_ptr);
         _graphics_scene.addObject(new_obj_ptr.get(), obj_config.meshRenderConfig());
 
         // if the particles of this object should be logged, create logging outputs for them

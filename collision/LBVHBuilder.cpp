@@ -5,6 +5,7 @@ namespace Collision
 
 void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, const OrientedParticlePool& oriented_particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh)
 {
+    // std::cout << "Building BVH..." << std::endl;
     // compute AABBs and Morton codes
     computeAABB_MortonCode(particle_pool, oriented_particle_pool, col_pool);
     // radix sort by Morton code
@@ -13,29 +14,24 @@ void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, const OrientedPart
     constructTree(col_pool, lbvh);
     // coalesce bounding boxes using radix tree
     assembleBVH(col_pool, lbvh);
+    // std::cout << "Done." << std::endl;
 }
 
 void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, const OrientedParticlePool& oriented_particle_pool, CollisionPrimitivePool& col_pool)
 {
     // iterate through primtivies and compute AABB, centroid, and Morton code
-    AABB scene_box;
+    AABB scene_box = AABB::empty();
     for (unsigned p_idx : col_pool)
     {
-        // AABB
-        // AABB box = AABB::empty();
-        // for (unsigned k = 0; k < col_pool.num_particles[p_idx]; k++)
-        // {
-        //     box.expand(particle_pool.positions[col_pool.particle_indices[p_idx][k]]);
-        // }
-        // col_pool.aabb[p_idx] = box;
-
         col_pool.aabb[p_idx] = col_pool.globalBounds(p_idx, particle_pool, oriented_particle_pool);
-
 
         // centroid
         col_pool.centroid[p_idx] = col_pool.aabb[p_idx].center();
 
         scene_box.expand(col_pool.aabb[p_idx]);
+
+        // std::cout << "Centroid for primitive " << p_idx << ": " << col_pool.centroid[p_idx].transpose() << std::endl;
+        // std::cout << "AABB for primitive " << p_idx << ": " << col_pool.aabb[p_idx] << std::endl;
     }
 
     // Morton code
@@ -45,8 +41,10 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, cons
     {
         // normalize centroid between [0,1]^3
         Vec3r normalized_centroid = (col_pool.centroid[p_idx] - scene_box.min).cwiseQuotient(extent);
-        // col_pool.morton_code[p_idx] = morton3D_32(normalized_centroid);
         col_pool.morton_code[p_idx] = morton3D_64(normalized_centroid);
+
+        // std::cout << "Normalized centroid for primitive " << p_idx << ": " << normalized_centroid.transpose() << std::endl;
+        // std::cout << "Morton code for primitive " << p_idx << ": " << col_pool.morton_code[p_idx] << std::endl;
     }
 }
 
