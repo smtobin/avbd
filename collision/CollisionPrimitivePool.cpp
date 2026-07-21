@@ -9,13 +9,14 @@ namespace Collision
 void CollisionPrimitivePool::addObject(const SimObject::TetMeshObject& mesh_obj)
 {
     const ParticleTetMesh& mesh = mesh_obj.mesh();
+    const auto& vertices = mesh.vertices();
     for (const auto& f : mesh.faces())
     {
         unsigned slot = allocSlot();
         type[slot] = PrimitiveType::Triangle;
-        particle_indices[slot][0] = f[0];
-        particle_indices[slot][1] = f[1];
-        particle_indices[slot][2] = f[2];
+        particle_indices[slot][0] = vertices.at(f[0]);
+        particle_indices[slot][1] = vertices.at(f[1]);
+        particle_indices[slot][2] = vertices.at(f[2]);
         num_particles[slot] = 3;
         object_id[slot] = mesh_obj.id();
     }

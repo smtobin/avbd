@@ -110,7 +110,7 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
 
 void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere)
 {
-    // std::cout << "Testing sphere-triangle collision..." << std::endl;
+    std::cout << "Testing sphere-triangle collision..." << std::endl;
     const auto& triangle_idx = ctx.collision_pool.particle_indices[triangle];
 
     unsigned sdf_idx = ctx.collision_pool.particle_indices[sphere][0];
@@ -132,7 +132,7 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     Real dist = (tri_cp - p).norm();
     if (dist < sphere_params.sphere.radius)
     {
-        // std::cout << "Sphere-triangle collision!" << std::endl;
+        std::cout << "Sphere-triangle collision!" << std::endl;
     }
 
 }
