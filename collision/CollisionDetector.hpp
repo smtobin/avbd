@@ -37,12 +37,17 @@ private:
     inline bool _shouldSkip(const CollisionPrimitivePool& cpool, unsigned pi, unsigned pj);
 
     /** Perform narrow-phase collision detection. */
-    inline void _narrowPhaseCollisionDetection(Sim::SimulationContext& ctx, const std::vector<std::pair<unsigned, unsigned>>& potential_collisions);
+    inline void _narrowPhaseCollisionDetection(Sim::SimulationContext& ctx);
 
     /** Specific subroutines for primitive-primitive narrow-phase collision checks */
     inline void _triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere);
     inline void _triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2);
     inline void _sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2);
+
+    inline void _handleDetectedCollisions(Sim::SimulationContext& ctx);
+    inline void _addCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
+    inline void _removeCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
+    inline void _updateCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
     
 
 public:

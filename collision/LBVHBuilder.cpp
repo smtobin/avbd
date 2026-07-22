@@ -1,4 +1,5 @@
 #include "collision/LBVHBuilder.hpp"
+#include "common/Algorithm.hpp"
 
 namespace Collision
 {
@@ -9,7 +10,7 @@ void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitive
     // compute AABBs and Morton codes
     computeAABB_MortonCode(particle_pool, col_pool);
     // radix sort by Morton code
-    radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.totalSize());
+    Algorithm::radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.totalSize());
     // construct the radix tree
     constructTree(col_pool, lbvh);
     // coalesce bounding boxes using radix tree
@@ -45,49 +46,6 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, Coll
 
         // std::cout << "Normalized centroid for primitive " << p_idx << ": " << normalized_centroid.transpose() << std::endl;
         // std::cout << "Morton code for primitive " << p_idx << ": " << col_pool.morton_code[p_idx] << std::endl;
-    }
-}
-
-void LBVHBuilder::radixSort(const std::vector<uint64_t>& unsorted, std::vector<unsigned>& sorted_order, unsigned size)
-{
-
-    sorted_order.resize(size);
-    std::iota(sorted_order.begin(), sorted_order.end(), 0);
-
-    std::vector<unsigned> temp(size);
-
-    constexpr int BITS = 8;
-    constexpr int BUCKETS = 1 << BITS;
-    constexpr int MASK = BUCKETS - 1;
-
-    for (int shift = 0; shift < 64; shift += BITS)
-    {
-        size_t count[BUCKETS] = {};
-
-        // count
-        for (unsigned idx : sorted_order)
-        {
-            uint64_t x = unsorted[idx];
-            ++count[(x >> shift) & MASK];
-        }
-        
-        // prefix sums
-        size_t sum = 0;
-        for (int i = 0; i < BUCKETS; i++)
-        {
-            size_t c = count[i];
-            count[i] = sum;
-            sum += c;
-        }
-
-        // scatter
-        for (unsigned idx : sorted_order)
-        {
-            uint64_t x = unsorted[idx];
-            temp[count[(x >> shift) & MASK]++] = idx;
-        }
-
-        sorted_order.swap(temp);
     }
 }
 

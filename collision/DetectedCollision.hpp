@@ -17,6 +17,7 @@ enum class DetectedCollisionType : uint8_t
 struct DetectedCollision
 {
     DetectedCollisionType type; // type of collision
+    unsigned e_idx;         // the index of the collision energy in the appropriate energy pool (depending on the detected collision type)
     uint64_t key;           // unique key identifying the detected collision
     unsigned gen1, gen2;    // generations of each of the primitives in the collision pool
     Vec3r normal;   // collision normal

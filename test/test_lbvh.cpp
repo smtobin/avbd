@@ -1,4 +1,5 @@
 #include "common/common.hpp"
+#include "common/Algorithm.hpp"
 #include "collision/LBVH.hpp"
 #include "collision/LBVHBuilder.hpp"
 #include "collision/LBVHTraversal.hpp"
@@ -51,7 +52,7 @@ void testRadixTree()
         col_pool.morton_code[new_slot] = morton_codes[i];
     }
 
-    Collision::LBVHBuilder::radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.totalSize());
+    Algorithm::radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.totalSize());
     std::cout << "Sorted order:" << std::endl;
     for (unsigned i = 0; i < col_pool.totalSize(); i++)
     {

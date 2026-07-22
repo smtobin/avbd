@@ -6,6 +6,7 @@
 #include "collision/LBVHTraversal.hpp"
 
 #include "common/Math.hpp"
+#include "common/Algorithm.hpp"
 
 namespace Collision
 {
@@ -25,15 +26,15 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
     LBVHBuilder::buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh);
 
     // traverse BVH for potential collisions
-    std::vector<std::pair<unsigned, unsigned>> potential_collisions;
-    LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, potential_collisions);
+    LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);
 
     // narrow-phase collision detection
-    _narrowPhaseCollisionDetection(ctx, potential_collisions);
+    _narrowPhaseCollisionDetection(ctx);
 
-    // sort and merge lists, creating appropriate new collision constraints and removing obsolete ones
-    // LBVHBuilder::radixSort()
-
+    // handle detected collisions
+    // sort the current detected collisions by key
+    // merge lists, and create/destroy collision constraints accordingly
+    _handleDetectedCollisions(ctx);
 }
 
 bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigned pi, unsigned pj)
@@ -70,10 +71,10 @@ bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigne
     return false;
 }
 
-void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& ctx, const std::vector<std::pair<unsigned, unsigned>>& potential_collisions)
+void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& ctx)
 {
     /** TODO: (07/19/26) Parallelize this? */
-    for (const auto& potential_collision : potential_collisions)
+    for (const auto& potential_collision : _potential_collisions)
     {
         // potential collisions are pairs of LBVH leaf node indices, which correspond to the collision pool's sorted order
         // extract the primitive indices by indexing in the sorted order array
@@ -119,6 +120,159 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
         }
     }
 }
+
+
+void CollisionDetector::_handleDetectedCollisions(Sim::SimulationContext& ctx)
+{
+    // sort detected collision list by key
+    Algorithm::radixSort(_cur_detected_collisions, _cur_sorted_order, _cur_detected_collisions.size(), 
+        [](const DetectedCollision& c) { return c.key; } );
+
+    const unsigned cur_size  = static_cast<unsigned>(_cur_detected_collisions.size());
+    const unsigned prev_size = static_cast<unsigned>(_prev_detected_collisions.size());
+
+    unsigned cur_idx = 0;
+    unsigned prev_idx = 0;
+
+    while (cur_idx < cur_size && prev_idx < prev_size)
+    {
+        DetectedCollision& cur  = _cur_detected_collisions[_cur_sorted_order[cur_idx]];
+        DetectedCollision& prev = _prev_detected_collisions[_prev_sorted_order[prev_idx]];
+
+        if (cur.key < prev.key)
+        {
+            // no previous collision with this key - add a new collision
+            _addCollision(ctx, cur);
+            cur_idx++;
+        }
+        else if (cur.key > prev.key)
+        {
+            // previous collision no longer detected this frame - remove it
+            _removeCollision(ctx, prev);
+            prev_idx++;
+        }
+        else // cur.key == prev.key
+        {
+            if (cur.gen1 == prev.gen1 && cur.gen2 == prev.gen2)
+            {
+                // same collision was in previous frame - update normal, contact points, etc.
+                cur.e_idx = prev.e_idx;
+                _updateCollision(ctx, cur);
+            }
+            else
+            {
+                // same key, but a stale slot got reused - treat as unrelated
+                _removeCollision(ctx, prev);
+                _addCollision(ctx, cur);
+            }
+            cur_idx++;
+            prev_idx++;
+        }
+    }
+
+    // anything left in cur has no counterpart - all new
+    for (; cur_idx < cur_size; cur_idx++)
+        _addCollision(ctx, _cur_detected_collisions[_cur_sorted_order[cur_idx]]);
+
+    // anything left in prev has no counterpart - all removed
+    for (; prev_idx < prev_size; prev_idx++)
+        _removeCollision(ctx, _prev_detected_collisions[_prev_sorted_order[prev_idx]]);
+}
+
+void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedCollision& collision)
+{
+    switch (collision.type)
+    {
+        case DetectedCollisionType::TriangleTriangle_VertexFace:
+        {
+            throw std::runtime_error("TriangleTriangle Vertex-Face collisions not implemented!");
+            break;
+        }
+        case DetectedCollisionType::TriangleTriangle_EdgeEdge:
+        {
+            throw std::runtime_error("TriangleTriangle Edge-Edge collisions not implemented!");
+            break;
+        }
+        case DetectedCollisionType::TriangleRigid:
+        {
+            unsigned slot = ctx.energies.triangle_rigid_collision.addEnergy(
+                collision.TriangleRigid.tri[0],
+                collision.TriangleRigid.tri[1],
+                collision.TriangleRigid.tri[2],
+                collision.TriangleRigid.rb,
+                nullptr,
+                collision.normal,
+                collision.TriangleRigid.barys,
+                collision.TriangleRigid.cp_rb_local
+            );
+            collision.e_idx = slot;
+            break;
+        }
+        default:
+        {
+            throw std::runtime_error("CollisionDetector::_addCollision - unsupported DetectedCollisionType!");
+            break;
+        }
+    }
+}
+
+void CollisionDetector::_removeCollision(Sim::SimulationContext& ctx, DetectedCollision& collision)
+{
+    switch (collision.type)
+    {
+        case DetectedCollisionType::TriangleTriangle_VertexFace:
+        {
+            throw std::runtime_error("TriangleTriangle Vertex-Face collisions not implemented!");
+            break;
+        }
+        case DetectedCollisionType::TriangleTriangle_EdgeEdge:
+        {
+            throw std::runtime_error("TriangleTriangle Edge-Edge collisions not implemented!");
+            break;
+        }
+        case DetectedCollisionType::TriangleRigid:
+        {
+            ctx.energies.triangle_rigid_collision.removeEnergy(collision.e_idx);
+            break;
+        }
+        default:
+        {
+            throw std::runtime_error("CollisionDetector::_removeCollision - unsupported DetectedCollisionType!");
+            break;
+        }
+    }
+}
+
+void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCollision& collision)
+{
+    switch (collision.type)
+    {
+        case DetectedCollisionType::TriangleTriangle_VertexFace:
+        {
+            throw std::runtime_error("TriangleTriangle Vertex-Face collisions not implemented!");
+            break;
+        }
+        case DetectedCollisionType::TriangleTriangle_EdgeEdge:
+        {
+            throw std::runtime_error("TriangleTriangle Edge-Edge collisions not implemented!");
+            break;
+        }
+        case DetectedCollisionType::TriangleRigid:
+        {
+            Energy::TriangleRigidCollisionEnergyInfo& info = ctx.energies.triangle_rigid_collision.data[collision.e_idx];
+            info.normal = collision.normal;
+            info.cp_rb_local = collision.TriangleRigid.cp_rb_local;
+            info.barys = collision.TriangleRigid.barys;
+            break;
+        }
+        default:
+        {
+            throw std::runtime_error("CollisionDetector::_updateCollision - unsupported DetectedCollisionType!");
+            break;
+        }
+    }
+}
+
 
 void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere)
 {
