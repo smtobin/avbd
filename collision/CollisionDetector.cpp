@@ -132,7 +132,38 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     Real dist = (tri_cp - p).norm();
     if (dist < sphere_params.sphere.radius)
     {
-        std::cout << "Sphere-triangle collision!" << std::endl;
+        uint64_t key = DetectedCollision::generateKey(
+            DetectedCollisionType::TriangleRigid,
+            triangle,
+            sphere,
+            0
+        );
+
+        // compute collision normal
+        Vec3r diff = p - tri_cp;
+        Real diff_mag = diff.norm();
+        Vec3r normal;
+        if (diff_mag > Real(1e-6))
+            normal = diff/diff_mag;
+        else
+            normal = Vec3r(1,0,0);  // arbitrary direction
+
+        // barycentric coordinates of triangle collision point
+        Vec3r barys = Math::barycentricCoordinates(tri_cp, v1, v2, v3);
+
+        // sphere conact point in local frame
+        Vec3r sphere_cp_local = ctx.particles.rotation(sphere_idx).inverse() * normal*sphere_params.sphere.radius;
+
+        _cur_detected_collisions.emplace_back(
+            { 
+                DetectedCollisionType::TriangleRigid,
+                key,
+                ctx.collision_pool.generation[triangle],
+                ctx.collision_pool.generation[sphere],
+                normal,
+                { triangle_idx, barys, sphere_idx, sphere_cp_local}
+            }   
+        );
     }
 
 }
