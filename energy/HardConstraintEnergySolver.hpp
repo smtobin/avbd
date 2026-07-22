@@ -120,7 +120,7 @@ struct HardConstraintEnergySolver
 
         Mat3r hess = (k_scaled * C + lambda) * C_hess +
             k_scaled * C_grad * C_grad.transpose();
-            
+
         particle_H += hess;
         particle_G += grad;
     }

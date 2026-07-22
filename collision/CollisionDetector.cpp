@@ -22,6 +22,16 @@ CollisionDetector::CollisionDetector(unsigned capacity)
 
 void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 {
+    // move the detected collision from last frame to the previous frame
+    _prev_detected_collisions.swap(_cur_detected_collisions);
+    _prev_sorted_order.swap(_cur_sorted_order);
+    // and clear the current detected collisions
+    _cur_detected_collisions.clear();
+    _cur_sorted_order.clear();
+    // clear the potential collisions
+    _potential_collisions.clear();
+
+
     // build BVH
     LBVHBuilder::buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh);
 
@@ -35,6 +45,11 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
     // sort the current detected collisions by key
     // merge lists, and create/destroy collision constraints accordingly
     _handleDetectedCollisions(ctx);
+
+    // rebuild adjacency
+    /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
+    ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
+    ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
 }
 
 bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigned pi, unsigned pj)
@@ -329,6 +344,9 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
         collision.TriangleRigid.cp_rb_local = sphere_cp_local;
 
         _cur_detected_collisions.push_back(std::move(collision));
+
+        std::cout << "Triangle-sphere collision!" << std::endl;
+        std::cout << "  Normal: " << normal.transpose() << std::endl;
     }
 
 }
