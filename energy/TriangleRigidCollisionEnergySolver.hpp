@@ -34,13 +34,13 @@ struct TriangleRigidCollisionConstraintSolver
 
         Real C = n.dot(cp_rb - cp_tri);
 
-        // if (C < 0)
-        // {
-        //     particles.in_collision[indices[0]] = true;
-        //     particles.in_collision[indices[1]] = true;
-        //     particles.in_collision[indices[2]] = true;
-        //     particles.in_collision[indices[3]] = true;
-        // }
+        if (C < 0)
+        {
+            particles.in_collision[indices[0]] = true;
+            particles.in_collision[indices[1]] = true;
+            particles.in_collision[indices[2]] = true;
+            particles.in_collision[indices[3]] = true;
+        }
 
         // std::cout << "  C: " << C << std::endl;
         return C;
@@ -73,13 +73,13 @@ struct TriangleRigidCollisionConstraintSolver
 
         C = n.dot(cp_rb - cp_tri);
 
-        // if (C < 0)
-        // {
-        //     particles.in_collision[indices[0]] = true;
-        //     particles.in_collision[indices[1]] = true;
-        //     particles.in_collision[indices[2]] = true;
-        //     particles.in_collision[indices[3]] = true;
-        // }
+        if (C < 0)
+        {
+            particles.in_collision[indices[0]] = true;
+            particles.in_collision[indices[1]] = true;
+            particles.in_collision[indices[2]] = true;
+            particles.in_collision[indices[3]] = true;
+        }
 
         if (local_idx < 3)
         {

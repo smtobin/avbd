@@ -5,6 +5,7 @@
 #include "common/ParticlePool.hpp"
 #include "collision/AABB.hpp"
 #include "collision/SDFPrimitivePool.hpp"
+#include "simulation/SimulationParams.hpp"
 
 namespace Collision
 {
@@ -139,6 +140,61 @@ struct CollisionPrimitivePool : TombstonePool
                 Vec3r world_extent = abs_R * extent;
 
                 return { world_center - world_extent,  world_center + world_extent };
+            }
+            case PrimitiveType::RodSegment:
+            {
+                throw std::runtime_error("globalBounds not implemented for RodSegment!");
+            }
+        }
+    }
+
+    /** AABB for an object, expanded by its current velocity. Useful for predictive collision detection */
+    inline AABB speculativeGlobalBounds(unsigned p_idx, const ParticlePool& particle_pool, Real dt)
+    {
+        switch(type[p_idx])
+        {
+            case PrimitiveType::Triangle:
+            {
+                AABB box = AABB::empty();
+                for (unsigned k = 0; k < 3; k++)
+                {
+                    // expand box based on each triangle vertex
+                    box.expand(particle_pool.positions[particle_indices[p_idx][k]]);
+                    box.expand(particle_pool.positions[particle_indices[p_idx][k]] + dt * particle_pool.velocities[particle_indices[p_idx][k]]);
+                }
+                return box;
+            }
+            case PrimitiveType::RigidSDF:
+            {
+                // index of the SDF params in the SDF pool
+                unsigned sdf_idx = particle_indices[p_idx][0];
+                AABB local = SDF::localBounds(sdf_pool.params[sdf_idx]);
+                
+                // transform local AABB to global
+                Vec3r center = 0.5 * (local.min + local.max);
+                Vec3r halfextent = 0.5 * (local.max - local.min);
+
+                // index of the oriented particle in the oriented particle pool
+                unsigned op_idx = sdf_pool.particles[sdf_idx];
+
+                // compute current AABB
+                const Quaternion& rotation = particle_pool.rotation(op_idx);
+                Vec3r world_center = rotation * center + particle_pool.positions[op_idx];
+                Mat3r abs_R = rotation.toRotationMatrix().cwiseAbs();
+                Vec3r world_extent = abs_R * halfextent;
+                AABB box = { world_center - world_extent, world_center + world_extent };
+
+                // compute AABB at predicted position and rotation given the current linear and angular velocities
+                const Quaternion new_rotation = rotation; /** TODO: (07/22/26) Predict new orientation using exp map or linearized update */
+                Vec3r new_world_center = new_rotation * center + particle_pool.positions[op_idx] + dt * particle_pool.velocities[op_idx];
+                Mat3r new_abs_R = new_rotation.toRotationMatrix().cwiseAbs();
+                Vec3r new_world_extent = new_abs_R * halfextent;
+                AABB pred_box = { new_world_center - new_world_extent, new_world_center + new_world_extent };
+
+                // merge the boxes
+                box.expand(pred_box);
+
+                return box;
             }
             case PrimitiveType::RodSegment:
             {

@@ -33,7 +33,7 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 
 
     // build BVH
-    LBVHBuilder::buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh);
+    LBVHBuilder::buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
 
     // traverse BVH for potential collisions
     LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);
@@ -291,7 +291,7 @@ void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCo
 
 void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere)
 {
-    // std::cout << "Testing sphere-triangle collision..." << std::endl;
+    std::cout << "Testing sphere-triangle collision..." << std::endl;
     const auto& triangle_idx = ctx.collision_pool.particle_indices[triangle];
 
     unsigned sdf_idx = ctx.collision_pool.particle_indices[sphere][0];
@@ -309,10 +309,20 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     // closest point on triangle to sphere center
     Vec3r tri_cp = Math::closestPoint_PointTriangle(p, v1, v2, v3);
 
+    /** TODO: (07/22/26) More sophisticated CCD */
+    // for now, expand sphere radius by relative velocity
+    const Vec3r& sphere_vel = ctx.particles.velocities[sphere_idx];
+    const Vec3r& vel1 = ctx.particles.velocities[triangle_idx[0]];
+    const Vec3r& vel2 = ctx.particles.velocities[triangle_idx[1]];
+    const Vec3r& vel3 = ctx.particles.velocities[triangle_idx[2]];
+    const Vec3r avg_vel = (vel1 + vel2 + vel3) / 3;
+    const Vec3r rel_vel = sphere_vel - avg_vel;
+    Real travel = rel_vel.norm() * ctx.params.dt;
+
     // check distance between closest point and sphere center
     Vec3r diff = (tri_cp - p);
     Real dist = diff.norm();
-    if (dist < sphere_params.sphere.radius)
+    if (dist < sphere_params.sphere.radius + travel)
     {
         // compute collision normal
         Vec3r normal;

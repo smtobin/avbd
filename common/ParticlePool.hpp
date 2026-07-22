@@ -85,6 +85,8 @@ struct ParticlePool : TombstonePool
     std::vector<uint8_t> in_collision;              // whether or not particles are in collision - use uint8 instead of bool to avoid parallel writes to the same byte 
     std::vector<uint8_t> fixed;                     // whether or not the particle is fixed
 
+    /** TODO: (07/22/26) How to unset in_collision? How does a particle know if it is no longer in collision? */
+
     std::vector<unsigned> rotation_idx;             // index of the particle in the rotation pool. UINT_MAX if not oriented
     RotationPool rotation_pool;
 

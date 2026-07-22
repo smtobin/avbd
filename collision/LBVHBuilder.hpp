@@ -10,10 +10,9 @@ namespace Collision
 
 struct LBVHBuilder
 {
-    static void buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh);
+    static void buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh, Real dt);
 
-    static void computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool);
-    static void radixSort(const std::vector<uint64_t>& unsorted, std::vector<unsigned>& sorted_order, unsigned size);
+    static void computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, Real dt);
     static void constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh);
     static void assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh);
 

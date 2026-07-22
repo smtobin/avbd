@@ -1,9 +1,9 @@
 name: "MeshSim"
-# sim-mode: "Frame-by-frame"
-sim-mode: "AFAP"
-time-step: 3.33e-3
+sim-mode: "Frame-by-frame"
+# sim-mode: "AFAP"
+time-step: 3.33e-3 # s
 end-time: 1
-g-accel: 9.81e3
+g-accel: 9.81e3 # mm/s^2
 solver-iters: 50
 iter-acceleration: 0.95
 num-threads: 16
@@ -31,7 +31,7 @@ objects:
     scaling: [1, 1, 1]
     position-by-com: true
     # material parameters
-    E: 70 # kPa
+    E: 0.35 # MPa (0.35 = roughly chicken breast: https://academic.oup.com/mt/article/31/2/21/7116012)
     nu: 0.45
     density: 1e-6 # kg / mm^3
     damping-coeff: 1e-6 # ?
