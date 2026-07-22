@@ -40,6 +40,7 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     _ctx.params.end_time = sim_config.endTime();
     _ctx.params.g_accel = sim_config.gAccel();
     _ctx.params.viewer_refresh_time_ms = 1000.0/30.0;   // 30 fps
+    _ctx.params.collision_margin = sim_config.collisionMargin();
 
     _last_collision_check_time = std::numeric_limits<Real>::lowest();
 }

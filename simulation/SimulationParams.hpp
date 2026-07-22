@@ -12,6 +12,7 @@ struct SimulationParams
     Real end_time;
     Real g_accel;
     Real viewer_refresh_time_ms;
+    Real collision_margin;
 };
 
 } // namespace Sim
