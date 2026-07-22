@@ -22,6 +22,9 @@ struct TombstonePool
     std::vector<unsigned> slots;    // stack of empty slots in the pool
     std::atomic<int> top;   // points to the "top" of the stack - i.e. the first valid (free) slot in the pool
 
+    /** Store a generation per slot. Helps us know what slots have been updated. */
+    std::vector<unsigned> generation;
+
     /** Constructor initializes memory
      * @param capacity : the capacity of the memory pool
      */
@@ -32,6 +35,7 @@ struct TombstonePool
         , highest_index(0)
         , slots(capacity)
         , top(0)
+        , generation(capacity)
     {
         // free slots count up from 0 to capacity
         std::iota(slots.begin(), slots.end(), 0u);
@@ -62,6 +66,7 @@ struct TombstonePool
 
         unsigned slot = slots[idx];
         active[slot] = true;
+        generation[slot]++;
         count++;
         highest_index = std::max(highest_index, slot);
 
