@@ -25,9 +25,9 @@ public:
         const Vec3r& initial_rotation,
         const Vec3r& initial_velocity,
         const Vec3r& initial_angular_velocity,
-        bool collisions,
-        Real mu_s,
-        Real mu_d,
+        bool /* collisions */,
+        Real /* mu_s */,
+        Real /* mu_d */,
         Real density,
         bool fixed
     )

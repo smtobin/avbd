@@ -1,12 +1,12 @@
 name: "MeshSim"
-sim-mode: "Frame-by-frame"
-# sim-mode: "AFAP"
+# sim-mode: "Frame-by-frame"
+sim-mode: "AFAP"
 time-step: 3.33e-3
 end-time: 1
 g-accel: 9.81e3
 solver-iters: 50
 iter-acceleration: 0.95
-num-threads: 8
+num-threads: 16
 
 camera-position: [25, 25, 25]
 
@@ -46,4 +46,4 @@ objects:
     type: "RigidSphere"
     fixed: true
     position: [0, 0, 0]
-    radius: 5
+    radius: 1

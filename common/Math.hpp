@@ -356,7 +356,7 @@ static std::pair<Real, Real> findClosestPointsOnLineSegments(const Vec3r& p1, co
 
 /** Geometry subroutines */
 
-inline Vec3r barycentricCoordinates(const Vec3r& p, const Vec3r& a, const Vec3r& b, const Vec3r& c)
+inline static Vec3r barycentricCoordinates(const Vec3r& p, const Vec3r& a, const Vec3r& b, const Vec3r& c)
 {
     // from https://ceng2.ktu.edu.tr/~cakir/files/grafikler/Texture_Mapping.pdf
     const Vec3r v0 = b - a;

@@ -197,7 +197,7 @@ void Simulation::notifyLeftMouseButtonReleased()
 
 void Simulation::_timeStep()
 {
-    Collision::CollisionDetector::detectCollisionsAndRecolor(_ctx);
+    _ctx.collision_detector.detectCollisionsAndRecolor(_ctx);
     // std::cout << "t=" << _time << std::endl;
 
     // let the solver do the iterations

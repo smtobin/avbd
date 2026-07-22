@@ -10,6 +10,15 @@
 namespace Collision
 {
 
+CollisionDetector::CollisionDetector(unsigned capacity)
+{
+    _potential_collisions.reserve(capacity);
+    _prev_detected_collisions.reserve(capacity);
+    _prev_sorted_order.reserve(capacity);
+    _cur_detected_collisions.reserve(capacity);
+    _cur_sorted_order.reserve(capacity);
+}
+
 void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 {
     // build BVH
@@ -21,6 +30,9 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 
     // narrow-phase collision detection
     _narrowPhaseCollisionDetection(ctx, potential_collisions);
+
+    // sort and merge lists, creating appropriate new collision constraints and removing obsolete ones
+    // LBVHBuilder::radixSort()
 
 }
 
@@ -110,7 +122,7 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
 
 void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere)
 {
-    std::cout << "Testing sphere-triangle collision..." << std::endl;
+    // std::cout << "Testing sphere-triangle collision..." << std::endl;
     const auto& triangle_idx = ctx.collision_pool.particle_indices[triangle];
 
     unsigned sdf_idx = ctx.collision_pool.particle_indices[sphere][0];
@@ -129,22 +141,14 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     Vec3r tri_cp = Math::closestPoint_PointTriangle(p, v1, v2, v3);
 
     // check distance between closest point and sphere center
-    Real dist = (tri_cp - p).norm();
+    Vec3r diff = (tri_cp - p);
+    Real dist = diff.norm();
     if (dist < sphere_params.sphere.radius)
     {
-        uint64_t key = DetectedCollision::generateKey(
-            DetectedCollisionType::TriangleRigid,
-            triangle,
-            sphere,
-            0
-        );
-
         // compute collision normal
-        Vec3r diff = p - tri_cp;
-        Real diff_mag = diff.norm();
         Vec3r normal;
-        if (diff_mag > Real(1e-6))
-            normal = diff/diff_mag;
+        if (dist > Real(1e-6))
+            normal = diff/dist;
         else
             normal = Vec3r(1,0,0);  // arbitrary direction
 
@@ -154,16 +158,23 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
         // sphere conact point in local frame
         Vec3r sphere_cp_local = ctx.particles.rotation(sphere_idx).inverse() * normal*sphere_params.sphere.radius;
 
-        _cur_detected_collisions.emplace_back(
-            { 
-                DetectedCollisionType::TriangleRigid,
-                key,
-                ctx.collision_pool.generation[triangle],
-                ctx.collision_pool.generation[sphere],
-                normal,
-                { triangle_idx, barys, sphere_idx, sphere_cp_local}
-            }   
+        DetectedCollision collision{};
+        collision.type = DetectedCollisionType::TriangleRigid;
+        collision.key = DetectedCollision::generateKey(
+            DetectedCollisionType::TriangleRigid,
+            triangle,
+            sphere,
+            0
         );
+        collision.gen1 = ctx.collision_pool.generation[triangle];
+        collision.gen2 = ctx.collision_pool.generation[sphere];
+        collision.normal = normal;
+        collision.TriangleRigid.tri = Vec3u(triangle_idx[0], triangle_idx[1], triangle_idx[2]);
+        collision.TriangleRigid.barys = barys;
+        collision.TriangleRigid.rb = sphere_idx;
+        collision.TriangleRigid.cp_rb_local = sphere_cp_local;
+
+        _cur_detected_collisions.push_back(std::move(collision));
     }
 
 }

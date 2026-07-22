@@ -22,7 +22,7 @@ private:
     std::vector<unsigned> _cur_sorted_order;
 
     /** Generates a unique constexpr collision key for each pair of colliding objects that we can switch over. */
-    constexpr unsigned _makeCollisionKey(CollisionGeometryType a, CollisionGeometryType b)
+    constexpr static unsigned _makeCollisionKey(CollisionGeometryType a, CollisionGeometryType b)
     {
         unsigned ia = static_cast<unsigned>(a);
         unsigned ib = static_cast<unsigned>(b);
@@ -46,6 +46,9 @@ private:
     
 
 public:
+    /** Reserves memory for caches */
+    CollisionDetector(unsigned capacity);
+
     /** Performs entire collision detection process: 
      * 
      * - Builds BVH 

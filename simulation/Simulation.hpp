@@ -153,9 +153,6 @@ class Simulation
     /** Responsible for visualization in the sim */
     Graphics::GraphicsScene _graphics_scene;
 
-    /** Responsible for collision detection in the sim */
-    Collision::CollisionDetector _collision_detector;
-
     /** Simulation params */
     Config::SimulationConfig _config;
 };

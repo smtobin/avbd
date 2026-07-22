@@ -89,7 +89,7 @@ target_link_libraries(Sim Simulation ${VTK_LIBRARIES})
 # TESTS
 ###################################################
 add_executable(TestNeoHookeanAccumulate test/test_neohookean_accumulate.cpp)
-target_link_libraries(TestNeoHookeanAccumulate gmsh Common Eigen3::Eigen)
+target_link_libraries(TestNeoHookeanAccumulate gmsh Common Collision Eigen3::Eigen)
 
 add_executable(TestLBVH test/test_lbvh.cpp)
 target_link_libraries(TestLBVH Eigen3::Eigen SimObject Collision gmsh ${VTK_LIBRARIES})

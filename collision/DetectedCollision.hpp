@@ -41,7 +41,7 @@ struct DetectedCollision
             std::swap(idxA, idxB);
 
         constexpr unsigned TYPE_BITS = 5;   // bits for collision type: supports up to 32 different collision types
-        constexpr unsigned IDX_BITS  = 27;  // bits for primitive index: supports ~100 M primitives
+        constexpr unsigned IDX_BITS  = 26;  // bits for primitive index: supports ~50 M primitives
         constexpr unsigned CODE_BITS = 7;   // bits for the collision code: supports 128 different codes
         static_assert(TYPE_BITS + 2 * IDX_BITS + CODE_BITS == 64, "key must fill 64 bits");
 
