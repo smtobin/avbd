@@ -34,6 +34,10 @@ struct GroundCollisionConstraintSolver
         unsigned p_idx = energies.data[c_idx].particle_indices[0];
         C = -particles.positions[p_idx][1];
 
+        // if (C > 0)
+        //     particles.in_collision[p_idx] = true;
+
+
         C_grad = Vec3r(0,-1,0);
         C_hess = Mat3r::Zero();
     }

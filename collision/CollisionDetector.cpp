@@ -291,7 +291,7 @@ void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCo
 
 void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere)
 {
-    std::cout << "Testing sphere-triangle collision..." << std::endl;
+    // std::cout << "Testing sphere-triangle collision..." << std::endl;
     const auto& triangle_idx = ctx.collision_pool.particle_indices[triangle];
 
     unsigned sdf_idx = ctx.collision_pool.particle_indices[sphere][0];
@@ -312,6 +312,11 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     Vec3r normal, cp_barys, cp_rb_local;
     if (_triangleSDF_CCD(ctx, triangle, sphere, ctx.params.dt, normal, cp_barys, cp_rb_local))
     {
+        std::cout << "Sphere-triangle collision detected!" << std::endl;
+        std::cout << "  Barys: " << cp_barys.transpose() << std::endl;
+        std::cout << "  CP on triangle: " << (v1*cp_barys[0] + v2*cp_barys[1] + v3*cp_barys[2]).transpose() << std::endl;
+        std::cout << "  CP on rigid body: " << cp_rb_local.transpose() << std::endl;
+        std::cout << "  Normal: " << normal.transpose() << std::endl;
         DetectedCollision collision{};
         collision.type = DetectedCollisionType::TriangleRigid;
         collision.key = DetectedCollision::generateKey(
@@ -576,8 +581,8 @@ bool CollisionDetector::_triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned t
     cp_rb_local = x_ti - sdf_xti*grad_xti;
     normal = rigid_body_rot(t) * grad_xti;
 
-    std::cout << "Best t: " << t << std::endl;
-    std::cout << "SDF @ t: " << signed_distance_at_time(t) << std::endl;
+    // std::cout << "Best t: " << t << std::endl;
+    // std::cout << "SDF @ t: " << signed_distance_at_time(t) << std::endl;
 
     return sdf_xti < ctx.params.collision_margin;
     
