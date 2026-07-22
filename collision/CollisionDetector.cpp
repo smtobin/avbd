@@ -310,6 +310,8 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     Vec3r tri_cp = Math::closestPoint_PointTriangle(p, v1, v2, v3);
 
     /** TODO: (07/22/26) More sophisticated CCD */
+    _triangleSDF_CCD(ctx, triangle, sphere, ctx.params.dt);
+
     // for now, expand sphere radius by relative velocity
     const Vec3r& sphere_vel = ctx.particles.velocities[sphere_idx];
     const Vec3r& vel1 = ctx.particles.velocities[triangle_idx[0]];
@@ -372,6 +374,187 @@ void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphe
 {
     /** TODO: (07/20/26) sphere-sphere collision detection */
     throw std::runtime_error("Sphere-sphere collision detetction not implemented.");
+}
+
+void CollisionDetector::_triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned triangle, unsigned rb, Real dt)
+{
+    
+    
+    unsigned sdf_idx = ctx.collision_pool.particle_indices[rb][0];      // index in the SDF pool for the rigid body
+    unsigned rb_idx = ctx.collision_pool.sdf_pool.particles[sdf_idx];   // particle index of the rigid body COM
+    const SDFShapeParams& sdf_params = ctx.collision_pool.sdf_pool.params[sdf_idx];     // SDF parameters
+
+    // extract quantities for rigid body
+    const Vec3r& rb_pos = ctx.particles.positions[rb_idx];
+    const Quaternion& rb_rot = ctx.particles.rotation(rb_idx);
+    const Vec3r& rb_lin_vel = ctx.particles.velocities[rb_idx];
+    const Vec3r& rb_ang_vel = ctx.particles.angularVelocity(rb_idx);    // note: body-frame angular velocity
+
+    // evolves rigid body position forward by t
+    auto rigid_body_pos = [&](Real t)
+    {
+        return rb_pos + rb_lin_vel * t;
+    };
+
+    // evolves rigid body rotation forward by t
+    auto rigid_body_rot = [&](Real t)
+    {
+        return rb_rot * Math::QuaternionExp_so3(rb_ang_vel*t);
+    };
+
+    // computes the linear velocity of a point in space if it were attached to the rigid body
+    auto lin_vel_on_rigid_body = [&](const Vec3r& xt, Real t)
+    {
+        const Vec3r rb_ang_vel_global = rigid_body_rot(t) * rb_ang_vel;
+        return rb_lin_vel + rb_ang_vel_global.cross(xt - rigid_body_pos(t));
+    };
+
+    // computes the relative velocity of a point in space with respect to the rigid body (in the rigid body's local frame)
+    auto rel_vel_wrt_rigid_body = [&](const Vec3r& xt, const Vec3r& vt, Real t)
+    {
+        const Vec3r v_rel_global = vt - lin_vel_on_rigid_body(xt, t);
+        return rigid_body_rot(t).inverse() * v_rel_global;
+    };
+
+    // transforms a position into the rigid body local frame
+    auto local_pos_wrt_rigid_body = [&](const Vec3r& xt, Real t)
+    {
+        return rigid_body_rot(t).inverse() * (xt - rigid_body_pos(t));
+    };
+
+    // extract quantities for triangle
+    const auto& tri_indices = ctx.collision_pool.particle_indices[triangle];
+    const Vec3r& tri1 = ctx.particles.positions[tri_indices[0]];
+    const Vec3r& tri2 = ctx.particles.positions[tri_indices[1]];
+    const Vec3r& tri3 = ctx.particles.positions[tri_indices[2]];
+    const Vec3r& tri_vel1 = ctx.particles.velocities[tri_indices[0]];
+    const Vec3r& tri_vel2 = ctx.particles.velocities[tri_indices[1]];
+    const Vec3r& tri_vel3 = ctx.particles.velocities[tri_indices[2]];
+
+    /** Find initial iterate */
+    // helper for evaluating which vertex of the triangle to start at
+    // use the vertex that minimizes vi^T * gradSDF(si) where si are the triangle vertices and vi the corresponding linear velocities
+    auto evaluate_initial_iterate = [&](const Vec3r& si, const Vec3r& vi)
+    {
+        const Vec3r rel_vel = rel_vel_wrt_rigid_body(si, vi, 0);
+        const Vec3r rel_pos = local_pos_wrt_rigid_body(si, 0);
+
+        // vi^T * gradSDF(si) (everything expressed in SDF local frame)
+        return rel_vel.dot(SDF::gradient(sdf_params, rel_pos));
+    };
+
+    // evaluate each vertex
+    Real eval1 = evaluate_initial_iterate(tri1, tri_vel1);
+    Real eval2 = evaluate_initial_iterate(tri2, tri_vel2);
+    Real eval3 = evaluate_initial_iterate(tri3, tri_vel3);
+
+    // optimization variables
+    Real t_start = 0, t_end = dt;  // time interval
+    Real t = 0; // time
+    Real u,v,w; // barycentric coordinates on triangle
+
+    // vertex 1 is the initial iterate
+    if (eval1 < eval2 && eval1 < eval3)         { u = 1; v = 0; w = 0; }
+    // vertex 2 is the initial iterate
+    else if (eval2 < eval1 && eval2 < eval3)    { u = 0; v = 1; w = 0; }
+    // vertex 3 is the initial iterate
+    else                                        { u = 0; v = 0; w = 1; }
+
+
+    /** Spatio-temporal optimization */
+    // helper that interpolates the barycentric position in time
+    // note: this is still the global position - will need to convert to local SDF frame
+    auto barycentric_interpolate = [&](Real u, Real v, Real w, Real t)
+    {
+        return u*(tri1 + tri_vel1*t) + v*(tri2 + tri_vel2*t) + w*(tri3 + tri_vel3*t);
+    };
+    // helper for velocity interpolation of point on triangle (global frame)
+    auto barycentric_interpolate_velocity = [&](Real u, Real v, Real w)
+    {
+        return u*tri_vel1 + v*tri_vel2 + w*tri_vel3;
+    };
+    // evaluate the SDF at a given time
+    auto signed_distance_at_time = [&](Real t)
+    {
+        Vec3r x_global = barycentric_interpolate(u, v, w, t);
+        Vec3r x = local_pos_wrt_rigid_body(x_global, t);
+        return SDF::evaluate(sdf_params, x);
+    };
+    // evaluate the abs of the SDF at a given time
+    auto unsigned_distance_at_time = [&](Real t)
+    {
+        return std::abs(signed_distance_at_time(t));
+    };
+
+    // evaluate SDF at a given point - assumes positions are in rigid body local frame
+    auto signed_distance_at_point = [&](const Vec3r& x_local)
+    {
+        return SDF::evaluate(sdf_params, x_local);
+    };
+
+    constexpr unsigned MAX_ITER = 16;
+    constexpr Real TOL = 1e-6;
+    for (unsigned iter = 0; iter < MAX_ITER; iter++)
+    {
+        /** Solve temporal subproblem */
+        Real t_old = t;
+        Vec3r x_ti_global = barycentric_interpolate(u, v, w, t);
+        Vec3r v_ti_global = barycentric_interpolate_velocity(u, v, w);
+        Vec3r x_ti = local_pos_wrt_rigid_body(x_ti_global, t);
+        Vec3r v_ti = rel_vel_wrt_rigid_body(x_ti_global, v_ti_global, t);
+
+        Real sdf_xti = SDF::evaluate(sdf_params, x_ti);
+        if (sdf_xti <= 0)
+        {
+            // update the interval
+            t_end = std::min(t, t_end);
+            t = Algorithm::goldenSectionSearch(t_start, t, unsigned_distance_at_time);
+        }
+        else
+        {
+            Real v_dot_grad = v_ti.dot(SDF::gradient(sdf_params, x_ti));
+            Real d = v_dot_grad > 0 ? -1 : 1;
+            if (d < 0)
+                t = Algorithm::goldenSectionSearch(t_start, t, signed_distance_at_time);
+            else
+                t = Algorithm::goldenSectionSearch(t, t_end, signed_distance_at_time);
+        }
+
+        /** Solve spatial subproblem */
+        x_ti_global = barycentric_interpolate(u, v, w, t);
+        v_ti_global = barycentric_interpolate_velocity(u, v, w);
+        x_ti = local_pos_wrt_rigid_body(x_ti_global, t);
+        v_ti = rel_vel_wrt_rigid_body(x_ti_global, v_ti_global, t);
+
+        sdf_xti = SDF::evaluate(sdf_params, x_ti);
+        Vec3r grad_xti = SDF::gradient(sdf_params, x_ti);
+        if (sdf_xti <= 0)
+            t_end = std::min(t, t_end);
+        
+        // find support vertex
+        Vec3r tri1_localt = local_pos_wrt_rigid_body(tri1 + tri_vel1*t, t);
+        Vec3r tri2_localt = local_pos_wrt_rigid_body(tri2 + tri_vel2*t, t);
+        Vec3r tri3_localt = local_pos_wrt_rigid_body(tri3 + tri_vel3*t, t);
+        Real s1 = tri1_localt.dot(grad_xti);
+        Real s2 = tri2_localt.dot(grad_xti);
+        Real s3 = tri3_localt.dot(grad_xti);
+        Vec3r s;
+        if (s1 < s2 && s1 < s3)         s = tri1_localt;
+        else if (s2 < s1 && s2 < s3)    s = tri2_localt;
+        else                            s = tri3_localt;
+
+        Vec3r x_new = Algorithm::goldenSectionSearch(x_ti, s, signed_distance_at_point);
+        Vec3r barys = Math::barycentricCoordinates(x_new, tri1_localt, tri2_localt, tri3_localt);
+        u = barys[0]; v = barys[1]; w = barys[2];
+
+        // see if we can exit early
+        if (std::abs(t_old - t) < TOL && (x_new - x_ti).norm() < TOL)
+            break;
+    }
+
+    std::cout << "Best t: " << t << std::endl;
+    std::cout << "SDF @ t: " << signed_distance_at_time(t) << std::endl;
+
 }
 
 } // namespace Collision

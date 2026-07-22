@@ -44,6 +44,11 @@ private:
     inline void _triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2);
     inline void _sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2);
 
+    /** General triangle-SDF continuous collision detection
+     * Follows the implementation described by Pelletier-Guenette et al (2025): https://dl.acm.org/doi/full/10.1145/3747862
+     */
+    inline void _triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned triangle, unsigned rb, Real dt);
+
     inline void _handleDetectedCollisions(Sim::SimulationContext& ctx);
     inline void _addCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
     inline void _removeCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);

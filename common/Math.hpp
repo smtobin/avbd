@@ -192,6 +192,35 @@ static Mat3r Plus_SO3(const Mat3r& SO3_mat, const Vec3r& so3_vec)
     return SO3_mat * Exp_so3(so3_vec);
 }
 
+
+/** === Quaternions === */
+static Quaternion QuaternionExp_so3(const Vec3r& vec)
+{
+    Real theta = vec.norm();
+    Quaternion q;
+
+    // small angle approximation
+    if (theta < 1e-8)
+    {
+        q.w() = 1.0;
+        q.x() = 0.5 * vec.x();
+        q.y() = 0.5 * vec.y();
+        q.z() = 0.5 * vec.z();
+        q.normalize();
+        return q;
+    }
+
+    Real half_theta = 0.5*theta;
+    Real sin_half_theta = std::sin(half_theta);
+    Real scale = sin_half_theta / theta;
+    q.w() = std::cos(half_theta);
+    q.x() = scale * vec.x();
+    q.y() = scale * vec.y();
+    q.z() = scale * vec.z();
+
+    return q;
+}
+
 static Mat3r RotMatFromXYZEulerAngles(const Vec3r& euler_xyz)
 {
     const Real x = euler_xyz(0) * M_PI / 180.0;

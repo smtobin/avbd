@@ -34,7 +34,7 @@ objects:
     E: 0.35 # MPa (0.35 = roughly chicken breast: https://academic.oup.com/mt/article/31/2/21/7116012)
     nu: 0.45
     density: 1e-6 # kg / mm^3
-    damping-coeff: 1e-6 # ?
+    damping-coeff: 1e-5 # ?
 
     # render settings
     smooth-normals: False

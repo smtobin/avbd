@@ -127,6 +127,12 @@ struct ParticlePool : TombstonePool
         return rotation_pool.rotations[rotation_idx[p_idx]];
     }
 
+    /** Convenience function to get the angular velocity of an oriented particle */
+    const Vec3r& angularVelocity(unsigned p_idx) const
+    {
+        return rotation_pool.angular_velocities[rotation_idx[p_idx]];
+    }
+
     /** Adds a new particle to the pool, given an initial position and mass.
      * Velocities are initialized to 0, and the particle is assumed to not be in collision.
      * 

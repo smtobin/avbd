@@ -66,7 +66,7 @@ struct SDF
         {
             case SDFType::Sphere:
             {
-                return p.norm();
+                return p.norm() - s.sphere.radius;
             }
             /** TODO: (07/19/26) implement box SDF */
             case SDFType::Box:
