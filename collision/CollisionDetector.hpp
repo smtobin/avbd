@@ -46,8 +46,16 @@ private:
 
     /** General triangle-SDF continuous collision detection
      * Follows the implementation described by Pelletier-Guenette et al (2025): https://dl.acm.org/doi/full/10.1145/3747862
+     * @param ctx simulation context
+     * @param triangle primitive index for the triangle
+     * @param rb primitive index for the rigid body
+     * @param dt the time step size of the sim
+     * @param normal (output) the collision normal
+     * @param cp_barys (output) the barycentric coordinates of the contact point on the triangle
+     * @param cp_rb_local (output) the contact point on the rigid body, expressed in the local rigid body frame
+     * @returns whether or not a collision was detected over the interval [0, dt] given the current velocities
      */
-    inline void _triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned triangle, unsigned rb, Real dt);
+    inline bool _triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned triangle, unsigned rb, Real dt, Vec3r& normal, Vec3r& cp_barys, Vec3r& cp_rb_local);
 
     inline void _handleDetectedCollisions(Sim::SimulationContext& ctx);
     inline void _addCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);

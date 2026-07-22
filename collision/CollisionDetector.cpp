@@ -309,36 +309,9 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     // closest point on triangle to sphere center
     Vec3r tri_cp = Math::closestPoint_PointTriangle(p, v1, v2, v3);
 
-    /** TODO: (07/22/26) More sophisticated CCD */
-    _triangleSDF_CCD(ctx, triangle, sphere, ctx.params.dt);
-
-    // for now, expand sphere radius by relative velocity
-    const Vec3r& sphere_vel = ctx.particles.velocities[sphere_idx];
-    const Vec3r& vel1 = ctx.particles.velocities[triangle_idx[0]];
-    const Vec3r& vel2 = ctx.particles.velocities[triangle_idx[1]];
-    const Vec3r& vel3 = ctx.particles.velocities[triangle_idx[2]];
-    const Vec3r avg_vel = (vel1 + vel2 + vel3) / 3;
-    const Vec3r rel_vel = sphere_vel - avg_vel;
-    Real travel = rel_vel.norm() * ctx.params.dt;
-
-    // check distance between closest point and sphere center
-    Vec3r diff = (tri_cp - p);
-    Real dist = diff.norm();
-    if (dist < sphere_params.sphere.radius + travel)
+    Vec3r normal, cp_barys, cp_rb_local;
+    if (_triangleSDF_CCD(ctx, triangle, sphere, ctx.params.dt, normal, cp_barys, cp_rb_local))
     {
-        // compute collision normal
-        Vec3r normal;
-        if (dist > Real(1e-6))
-            normal = diff/dist;
-        else
-            normal = Vec3r(1,0,0);  // arbitrary direction
-
-        // barycentric coordinates of triangle collision point
-        Vec3r barys = Math::barycentricCoordinates(tri_cp, v1, v2, v3);
-
-        // sphere conact point in local frame
-        Vec3r sphere_cp_local = ctx.particles.rotation(sphere_idx).inverse() * normal*sphere_params.sphere.radius;
-
         DetectedCollision collision{};
         collision.type = DetectedCollisionType::TriangleRigid;
         collision.key = DetectedCollision::generateKey(
@@ -351,15 +324,61 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
         collision.gen2 = ctx.collision_pool.generation[sphere];
         collision.normal = normal;
         collision.TriangleRigid.tri = Vec3u(triangle_idx[0], triangle_idx[1], triangle_idx[2]);
-        collision.TriangleRigid.barys = barys;
+        collision.TriangleRigid.barys = cp_barys;
         collision.TriangleRigid.rb = sphere_idx;
-        collision.TriangleRigid.cp_rb_local = sphere_cp_local;
+        collision.TriangleRigid.cp_rb_local = cp_rb_local;
 
         _cur_detected_collisions.push_back(std::move(collision));
-
-        std::cout << "Triangle-sphere collision!" << std::endl;
-        std::cout << "  Normal: " << normal.transpose() << std::endl;
     }
+
+    // for now, expand sphere radius by relative velocity
+    // const Vec3r& sphere_vel = ctx.particles.velocities[sphere_idx];
+    // const Vec3r& vel1 = ctx.particles.velocities[triangle_idx[0]];
+    // const Vec3r& vel2 = ctx.particles.velocities[triangle_idx[1]];
+    // const Vec3r& vel3 = ctx.particles.velocities[triangle_idx[2]];
+    // const Vec3r avg_vel = (vel1 + vel2 + vel3) / 3;
+    // const Vec3r rel_vel = sphere_vel - avg_vel;
+    // Real travel = rel_vel.norm() * ctx.params.dt;
+
+    // // check distance between closest point and sphere center
+    // Vec3r diff = (tri_cp - p);
+    // Real dist = diff.norm();
+    // if (dist < sphere_params.sphere.radius + travel)
+    // {
+    //     // compute collision normal
+    //     Vec3r normal;
+    //     if (dist > Real(1e-6))
+    //         normal = diff/dist;
+    //     else
+    //         normal = Vec3r(1,0,0);  // arbitrary direction
+
+    //     // barycentric coordinates of triangle collision point
+    //     Vec3r barys = Math::barycentricCoordinates(tri_cp, v1, v2, v3);
+
+    //     // sphere conact point in local frame
+    //     Vec3r sphere_cp_local = ctx.particles.rotation(sphere_idx).inverse() * normal*sphere_params.sphere.radius;
+
+    //     DetectedCollision collision{};
+    //     collision.type = DetectedCollisionType::TriangleRigid;
+    //     collision.key = DetectedCollision::generateKey(
+    //         DetectedCollisionType::TriangleRigid,
+    //         triangle,
+    //         sphere,
+    //         0
+    //     );
+    //     collision.gen1 = ctx.collision_pool.generation[triangle];
+    //     collision.gen2 = ctx.collision_pool.generation[sphere];
+    //     collision.normal = normal;
+    //     collision.TriangleRigid.tri = Vec3u(triangle_idx[0], triangle_idx[1], triangle_idx[2]);
+    //     collision.TriangleRigid.barys = barys;
+    //     collision.TriangleRigid.rb = sphere_idx;
+    //     collision.TriangleRigid.cp_rb_local = sphere_cp_local;
+
+    //     _cur_detected_collisions.push_back(std::move(collision));
+
+    //     std::cout << "Triangle-sphere collision!" << std::endl;
+    //     std::cout << "  Normal: " << normal.transpose() << std::endl;
+    // }
 
 }
 
@@ -376,10 +395,8 @@ void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphe
     throw std::runtime_error("Sphere-sphere collision detetction not implemented.");
 }
 
-void CollisionDetector::_triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned triangle, unsigned rb, Real dt)
+bool CollisionDetector::_triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned triangle, unsigned rb, Real dt, Vec3r& normal, Vec3r& cp_barys, Vec3r& cp_rb_local)
 {
-    
-    
     unsigned sdf_idx = ctx.collision_pool.particle_indices[rb][0];      // index in the SDF pool for the rigid body
     unsigned rb_idx = ctx.collision_pool.sdf_pool.particles[sdf_idx];   // particle index of the rigid body COM
     const SDFShapeParams& sdf_params = ctx.collision_pool.sdf_pool.params[sdf_idx];     // SDF parameters
@@ -494,16 +511,19 @@ void CollisionDetector::_triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned t
 
     constexpr unsigned MAX_ITER = 16;
     constexpr Real TOL = 1e-6;
+    Real sdf_xti;   // latest SDF evaluation
+    Vec3r grad_xti; // latest SDF gradient
+    Vec3r x_ti;     // latest contact point on triangle
     for (unsigned iter = 0; iter < MAX_ITER; iter++)
     {
         /** Solve temporal subproblem */
         Real t_old = t;
         Vec3r x_ti_global = barycentric_interpolate(u, v, w, t);
         Vec3r v_ti_global = barycentric_interpolate_velocity(u, v, w);
-        Vec3r x_ti = local_pos_wrt_rigid_body(x_ti_global, t);
+        x_ti = local_pos_wrt_rigid_body(x_ti_global, t);
         Vec3r v_ti = rel_vel_wrt_rigid_body(x_ti_global, v_ti_global, t);
 
-        Real sdf_xti = SDF::evaluate(sdf_params, x_ti);
+        sdf_xti = SDF::evaluate(sdf_params, x_ti);
         if (sdf_xti <= 0)
         {
             // update the interval
@@ -527,7 +547,7 @@ void CollisionDetector::_triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned t
         v_ti = rel_vel_wrt_rigid_body(x_ti_global, v_ti_global, t);
 
         sdf_xti = SDF::evaluate(sdf_params, x_ti);
-        Vec3r grad_xti = SDF::gradient(sdf_params, x_ti);
+        grad_xti = SDF::gradient(sdf_params, x_ti);
         if (sdf_xti <= 0)
             t_end = std::min(t, t_end);
         
@@ -552,8 +572,15 @@ void CollisionDetector::_triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned t
             break;
     }
 
+    cp_barys = Vec3r(u, v, w);
+    cp_rb_local = x_ti - sdf_xti*grad_xti;
+    normal = rigid_body_rot(t) * grad_xti;
+
     std::cout << "Best t: " << t << std::endl;
     std::cout << "SDF @ t: " << signed_distance_at_time(t) << std::endl;
+
+    return sdf_xti < ctx.params.collision_margin;
+    
 
 }
 

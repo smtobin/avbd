@@ -27,7 +27,7 @@ objects:
     type: "TetMeshObject"
     name: "test"
     filename: "../resource/tumor.msh"
-    position: [0, 10, 0]
+    position: [0, 14, 0]
     scaling: [1, 1, 1]
     position-by-com: true
     # material parameters
