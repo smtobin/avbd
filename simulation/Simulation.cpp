@@ -1,5 +1,6 @@
 #include "simulation/Simulation.hpp"
 #include "common/Math.hpp"
+#include "collision/CollisionDetector.hpp"
 
 #include <chrono>
 #include <thread>
@@ -25,8 +26,13 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     // , _end_time(sim_config.endTime())
     // , _g_accel(sim_config.gAccel())
     // , _viewer_refresh_time_ms(1000.0/30.0)
-    , _ctx(10000, 20000)
-    , _solver(&_ctx, sim_config.solverIters(), sim_config.iterAcceleration(),std::thread::hardware_concurrency())
+    , _ctx(10000, 1000, 20000, 10000, 1000)
+    , _solver(
+        &_ctx,
+        sim_config.solverIters(),
+        sim_config.iterAcceleration(),
+        sim_config.numThreads() ? sim_config.numThreads() : std::thread::hardware_concurrency()
+    )
     , _graphics_scene(sim_config.renderConfig())
     , _config(sim_config)
 {
@@ -34,6 +40,7 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     _ctx.params.end_time = sim_config.endTime();
     _ctx.params.g_accel = sim_config.gAccel();
     _ctx.params.viewer_refresh_time_ms = 1000.0/30.0;   // 30 fps
+    _ctx.params.collision_margin = sim_config.collisionMargin();
 
     _last_collision_check_time = std::numeric_limits<Real>::lowest();
 }
@@ -65,9 +72,9 @@ void Simulation::setup()
         std::filesystem::path filepath = output_dir / filename;
 
         // create the logger
-        _logger = std::make_unique<SimulationLogger>(filepath.string(), _config.loggingInterval());
+        // _logger = std::make_unique<SimulationLogger>(filepath.string(), _config.loggingInterval());
 
-        _logger->addOutput("time", &_time);
+        // _logger->addOutput("time", &_time);
     }
 
     // create objects
@@ -78,7 +85,7 @@ void Simulation::setup()
 
     // after creating the objects, build the adjacency structure
     _ctx.adjacency.buildAdjacency(_ctx.particles, _ctx.energies);
-    _ctx.coloring.buildColorList(_ctx.adjacency, _ctx.particles.count);
+    _ctx.coloring.buildColorList(_ctx.adjacency, _ctx.particles.totalSize());
     
     
 }
@@ -87,8 +94,8 @@ void Simulation::update()
 {
     // we assume that other derived Simulation classes have already added their logged quantities
     // so we can start logging now (which will print the header and prevent us from adding new logged quantities)
-    if (_logger)
-        _logger->startLogging();
+    // if (_logger)
+    //     _logger->startLogging();
 
     auto wall_time_start = std::chrono::steady_clock::now();
     auto last_redraw = std::chrono::steady_clock::now();
@@ -134,10 +141,10 @@ void Simulation::update()
         }
     }
 
-    if (_logger)
-    {
-        _logger->stopLogging();
-    }
+    // if (_logger)
+    // {
+    //     _logger->stopLogging();
+    // }
 
     auto wall_time_end = std::chrono::steady_clock::now();
     std::cout << "Simulation " << _ctx.params.end_time << " seconds took " << std::chrono::duration_cast<std::chrono::milliseconds>(wall_time_end - wall_time_start).count() << " ms" << std::endl;
@@ -191,16 +198,17 @@ void Simulation::notifyLeftMouseButtonReleased()
 
 void Simulation::_timeStep()
 {
+    _ctx.collision_detector.detectCollisionsAndRecolor(_ctx);
     // std::cout << "t=" << _time << std::endl;
 
     // let the solver do the iterations
     _solver.solve(_ctx.params.dt);
 
     // log quantities
-    if (_logger)
-    {
-        _logger->logToFile(_time);
-    }
+    // if (_logger)
+    // {
+    //     _logger->logToFile(_time);
+    // }
 
     _time += _ctx.params.dt;
 }

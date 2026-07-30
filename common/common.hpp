@@ -1,5 +1,6 @@
 #pragma once
 
+#define EIGEN_NO_DEBUG
 #include <Eigen/Dense>
 #include <math.h>
 #include <iostream>
@@ -8,8 +9,6 @@
 
 #include "common/TypeList.hpp"
 // #include "common/VariadicVectorContainer.hpp"
-
-#define EIGEN_NO_DEBUG
 
 #define STIFFNESS_BETA 10
 #define STIFFNESS_GAMMA 0.99
@@ -97,6 +96,8 @@ using Mat4r = Eigen::Matrix<Real, 4, 4>;
 using Mat6r = Eigen::Matrix<Real, 6, 6>;
 using MatXr = Eigen::Matrix<Real,-1,-1>;
 
+using Quaternion = Eigen::Quaternion<Real>;
+
 /** Enum of energy types */
 // enum class EnergyType
 // {
@@ -113,10 +114,12 @@ namespace Energy
     /** Pools */
     struct NeoHookeanEnergyPool;
     struct GroundCollisionEnergyPool;
+    struct TriangleRigidCollisionEnergyPool;
 
     /** Solvers */
     struct NeoHookeanEnergySolver;
     struct GroundCollisionEnergySolver;
+    struct TriangleRigidCollisionEnergySolver;
 }
 
 
@@ -124,7 +127,8 @@ namespace Energy
 // when a new energy is added, we must update the list below
 #define ENERGY_LIST(X) \
     X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
-    X(GROUND_COLLISION, GroundCollisionEnergySolver)
+    X(GROUND_COLLISION, GroundCollisionEnergySolver) \
+    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver)
 
 // generate the enum
 enum class EnergyType
@@ -167,6 +171,17 @@ namespace Config
     class ObjectConfig;
     class TetMeshObjectConfig;
     class RigidSphereConfig;
+}
+
+namespace Collision
+{
+    struct CollisionPrimitivePool;
+    struct LBVH;
+}
+
+namespace Sim
+{
+    struct SimulationContext;
 }
 
 using ObjectConfigs_TypeList = TypeList<

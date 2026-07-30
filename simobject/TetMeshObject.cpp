@@ -1,6 +1,7 @@
 #include "simobject/TetMeshObject.hpp"
 
 #include "common/mesh/MeshUtils.hpp"
+#include "common/Math.hpp"
 #include "simulation/SimulationContext.hpp"
 
 namespace SimObject
@@ -74,7 +75,6 @@ void TetMeshObject::setup()
         Real rest_volume = std::abs(X.determinant() / 6.0);
 
         // create the new energy
-        /** TODO: should I store this? */
         _ctx->energies.neo_hookean.addEnergy(
             pool_indices,
             lambda,

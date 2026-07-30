@@ -43,6 +43,7 @@ class SimulationConfig : public Config_Base
         _extractParameter("time-step", node, _time_step);
         _extractParameter("end-time", node, _end_time);
         _extractParameter("g-accel", node, _g_accel);
+        _extractParameter("collision-margin", node, _collision_margin);
         _extractParameter("ground-plane", node, _ground_plane);
 
         _extractParameter("logging", node, _logging);
@@ -51,6 +52,7 @@ class SimulationConfig : public Config_Base
         _extractParameter("log-residuals", node, _log_residuals);
         _extractParameter("solver-iters", node, _solver_iters);
         _extractParameter("iter-acceleration", node, _iter_acceleration);
+        _extractParameter("num-threads", node, _num_threads);
 
         for (const auto& obj_node : node["objects"])
         {
@@ -70,6 +72,10 @@ class SimulationConfig : public Config_Base
             if (type == "TetMeshObject")
             {
                 _object_configs.template emplace_back<TetMeshObjectConfig>(obj_node);
+            }
+            else if (type == "RigidSphere")
+            {
+                _object_configs.template emplace_back<RigidSphereConfig>(obj_node);
             }
             else
             {
@@ -101,9 +107,11 @@ class SimulationConfig : public Config_Base
     Real timeStep() const { return _time_step.value; }
     Real endTime() const { return _end_time.value; }
     Real gAccel() const { return _g_accel.value; }
+    Real collisionMargin() const { return _collision_margin.value; }
     bool groundPlane() const { return _ground_plane.value; }
     int solverIters() const { return _solver_iters.value; }
     Real iterAcceleration() const { return _iter_acceleration.value; }
+    int numThreads() const { return _num_threads.value; }
 
     bool logging() const { return _logging.value; }
     std::string loggingOutputDir() const { return _logging_output_dir.value; }
@@ -123,6 +131,7 @@ class SimulationConfig : public Config_Base
     ConfigParameter<Real> _time_step = ConfigParameter<Real>(1e-3);
     ConfigParameter<Real> _end_time = ConfigParameter<Real>(60);
     ConfigParameter<Real> _g_accel = ConfigParameter<Real>(9.81);
+    ConfigParameter<Real> _collision_margin = ConfigParameter<Real>(1e-3);
 
     ConfigParameter<bool> _logging = ConfigParameter<bool>(false);
     ConfigParameter<std::string> _logging_output_dir = ConfigParameter<std::string>("../output/");
@@ -132,6 +141,7 @@ class SimulationConfig : public Config_Base
 
     ConfigParameter<int> _solver_iters = ConfigParameter<int>(1);
     ConfigParameter<Real> _iter_acceleration = ConfigParameter<Real>(0.5);
+    ConfigParameter<int> _num_threads = ConfigParameter<int>(0);
 
     ObjectConfigs_Container _object_configs;
     // XPBDJointConfigs_Container _joint_configs;

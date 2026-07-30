@@ -3,6 +3,7 @@
 
 #include "simulation/Simulation.hpp"
 #include "graphics/MeshGraphicsObject.hpp"
+#include "graphics/SphereGraphicsObject.hpp"
 #include "graphics/PlaneGraphicsObject.hpp"
 
 #include <vtkActor.h>
@@ -249,10 +250,18 @@ void GraphicsScene::update()
 
 void GraphicsScene::addObject(const SimObject::TetMeshObject* mesh_obj, const Config::MeshRenderConfig& render_config)
 {
-    std::unique_ptr<MeshGraphicsObject> mesh_go = std::make_unique<MeshGraphicsObject>(mesh_obj->mesh(), render_config);
+    std::unique_ptr<MeshGraphicsObject> mesh_go = std::make_unique<MeshGraphicsObject>(&mesh_obj->mesh(), render_config);
     _renderer->AddActor(mesh_go->actor());
 
     _graphics_objects.push_back(std::move(mesh_go));
+}
+
+void GraphicsScene::addObject(const SimObject::RigidSphere* sphere, const Config::ObjectRenderConfig& render_config)
+{
+    std::unique_ptr<SphereGraphicsObject> sphere_go = std::make_unique<SphereGraphicsObject>(sphere, render_config);
+    _renderer->AddActor(sphere_go->actor());
+
+    _graphics_objects.push_back(std::move(sphere_go));
 }
 
 void GraphicsScene::addGroundPlane()

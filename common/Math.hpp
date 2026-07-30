@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/Quaternion.hpp"
 #include <iostream>
 
 
@@ -191,6 +192,35 @@ static Mat3r Plus_SO3(const Mat3r& SO3_mat, const Vec3r& so3_vec)
     return SO3_mat * Exp_so3(so3_vec);
 }
 
+
+/** === Quaternions === */
+static Quaternion QuaternionExp_so3(const Vec3r& vec)
+{
+    Real theta = vec.norm();
+    Quaternion q;
+
+    // small angle approximation
+    if (theta < 1e-8)
+    {
+        q.w() = 1.0;
+        q.x() = 0.5 * vec.x();
+        q.y() = 0.5 * vec.y();
+        q.z() = 0.5 * vec.z();
+        q.normalize();
+        return q;
+    }
+
+    Real half_theta = 0.5*theta;
+    Real sin_half_theta = std::sin(half_theta);
+    Real scale = sin_half_theta / theta;
+    q.w() = std::cos(half_theta);
+    q.x() = scale * vec.x();
+    q.y() = scale * vec.y();
+    q.z() = scale * vec.z();
+
+    return q;
+}
+
 static Mat3r RotMatFromXYZEulerAngles(const Vec3r& euler_xyz)
 {
     const Real x = euler_xyz(0) * M_PI / 180.0;
@@ -239,6 +269,28 @@ static Vec3r XYZEulerAnglesFromRotMat(const Mat3r& R)
     }
 
     return 180/M_PI * Vec3r(theta_x, theta_y, theta_z);
+}
+
+static Quaternion QuaternionFromXYZEulerAngles(const Vec3r& eul_xyz)
+{
+    Real x = eul_xyz[0] * M_PI / 180.0;
+    Real y = eul_xyz[1] * M_PI / 180.0;
+    Real z = eul_xyz[2] * M_PI / 180.0;
+
+    Real cx = std::cos(x * 0.5);
+    Real sx = std::sin(x * 0.5);
+
+    Real cy = std::cos(y * 0.5);
+    Real sy = std::sin(y * 0.5);
+
+    Real cz = std::cos(z * 0.5);
+    Real sz = std::sin(z * 0.5);
+
+    Quaternion qx(sx, 0, 0, cx);
+    Quaternion qy(0, sy, 0, cy);
+    Quaternion qz(0, 0, sz, cz);
+
+    return qz*qy*qx;
 }
 
 /** Projects a point p onto the line segment defined by ab.
@@ -330,4 +382,147 @@ static std::pair<Real, Real> findClosestPointsOnLineSegments(const Vec3r& p1, co
     return std::make_pair(beta1, beta2);
 }
 
+
+/** Geometry subroutines */
+
+inline static Vec3r barycentricCoordinates(const Vec3r& p, const Vec3r& a, const Vec3r& b, const Vec3r& c)
+{
+    // from https://ceng2.ktu.edu.tr/~cakir/files/grafikler/Texture_Mapping.pdf
+    const Vec3r v0 = b - a;
+    const Vec3r v1 = c - a;
+    const Vec3r v2 = p - a;
+    const Real d00 = v0.dot(v0);
+    const Real d01 = v0.dot(v1);
+    const Real d11 = v1.dot(v1);
+    const Real d20 = v2.dot(v0);
+    const Real d21 = v2.dot(v1);
+    const Real denom = d00*d11 - d01*d01;
+    const Real v = (d11*d20 - d01*d21) / denom;
+    const Real w = (d00*d21 - d01*d20) / denom;
+    const Real u = 1 - v - w;
+
+    return Vec3r(u, v, w);
+}
+
+/** Closest point on triangle to query point.
+ * @param p the query point
+ * @param a,b,c triangle vertices 
+ * 
+ * adapted from: https://github.com/RenderKit/embree/blob/master/tutorials/common/math/closest_point.h
+ */
+inline static Vec3r closestPoint_PointTriangle(const Vec3r& p, const Vec3r& a, const Vec3r& b, const Vec3r& c)
+{
+    const Vec3r ab = b - a;
+    const Vec3r ac = c - a;
+    const Vec3r ap = p - a;
+
+    const Real d1 = ab.dot(ap);
+    const Real d2 = ac.dot(ap);
+    if (d1 <= 0.f && d2 <= 0.f)
+    {
+        return a;
+    }
+
+    const Vec3r bp = p - b;
+    const Real d3 = ab.dot(bp);
+    const Real d4 = ac.dot(bp);
+    if (d3 >= 0.f && d4 <= d3)
+    {
+        return b;
+    }
+
+    const Vec3r cp = p - c;
+    const Real d5 = ab.dot(cp);
+    const Real d6 = ac.dot(cp);
+    if (d6 >= 0.f && d5 <= d6)
+    {
+        return c;
+    }
+
+    const Real vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.f && d1 >= 0.f && d3 <= 0.f)
+    {
+        const Real v = d1 / (d1 - d3);
+        return a + v * ab;
+    }
+    
+    const Real vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.f && d2 >= 0.f && d6 <= 0.f)
+    {
+        const Real v = d2 / (d2 - d6);
+        return a + v * ac;
+    }
+    
+    const Real va = d3 * d6 - d5 * d4;
+    if (va <= 0.f && (d4 - d3) >= 0.f && (d5 - d6) >= 0.f)
+    {
+        const Real v = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        return b + v * (c - b);
+    }
+
+    const Real denom = 1.f / (va + vb + vc);
+    const Real v = vb * denom;
+    const Real w = vc * denom;
+    return a + v * ab + w * ac;
+}
+
+/** Closest points between two line segments
+ * Adapted from Christer Ericson's ClosestPtSegmentSegment() https://ceng2.ktu.edu.tr/~cakir/files/grafikler/rtcd.pdf
+ * @param p1,q1 : line segment 1
+ * @param p2,q2 : line segment 2
+ * @param s,t (output) the interpolation parameters for the closest points on segment 1 and segment 2, respectively
+ */
+inline static void closestPoint_SegmentSegment(const Vec3r& p1, const Vec3r& q1, const Vec3r& p2, const Vec3r& q2, Real& s, Real& t)
+{
+    Vec3r d1 = q1 - p1; // Direction vector of segment S1
+    Vec3r d2 = q2 - p2; // Direction vector of segment S2
+    Vec3r r = p1 - p2;
+    Real a = d1.squaredNorm(); // Squared length of segment S1, always nonnegative
+    Real e = d2.squaredNorm(); // Squared length of segment S2, always nonnegative
+    Real f = d2.dot(r);
+
+    // Check if either or both segments degenerate into points
+    Real EPSILON = 1e-8;
+    if (a <= EPSILON && e <= EPSILON) {
+        // Both segments degenerate into points
+        s = t = 0.0;
+        return;
+    }
+    if (a <= EPSILON) {
+        // First segment degenerates into a point
+        s = 0.0;
+        t = f / e; // s = 0 => t = (b*s + f) / e = f / e
+        t = std::clamp(t, Real(0.0), Real(1.0));
+    } else {
+        Real c = d1.dot(r);
+        if (e <= EPSILON) {
+            // Second segment degenerates into a point
+            t = 0.0f;
+            s = std::clamp(-c / a, Real(0.0), Real(1.0)); // t = 0 => s = (b*t - c) / a = -c / a
+        } else {
+            // The general nondegenerate case starts here
+            Real b = d1.dot(d2);
+            Real denom = a*e-b*b; // Always nonnegative
+            // If segments not parallel, compute closest point on L1 to L2 and
+            // clamp to segment S1. Else pick arbitrary s (here 0)
+            if (denom != 0.0) {
+                s = std::clamp((b*f - c*e) / denom, Real(0.0), Real(1.0));
+            } else s = 0.0;
+
+            // Compute point on L2 closest to S1(s) using
+            // t = Dot((P1 + D1*s) - P2,D2) / Dot(D2,D2) = (b*s + f) / e
+            t = (b*s + f) / e;
+            // If t in [0,1] done. Else clamp t, recompute s for the new value
+            // of t using s = Dot((P2 + D2*t) - P1,D1) / Dot(D1,D1)= (t*b - c) / a
+            // and clamp s to [0, 1]
+            if (t < Real(0.0)) {
+                t = 0.0;
+                s = std::clamp(-c / a, Real(0.0), Real(1.0));
+            } else if (t > 1.0) {
+                t = 1.0;
+                s = std::clamp((b - c) / a, Real(0.0), Real(1.0));
+            }
+        }
+    }
+}
 };

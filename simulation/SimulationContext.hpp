@@ -4,8 +4,10 @@
 #include "common/ParticlePool.hpp"
 #include "common/ParticleAdjacency.hpp"
 #include "common/ColorList.hpp"
-#include "common/ThreadPool.hpp"
 #include "energy/EnergyRegistry.hpp"
+#include "collision/CollisionPrimitivePool.hpp"
+#include "collision/LBVH.hpp"
+#include "collision/CollisionDetector.hpp"
 #include "simulation/SimulationParams.hpp"
 
 namespace Sim
@@ -22,24 +24,34 @@ struct SimulationContext
     ParticleAdjacency adjacency;
     ColorList coloring;
 
+    // collision detection
+    Collision::CollisionPrimitivePool collision_pool;
+    Collision::LBVH lbvh;
+    Collision::CollisionDetector collision_detector;
+
     // simulation parameters
     SimulationParams params;
 
-    // thread pool
-    light_ThreadPool thread_pool;
-
     SimulationContext()
-        : particles(1000)
+        : particles(1000, 1000)
         , energies(1000)
-        , thread_pool(std::thread::hardware_concurrency())
+        , collision_pool(1000, 1000)
+        , collision_detector(500)
     {
         
     }
 
-    SimulationContext(unsigned particles_capacity, unsigned energies_capacity)
-     : particles(particles_capacity)
+    SimulationContext(
+        unsigned particles_capacity,
+        unsigned oriented_particles_capacity, 
+        unsigned energies_capacity, 
+        unsigned collision_primitive_capacity,
+        unsigned collision_sdf_capacity
+    )
+     : particles(particles_capacity, oriented_particles_capacity)
      , energies(energies_capacity)
-     , thread_pool(std::thread::hardware_concurrency())
+     , collision_pool(collision_primitive_capacity, collision_sdf_capacity)
+     , collision_detector(collision_primitive_capacity/2)
     {
         
     }

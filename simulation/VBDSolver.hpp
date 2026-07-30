@@ -7,8 +7,10 @@
 
 #include "energy/NeoHookeanEnergySolver.hpp"
 #include "energy/GroundCollisionEnergySolver.hpp"
+#include "energy/TriangleRigidCollisionEnergySolver.hpp"
 
 #include <chrono>
+#include <thread>
 
 namespace Sim
 {
@@ -147,8 +149,8 @@ public:
     /** Compute start and end indices for worker thread when iterating over a TombstonePool. */
     std::pair<unsigned, unsigned> _computeStartEnd(unsigned w_idx, const TombstonePool& pool)
     {
-        unsigned num = pool.highest_index+1;
-        return _computeStartEnd(w_idx, pool.highest_index+1);
+        unsigned num = pool.totalSize();
+        return _computeStartEnd(w_idx, pool.totalSize());
     }
 
     /** Compute start and end indices for worker thread when iterating over a number of objects. */
@@ -277,6 +279,8 @@ private:
 
     void _solveParticle(unsigned p_idx, Real dt)
     {
+        if (_ctx->particles.isOriented(p_idx))
+            return;
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
         const PerEnergy<unsigned>& adj_offsets = _ctx->adjacency.e_offsets[p_idx];
