@@ -26,7 +26,7 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     // , _end_time(sim_config.endTime())
     // , _g_accel(sim_config.gAccel())
     // , _viewer_refresh_time_ms(1000.0/30.0)
-    , _ctx(10000, 1000, 20000, 10000, 1000)
+    , _ctx(10000, 1000, 100000, 20000, 1000)
     , _executor(
         &_ctx,
         sim_config.solverIters(),

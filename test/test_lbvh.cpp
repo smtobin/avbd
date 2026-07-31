@@ -9,6 +9,7 @@
 
 
 #include "simulation/SimulationContext.hpp"
+#include "simulation/SimulationExecutor.hpp"
 
 #include <vtkActor.h>
 #include <vtkAppendPolyData.h>

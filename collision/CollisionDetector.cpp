@@ -357,11 +357,11 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     Vec3r normal, cp_barys, cp_rb_local;
     if (_triangleSDF_CCD(ctx, triangle, sphere, ctx.params.dt, normal, cp_barys, cp_rb_local))
     {
-        std::cout << "Sphere-triangle collision detected!" << std::endl;
-        std::cout << "  Barys: " << cp_barys.transpose() << std::endl;
-        std::cout << "  CP on triangle: " << (v1*cp_barys[0] + v2*cp_barys[1] + v3*cp_barys[2]).transpose() << std::endl;
-        std::cout << "  CP on rigid body: " << cp_rb_local.transpose() << std::endl;
-        std::cout << "  Normal: " << normal.transpose() << std::endl;
+        // std::cout << "Sphere-triangle collision detected!" << std::endl;
+        // std::cout << "  Barys: " << cp_barys.transpose() << std::endl;
+        // std::cout << "  CP on triangle: " << (v1*cp_barys[0] + v2*cp_barys[1] + v3*cp_barys[2]).transpose() << std::endl;
+        // std::cout << "  CP on rigid body: " << cp_rb_local.transpose() << std::endl;
+        // std::cout << "  Normal: " << normal.transpose() << std::endl;
         DetectedCollision collision{};
         collision.type = DetectedCollisionType::TriangleRigid;
         collision.key = DetectedCollision::generateKey(

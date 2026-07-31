@@ -5,6 +5,11 @@
 namespace Collision
 {
 
+static constexpr unsigned PARALLEL_RADIX_SORT_THRESHOLD = 50000;
+static constexpr unsigned PARALLEL_AABB_MORTON_THRESHOLD = 500;
+static constexpr unsigned PARALLEL_CONSTRUCT_TREE_THRESHOLD = 500;
+static constexpr unsigned PARALLEL_ASSEMBLE_BVH_THRESHOLD = 5000;
+
 void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh, Real dt)
 {
     // std::cout << "Building BVH..." << std::endl;
@@ -30,6 +35,18 @@ void LBVHBuilder::buildBVH_Parallel(WorkerThreadContext& w_ctx, const std::vecto
     else
     {
         computeAABB_MortonCode_Parallel(w_ctx, all_worker_contexts, ctx);
+
+        if (w_ctx.idx == 0)
+        {
+            // auto morton_copy = ctx.collision_pool.morton_code;
+            computeAABB_MortonCode(ctx.particles, ctx.collision_pool, ctx.params.dt);
+            // for (unsigned i = 0; i < ctx.collision_pool.totalSize(); i++)
+            // {
+            //     std::cout << "Parallel Morton " << i << ": " << morton_copy[i] << " Serial: " << ctx.collision_pool.morton_code[i] << std::endl;
+            // }
+        }
+            
+        w_ctx.barrier->arrive_and_wait();
     }
 
     if (ctx.collision_pool.totalSize() < PARALLEL_RADIX_SORT_THRESHOLD)
@@ -111,6 +128,7 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, Coll
 
 void LBVHBuilder::computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx)
 {
+    // std::cout << "Num primitives: " << ctx.collision_pool.totalSize() << std::endl;
     auto [start, end] = w_ctx.computeStartEnd(ctx.collision_pool);
 
     // reset this thread's scene box
@@ -136,9 +154,9 @@ void LBVHBuilder::computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, co
     if (w_ctx.idx == 0)
     {
         ctx.scene_box = w_ctx.BuildBVHContext.scene_box;
-        for (const auto& other_ctx : all_worker_contexts)
+        for (unsigned other_idx = 1; other_idx < all_worker_contexts.size(); other_idx++)
         {
-            ctx.scene_box.expand(other_ctx.BuildBVHContext.scene_box);
+            ctx.scene_box.expand(all_worker_contexts[other_idx].BuildBVHContext.scene_box);
         }
     }
 
@@ -146,7 +164,7 @@ void LBVHBuilder::computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, co
 
     // compute Morton codes
     Vec3r extent = ctx.scene_box.max - ctx.scene_box.min;
-    extent = extent.cwiseMin(1e-6); // guard against degenerate axes
+    extent = extent.cwiseMax(1e-6); // guard against degenerate axes
     for (unsigned p_idx = start; p_idx < end; p_idx++)
     {
         if (!ctx.collision_pool.active[p_idx])
