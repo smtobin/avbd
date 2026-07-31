@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/WorkerThreadContext.hpp"
 #include "common/ParticlePool.hpp"
 #include "collision/CollisionPrimitivePool.hpp"
 #include "collision/LBVH.hpp"
@@ -15,6 +16,11 @@ struct LBVHBuilder
     static void computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, Real dt);
     static void constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh);
     static void assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh);
+
+    static void buildBVH_Parallel(WorkerThreadContext& w_ctx, const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh, Real dt);
+    static void computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, Real dt);
+    static void constructTree_Parallel(WorkerThreadContext& w_ctx, CollisionPrimitivePool& col_pool, LBVH& lbvh);
+    static void assembleBVH_Parallel(WorkerThreadContext& w_ctx, CollisionPrimitivePool& col_pool, LBVH& lbvh);
 
     static inline int commonPrefixLen(uint64_t code_i, unsigned i, uint64_t code_j, unsigned j)
     {

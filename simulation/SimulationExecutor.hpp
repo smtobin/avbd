@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/SpinBarrier.hpp"
+#include "common/WorkerThreadContext.hpp"
 #include "simulation/SimulationContext.hpp"
 #include "simulation/VBDSolver.hpp"
 
@@ -46,6 +46,9 @@ private:
     /** Worker threads */
     std::vector<std::thread> _workers;
 
+    /** Memory for worker threads */
+    std::vector<WorkerThreadContext> _worker_contexts;
+
     /** If the workers are actively running */
     std::atomic<bool> _running;
     
@@ -68,10 +71,17 @@ public:
         , _barrier(num_threads)
         , _generation(0)
     {
+        
+        WorkerThreadContext::NUM_THREADS = num_threads;
+
+        // create worker context for thread 0
+        _worker_contexts.emplace_back(0, &_barrier)
+
         // create worker threads
         _workers.reserve(num_threads);
         for (unsigned w_idx = 1; w_idx < num_threads; w_idx++)
         {
+            _worker_contexts.emplace_back(w_idx, &_barrier);
             _workers.emplace_back([this, w_idx] {_workerThread(w_idx); });
         }
     }

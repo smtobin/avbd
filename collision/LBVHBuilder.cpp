@@ -49,6 +49,32 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, Coll
     }
 }
 
+void LBVHBuilder::computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, Real dt)
+{
+    auto [start, end] = w_ctx.computeStartEnd(particle_pool);
+
+    // reset this thread's scene box
+    w_ctx.BuildBVHContext.scene_box = AABB::empty();
+
+    for (unsigned p_idx = start; p_idx < end; p_idx++)
+    {
+        if (!particle_pool.active[p_idx])
+            continue;
+
+        col_pool.aabb[p_idx] = col_pool.speculativeGlobalBounds(p_idx, particle_pool, dt);
+
+        // centroid
+        col_pool.centroid[p_idx] = col_pool.aabb[p_idx].center();   /** TODO: (07/30/26) change to centroid of primitive? */
+
+        w_ctx.BuildBVHContext.scene_box.expand(col_pool.aabb[p_idx]);
+    }
+
+    // wait for all threads to complete and coalesce thread-local scene boxes
+    w_ctx.barrier->arrive_and_wait();
+    
+    /** TODO: (07/30/26) coalesce scene boxes. Who should own this? Where should it be stored? How should this be done? */
+}
+
 void LBVHBuilder::constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh)
 {
     int n = static_cast<int>(col_pool.totalSize());
