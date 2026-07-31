@@ -58,7 +58,8 @@ void testRadixTree()
     {
         std::cout << " " << i << ": " << col_pool.sorted_order[i] << std::endl;
     }
-    Collision::LBVHBuilder::constructTree(col_pool, bvh);
+    Collision::LBVHBuilder lbvh_builder;
+    lbvh_builder.constructTree(col_pool, bvh);
     std::cout << "Root: " << bvh.root << std::endl;
     for (unsigned i = 0; i < bvh.parent.size(); i++)
     {
@@ -208,7 +209,8 @@ void testFewTrianglesBVH()
     }
 
     Collision::LBVH lbvh;
-    Collision::LBVHBuilder::buildBVH(ctx.particles, col_pool, lbvh, 1e-3);
+    Collision::LBVHBuilder lbvh_builder;
+    lbvh_builder.buildBVH(ctx.particles, col_pool, lbvh, 1e-3);
 
     std::vector<std::pair<unsigned, unsigned>> collision_pairs;
     Collision::LBVHTraversal::traverseSelfIterative(lbvh, lbvh.root, collision_pairs);
@@ -316,7 +318,8 @@ void testSpheresAndMeshBVH()
         ctx.collision_pool.num_particles[c_idx] = 3;
     }
 
-    Collision::LBVHBuilder::buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, 1e-3);
+    Collision::LBVHBuilder lbvh_builder;
+    lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, 1e-3);
     
     std::cout << "Morton codes: " << std::endl;
     for (unsigned i = 0; i < ctx.collision_pool.totalSize(); i++)
@@ -371,7 +374,8 @@ void testTetMeshBVH()
     col_pool.addObject(mesh_obj);
 
     Collision::LBVH lbvh;
-    Collision::LBVHBuilder::buildBVH(ctx.particles, col_pool, lbvh, 1e-3);
+    Collision::LBVHBuilder lbvh_builder;
+    lbvh_builder.buildBVH(ctx.particles, col_pool, lbvh, 1e-3);
 
     visualizeBVH(lbvh);
 }

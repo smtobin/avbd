@@ -4,7 +4,7 @@
 
 #include "simulation/SimulationContext.hpp"
 // #include "simulation/SimulationLogger.hpp"
-#include "simulation/VBDSolver.hpp"
+#include "simulation/SimulationExecutor.hpp"
 
 #include "graphics/GraphicsScene.hpp"
 
@@ -136,10 +136,8 @@ class Simulation
      */
     SimulationContext _ctx;
 
-    /** The VBD solver
-     * Implements the VBD block coordinate descent solution process
-     */
-    VBDSolver _solver;
+    /** Responsible for executing the simulation */
+    SimulationExecutor _executor;
 
     /** Simulation objects
      * 

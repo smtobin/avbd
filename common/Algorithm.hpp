@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/WorkerThreadContext.hpp"
 
 #include <numeric>
 
@@ -51,6 +52,95 @@ static void radixSort(const std::vector<uint64_t>& unsorted, std::vector<unsigne
             temp[count[(unsorted[idx] >> shift) & MASK]++] = idx;
 
         sorted_order.swap(temp);
+    }
+}
+
+/** Parallel radix sort on uint64 keys.
+ * @param w_ctx this worker thread context
+ * @param all_contexts all the worker contexts
+ * @param combined_offsets shared scratch memory with size = num_threads * 256
+ * @param unsorted the list of unsorted keys
+ * @param sorted_order (output) the lindices of the unsorted array, arranged in the sorted order
+ * @param temp shared scratch buffer, same size as sorted_order
+ * @param size the size of the vector (the unsorted vector may have extra padding)
+ */
+static void radixSort_Parallel(
+    WorkerThreadContext& w_ctx,
+    const std::vector<WorkerThreadContext>& all_contexts,
+    std::vector<unsigned>& combined_offsets, 
+    const std::vector<uint64_t>& unsorted,
+    std::vector<unsigned>& sorted_order,
+    std::vector<unsigned>& temp,
+    unsigned size)
+{
+    constexpr int BITS = 8;
+    constexpr int BUCKETS = 1 << BITS;
+    constexpr int MASK = BUCKETS - 1;
+    const unsigned num_threads = WorkerThreadContext::NUM_THREADS;
+
+    // allocated space
+    if (w_ctx.idx == 0)
+    {
+        sorted_order.resize(size);
+        std::iota(sorted_order.begin(), sorted_order.end(), 0);
+        temp.resize(size);
+        combined_offsets.resize(num_threads * BUCKETS);
+    }
+    w_ctx.barrier->arrive_and_wait();
+
+    auto [start, end] = w_ctx.computeStartEnd(size);
+
+    for (int shift = 0; shift < 64; shift += BITS)
+    {
+        // local histogram
+        auto& local_count = w_ctx.RadixSortContext.local_count;
+        std::fill(std::begin(local_count), std::end(local_count), 0);
+
+        for (unsigned i = start; i < end; i++)
+        {
+            ++local_count[(unsorted[sorted_order[i]] >> shift) & MASK];
+        }
+
+        w_ctx.barrier->arrive_and_wait();
+    
+
+        // leader builds (bucket, thread) ==> global offset
+        if (w_ctx.idx == 0)
+        {
+            unsigned running = 0;
+            for (int b = 0; b < BUCKETS; b++)
+            {
+                for (unsigned t = 0; t < num_threads; t++)
+                {
+                    combined_offsets[t*BUCKETS + b] = running;
+                    running += all_contexts[t].RadixSortContext.local_count[b];
+                }
+            }
+        }
+
+        w_ctx.barrier->arrive_and_wait();
+
+        // parallel scatter
+        unsigned cursor[BUCKETS];
+        // copy from shared combined_offsets into local cursor
+        std::copy(
+            &combined_offsets[w_ctx.idx * BUCKETS],
+            &combined_offsets[w_ctx.idx * BUCKETS] + BUCKETS,
+            cursor);
+        for (unsigned i = start; i < end; i++)
+        {
+            unsigned idx = sorted_order[i];
+            unsigned bucket = (unsorted[idx] >> shift) & MASK;
+            temp[cursor[bucket]++] = idx;
+        }
+
+        w_ctx.barrier->arrive_and_wait();
+
+        // swap buffers (with single thread)
+        if (w_ctx.idx == 0)
+            sorted_order.swap(temp);
+        
+        w_ctx.barrier->arrive_and_wait();
     }
 }
 

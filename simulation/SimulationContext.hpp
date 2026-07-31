@@ -8,7 +8,6 @@
 #include "collision/CollisionPrimitivePool.hpp"
 #include "collision/LBVH.hpp"
 #include "collision/CollisionDetector.hpp"
-#include "simulation/SimulationExecutor.hpp"
 #include "simulation/SimulationParams.hpp"
 
 namespace Sim
@@ -28,7 +27,6 @@ struct SimulationContext
     // collision detection
     Collision::CollisionPrimitivePool collision_pool;
     Collision::LBVH lbvh;
-    Collision::CollisionDetector collision_detector;
     Collision::AABB scene_box;  // global bounds of the scene
 
     // simulation parameters
@@ -38,7 +36,6 @@ struct SimulationContext
         : particles(1000, 1000)
         , energies(1000)
         , collision_pool(1000, 1000)
-        , collision_detector(500)
     {
         
     }
@@ -53,7 +50,6 @@ struct SimulationContext
      : particles(particles_capacity, oriented_particles_capacity)
      , energies(energies_capacity)
      , collision_pool(collision_primitive_capacity, collision_sdf_capacity)
-     , collision_detector(collision_primitive_capacity/2)
     {
         
     }

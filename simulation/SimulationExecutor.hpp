@@ -34,11 +34,11 @@ private:
     /** Simulation context */
     SimulationContext* _ctx;
 
-    /** Number of solver iterations per time step */
-    unsigned _solver_iters;
+    /** Responsible for detecting collisions */
+    Collision::CollisionDetector _collision_detector;
 
-    /** Chebyshev acceleration parameter in [0, 1] */
-    Real _iter_acceleration;
+    /** Responsible for implementing the AVBD algorithm */
+    VBDSolver _solver;
 
     /** Number of threads */
     unsigned _num_threads;
@@ -64,8 +64,8 @@ public:
     /** Constructor - set up the worker threads */
     SimulationExecutor(SimulationContext* ctx, unsigned solver_iters, Real iter_acceleration, unsigned num_threads)
         : _ctx(ctx)
-        , _solver_iters(solver_iters)
-        , _iter_acceleration(iter_acceleration)
+        , _collision_detector(1000) /** TODO: (07/31/26) capacity for collision detector? */
+        , _solver(ctx, solver_iters, iter_acceleration)
         , _num_threads(num_threads)
         , _running(true)
         , _barrier(num_threads)
@@ -76,7 +76,7 @@ public:
 
         // create worker context for thread 0
         _worker_contexts.reserve(num_threads);
-        _worker_contexts.emplace_back(0, &_barrier)
+        _worker_contexts.emplace_back(0, &_barrier);
 
         // create worker threads
         _workers.reserve(num_threads);
@@ -90,8 +90,8 @@ public:
     /** Delete copy and move since worker threads capture "this" */
     SimulationExecutor(const SimulationExecutor&) = delete;
     SimulationExecutor(SimulationExecutor&&) = delete;
-    operator= (const SimulationExecutor&) = delete;
-    operator= (SimulationExecutor&&) = delete;
+    SimulationExecutor& operator= (const SimulationExecutor&) = delete;
+    SimulationExecutor& operator= (SimulationExecutor&&) = delete;
 
     /** Destructor - shut down worker threads */
     ~SimulationExecutor()
@@ -102,6 +102,16 @@ public:
 
         for (auto& t : _workers)
             t.join();
+    }
+
+    void timeStep()
+    {
+        // increment generation to start the time step
+        _generation.fetch_add(1, std::memory_order_release);
+
+        // use this thread to perform a worker iteration (this is thread 0)
+        // synchronization at the end of the worker iteration guarantees that we finish the work before moving on
+        _workerTimeStep(0);
     }
 
     /** Each worker thread executes this function until the simulation ends.
@@ -132,19 +142,10 @@ public:
     void _workerTimeStep(unsigned w_idx)
     {
         /** Collision detection */
-        // build BVH
-
-        // traverse BVH (broad-phase)
-
-        // narrow-phase
-
-        // rebuild adjacency
-
-        // rebuild color list
+        _collision_detector.detectCollisionsAndRecolor_Parallel(_worker_contexts[w_idx], _worker_contexts, *_ctx);
 
         /** AVBD solver */
-
-        // call VBDSolver
+        _solver.solve_Parallel(_worker_contexts[w_idx]);
         
     }
 

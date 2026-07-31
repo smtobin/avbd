@@ -33,7 +33,38 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 
 
     // build BVH
-    LBVHBuilder::buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
+    _lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
+
+    // traverse BVH for potential collisions
+    LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);
+
+    // narrow-phase collision detection
+    _narrowPhaseCollisionDetection(ctx);
+
+    // handle detected collisions
+    // sort the current detected collisions by key
+    // merge lists, and create/destroy collision constraints accordingly
+    _handleDetectedCollisions(ctx);
+
+    // rebuild adjacency
+    /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
+    ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
+    ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
+}
+
+void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx)
+{
+    // move the detected collision from last frame to the previous frame
+    _prev_detected_collisions.swap(_cur_detected_collisions);
+    _prev_sorted_order.swap(_cur_sorted_order);
+    // and clear the current detected collisions
+    _cur_detected_collisions.clear();
+    _cur_sorted_order.clear();
+    // clear the potential collisions
+    _potential_collisions.clear();
+
+    // build BVH
+    _lbvh_builder.buildBVH_Parallel(w_ctx, all_worker_contexts, ctx);
 
     // traverse BVH for potential collisions
     LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);

@@ -2,6 +2,7 @@
 
 #include "common/common.hpp"
 #include "collision/CollisionPrimitivePool.hpp"
+#include "collision/LBVHBuilder.hpp"
 #include "collision/DetectedCollision.hpp"
 
 namespace Collision
@@ -10,6 +11,9 @@ namespace Collision
 struct CollisionDetector
 {
 private:
+    /** Responsible for building the BVH */
+    LBVHBuilder _lbvh_builder;
+
     /** Cache for potential collisions. */
     std::vector<std::pair<unsigned, unsigned>> _potential_collisions;
 
@@ -64,6 +68,8 @@ private:
     
 
 public:
+    CollisionDetector() = default;
+
     /** Reserves memory for caches */
     CollisionDetector(unsigned capacity);
 
@@ -76,6 +82,9 @@ public:
      * - Recreates the adjacency graph and coloring.
      */
     void detectCollisionsAndRecolor(Sim::SimulationContext& ctx);
+
+    /** Performs entire collision detection process in parallel */
+    void detectCollisionsAndRecolor_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx);
 };
 
 } // namespace Collision

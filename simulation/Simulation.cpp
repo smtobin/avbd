@@ -27,7 +27,7 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     // , _g_accel(sim_config.gAccel())
     // , _viewer_refresh_time_ms(1000.0/30.0)
     , _ctx(10000, 1000, 20000, 10000, 1000)
-    , _solver(
+    , _executor(
         &_ctx,
         sim_config.solverIters(),
         sim_config.iterAcceleration(),
@@ -198,11 +198,11 @@ void Simulation::notifyLeftMouseButtonReleased()
 
 void Simulation::_timeStep()
 {
-    _ctx.collision_detector.detectCollisionsAndRecolor(_ctx);
+    // _ctx.collision_detector.detectCollisionsAndRecolor(_ctx);
     // std::cout << "t=" << _time << std::endl;
 
     // let the solver do the iterations
-    _solver.solve(_ctx.params.dt);
+    // _solver.solve(_ctx.params.dt);
 
     // log quantities
     // if (_logger)
@@ -210,7 +210,10 @@ void Simulation::_timeStep()
     //     _logger->logToFile(_time);
     // }
 
+    _executor.timeStep();
     _time += _ctx.params.dt;
+
+
 }
 
 void Simulation::_updateGraphics()

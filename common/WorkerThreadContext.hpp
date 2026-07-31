@@ -2,6 +2,7 @@
 
 #include "common/common.hpp"
 #include "common/SpinBarrier.hpp"
+#include "common/TombstonePool.hpp"
 #include "collision/AABB.hpp"
 
 /** Basically a memory pool for the different stages of the time step for each worker.
@@ -10,7 +11,7 @@
  */
 struct alignas(64) WorkerThreadContext
 {
-    static unsigned NUM_THREADS = 1;
+    inline static unsigned NUM_THREADS = 1;
 
     // thread index
     unsigned idx;
@@ -22,8 +23,13 @@ struct alignas(64) WorkerThreadContext
     {
         // for building the BVH
         struct {
-            Collision::AABB scene_box;
-        }   BuildBVHContext; 
+            Collision::AABB scene_box;  // this thread's AABB around all primitives
+        }   BuildBVHContext;
+        
+        // for parallel radix sort
+        struct {
+            size_t local_count[256];    // this thread's histogram for the current pass
+        } RadixSortContext;
     };
 
     /** Constructor for easily setting up context */
@@ -40,9 +46,8 @@ struct alignas(64) WorkerThreadContext
     }
 
     /** Compute start and end indices for worker thread when iterating over a TombstonePool. */
-    std::pair<unsigned, unsigned> computeStartEnd(unsigned w_idx, const TombstonePool& pool) const
+    std::pair<unsigned, unsigned> computeStartEnd(const TombstonePool& pool) const
     {
-        unsigned num = pool.totalSize();
-        return computeStartEnd(w_idx, pool.totalSize());
+        return computeStartEnd(pool.totalSize());
     }
 };
