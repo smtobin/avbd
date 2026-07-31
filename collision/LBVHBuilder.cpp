@@ -21,21 +21,61 @@ void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitive
 
 void LBVHBuilder::buildBVH_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx)
 {
-    computeAABB_MortonCode_Parallel(w_ctx, all_worker_contexts, ctx);
+    if (ctx.collision_pool.totalSize() < PARALLEL_AABB_MORTON_THRESHOLD)
+    {
+        if (w_ctx.idx == 0)
+            computeAABB_MortonCode(ctx.particles, ctx.collision_pool, ctx.params.dt);
+        w_ctx.barrier->arrive_and_wait();
+    }
+    else
+    {
+        computeAABB_MortonCode_Parallel(w_ctx, all_worker_contexts, ctx);
+    }
 
-    Algorithm::radixSort_Parallel(
-        w_ctx, 
-        all_worker_contexts, 
-        _radix_sort_combined_offsets, 
-        ctx.collision_pool.morton_code, 
-        ctx.collision_pool.sorted_order, 
-        _radix_sort_temp, 
-        ctx.collision_pool.totalSize()
-    );
+    if (ctx.collision_pool.totalSize() < PARALLEL_RADIX_SORT_THRESHOLD)
+    {
+        if (w_ctx.idx == 0)
+            Algorithm::radixSort(ctx.collision_pool.morton_code, ctx.collision_pool.sorted_order, ctx.collision_pool.totalSize());
+        w_ctx.barrier->arrive_and_wait();
+    }
+    else
+    {
+        Algorithm::radixSort_Parallel(
+            w_ctx, 
+            all_worker_contexts, 
+            _radix_sort_combined_offsets, 
+            ctx.collision_pool.morton_code, 
+            ctx.collision_pool.sorted_order, 
+            _radix_sort_temp, 
+            ctx.collision_pool.totalSize()
+        );
+    }
 
-    constructTree_Parallel(w_ctx, ctx);
+    if (ctx.collision_pool.totalSize() < PARALLEL_CONSTRUCT_TREE_THRESHOLD)
+    {
+        if (w_ctx.idx == 0)
+            constructTree(ctx.collision_pool, ctx.lbvh);
+        w_ctx.barrier->arrive_and_wait();
+    }
+    else
+    {
+        constructTree_Parallel(w_ctx, ctx);
+    }
 
-    assembleBVH_Parallel(w_ctx, ctx);
+    if (ctx.collision_pool.totalSize() < PARALLEL_ASSEMBLE_BVH_THRESHOLD)
+    {
+        if (w_ctx.idx == 0)
+            assembleBVH(ctx.collision_pool, ctx.lbvh);
+        w_ctx.barrier->arrive_and_wait();
+    }
+    else
+    {
+        assembleBVH_Parallel(w_ctx, ctx);
+    }
+
+    
+
+    
 }
 
 void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, Real dt)
@@ -396,6 +436,7 @@ void LBVHBuilder::assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh)
 
 void LBVHBuilder::assembleBVH_Parallel(WorkerThreadContext& w_ctx, Sim::SimulationContext& ctx)
 {
+    /** TODO: (07/31/26) Do level-synchronous refit instead. Calculate depth of each node, then process each depth level in parallel. */
     unsigned n = ctx.collision_pool.totalSize();
     LBVH& lbvh = ctx.lbvh;
 
@@ -438,9 +479,6 @@ void LBVHBuilder::assembleBVH_Parallel(WorkerThreadContext& w_ctx, Sim::Simulati
             node = lbvh.parent[node];
         }
     }
-
-
-    
 }
 
 } // namespace Collision

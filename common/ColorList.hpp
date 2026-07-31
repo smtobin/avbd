@@ -231,9 +231,9 @@ struct ColorList
             color_counts[c]++;
         }
 
-        std::cout << "Initial coloring - " << num_colors << " colors: " << std::endl;
-        for (unsigned i = 0; i < num_colors; i++)
-            std::cout << "  Color " << i << ": " << color_counts[i] << std::endl;
+        // std::cout << "Initial coloring - " << num_colors << " colors: " << std::endl;
+        // for (unsigned i = 0; i < num_colors; i++)
+        //     std::cout << "  Color " << i << ": " << color_counts[i] << std::endl;
 
         // mergeSmallColors(adjacency, num_particles);
 
@@ -245,9 +245,9 @@ struct ColorList
             color_counts[c]++;
         }
 
-        std::cout << "After small color merging - " << num_colors << " colors: " << std::endl;
-        for (unsigned i = 0; i < num_colors; i++)
-            std::cout << "  Color " << i << ": " << color_counts[i] << std::endl;
+        // std::cout << "After small color merging - " << num_colors << " colors: " << std::endl;
+        // for (unsigned i = 0; i < num_colors; i++)
+        //     std::cout << "  Color " << i << ": " << color_counts[i] << std::endl;
 
         // use counts to generate offsets
         color_offsets.resize(num_colors+1, 0);

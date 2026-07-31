@@ -54,33 +54,47 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 
 void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx)
 {
-    // move the detected collision from last frame to the previous frame
-    _prev_detected_collisions.swap(_cur_detected_collisions);
-    _prev_sorted_order.swap(_cur_sorted_order);
-    // and clear the current detected collisions
-    _cur_detected_collisions.clear();
-    _cur_sorted_order.clear();
-    // clear the potential collisions
-    _potential_collisions.clear();
+    if (w_ctx.idx == 0)
+    {
+        // move the detected collision from last frame to the previous frame
+        _prev_detected_collisions.swap(_cur_detected_collisions);
+        _prev_sorted_order.swap(_cur_sorted_order);
+        // and clear the current detected collisions
+        _cur_detected_collisions.clear();
+        _cur_sorted_order.clear();
+        // clear the potential collisions
+        _potential_collisions.clear();
+    }
+    w_ctx.barrier->arrive_and_wait();
 
-    // build BVH
+        // build BVH
+    // if (w_ctx.idx == 0)
+    // {
+    //     _lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
+    // }
     _lbvh_builder.buildBVH_Parallel(w_ctx, all_worker_contexts, ctx);
+    w_ctx.barrier->arrive_and_wait();
 
-    // traverse BVH for potential collisions
-    LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);
+    if (w_ctx.idx == 0)
+    {
+        // traverse BVH for potential collisions
+        // _lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
+        LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);
 
-    // narrow-phase collision detection
-    _narrowPhaseCollisionDetection(ctx);
+        // narrow-phase collision detection
+        _narrowPhaseCollisionDetection(ctx);
 
-    // handle detected collisions
-    // sort the current detected collisions by key
-    // merge lists, and create/destroy collision constraints accordingly
-    _handleDetectedCollisions(ctx);
+        // handle detected collisions
+        // sort the current detected collisions by key
+        // merge lists, and create/destroy collision constraints accordingly
+        _handleDetectedCollisions(ctx);
 
-    // rebuild adjacency
-    /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
-    ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
-    ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
+        // rebuild adjacency
+        /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
+        ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
+        ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
+    }
+    w_ctx.barrier->arrive_and_wait();
 }
 
 bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigned pi, unsigned pj)

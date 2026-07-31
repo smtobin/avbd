@@ -11,6 +11,11 @@ namespace Collision
 
 struct LBVHBuilder
 {
+    static constexpr unsigned PARALLEL_RADIX_SORT_THRESHOLD = 50000;
+    static constexpr unsigned PARALLEL_AABB_MORTON_THRESHOLD = 5000;
+    static constexpr unsigned PARALLEL_CONSTRUCT_TREE_THRESHOLD = 500;
+    static constexpr unsigned PARALLEL_ASSEMBLE_BVH_THRESHOLD = 5000;
+
     /** Scratch memory for parallel radix sort.
      * These will be resized appropriately within the function, they just need to exist outside the function.
      */

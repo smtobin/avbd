@@ -144,6 +144,12 @@ public:
         /** Collision detection */
         _collision_detector.detectCollisionsAndRecolor_Parallel(_worker_contexts[w_idx], _worker_contexts, *_ctx);
 
+        // if (w_idx == 0)
+        // {
+        //     _collision_detector.detectCollisionsAndRecolor(*_ctx);
+        // }
+        // _barrier.arrive_and_wait();
+
         /** AVBD solver */
         _solver.solve_Parallel(_worker_contexts[w_idx]);
         
