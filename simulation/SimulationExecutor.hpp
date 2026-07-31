@@ -75,6 +75,7 @@ public:
         WorkerThreadContext::NUM_THREADS = num_threads;
 
         // create worker context for thread 0
+        _worker_contexts.reserve(num_threads);
         _worker_contexts.emplace_back(0, &_barrier)
 
         // create worker threads
@@ -85,6 +86,12 @@ public:
             _workers.emplace_back([this, w_idx] {_workerThread(w_idx); });
         }
     }
+
+    /** Delete copy and move since worker threads capture "this" */
+    SimulationExecutor(const SimulationExecutor&) = delete;
+    SimulationExecutor(SimulationExecutor&&) = delete;
+    operator= (const SimulationExecutor&) = delete;
+    operator= (SimulationExecutor&&) = delete;
 
     /** Destructor - shut down worker threads */
     ~SimulationExecutor()

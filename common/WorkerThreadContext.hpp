@@ -4,8 +4,11 @@
 #include "common/SpinBarrier.hpp"
 #include "collision/AABB.hpp"
 
-/** Basically a memory pool for the different stages of the time step for each worker */
-struct WorkerThreadContext
+/** Basically a memory pool for the different stages of the time step for each worker.
+ * 
+ * Align on 64-byte boundaries so that each WorkerThreadContext is on its own cache line.
+ */
+struct alignas(64) WorkerThreadContext
 {
     static unsigned NUM_THREADS = 1;
 
