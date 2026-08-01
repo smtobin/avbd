@@ -130,19 +130,49 @@ namespace Energy
     X(GROUND_COLLISION, GroundCollisionEnergySolver) \
     X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver)
 
-// generate the enum
-enum class EnergyType
+// "Static" energies are those that are generally not added or removed throughout the course of the simulation
+// (unless topology changes)
+#define STATIC_ENERGY_LIST(X) \
+    X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
+    X(GROUND_COLLISION, GroundCollisionEnergySolver)
+
+// "Dynamic" energies are those that are added often throughout the course of the simulation - e.g. most collision constraints
+#define DYNAMIC_ENERGY_LIST(X) \
+    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver)
+
+// generate the enum for all energies
+enum class EnergyType : uint8_t
 {
 #define X(name, solver) name,
     ENERGY_LIST(X)
 #undef X
-    size    // size = total number of energies
+    count    // count = total number of energies
+};
+
+// generate the enum for static energies
+enum class StaticEnergyType : uint8_t
+{
+#define X(name, solver) name,
+    STATIC_ENERGY_LIST(X)
+#undef X
+    count   // count = number of static energies
+};
+
+// generate the enum for dynamic energies
+enum class DynamicEnergyType : uint8_t
+{
+#define X(name, solver) name,
+    DYNAMIC_ENERGY_LIST(X)
+#undef X    
+    count   // count = number of dynamic energies
 };
 
 // generate the mapping from energy type -> solver type
-// Use:
-//   SolverFor<EnergyType::NeoHookean>::type ==> Energy::NeoHookeanEnergySolver
-template<EnergyType>
+// Usage:
+//   SolverFor<EnergyType::NEO_HOOKEAN>::type ==> Energy::NeoHookeanEnergySolver
+//   SolverFor<StaticEnergyType::NEO_HOOKEAN>::type ==> Energy::NeoHookeanEnergySolver
+//   SolverFor<DynamicEnergyType::TRIANGLE_RIGID_COLLISION>::type ==> TriangleRigidCollisionEnergySolver
+template<auto>
 struct SolverFor;
 
 #define X(name, solver)            \
@@ -153,7 +183,28 @@ struct SolverFor<EnergyType::name> \
 };
 
 ENERGY_LIST(X)
+#undef X
 
+// generate the mapping from static energy type -> solver type
+#define X(name, solver)            \
+template<>                         \
+struct SolverFor<StaticEnergyType::name> \
+{                                  \
+    using type = Energy::solver;   \
+};
+
+STATIC_ENERGY_LIST(X)
+#undef X
+
+// generate the mapping from dynamic energy type -> solver type
+#define X(name, solver)            \
+template<>                         \
+struct SolverFor<DynamicEnergyType::name> \
+{                                  \
+    using type = Energy::solver;   \
+};
+
+DYNAMIC_ENERGY_LIST(X)
 #undef X
 
 

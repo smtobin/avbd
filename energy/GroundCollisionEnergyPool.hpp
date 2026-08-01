@@ -14,6 +14,7 @@ struct GroundCollisionEnergyPool : HardConstraintEnergyPool<GroundCollisionEnerg
 {
     static constexpr int NumParticlesPerEnergy = 1; // number of particles per constraint
     static constexpr EnergyType Type = EnergyType::GROUND_COLLISION; // type of energy in the EnergyType enum
+    static constexpr StaticEnergyType StaticType = StaticEnergyType::GROUND_COLLISION; // type of energy in the StaticEnergyType enum
     using SolverType = GroundCollisionEnergySolver;     // solver class type
 
     explicit GroundCollisionEnergyPool(unsigned capacity)

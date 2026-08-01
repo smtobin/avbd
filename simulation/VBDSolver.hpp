@@ -219,15 +219,15 @@ private:
             return;
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
-        const PerEnergy<unsigned>& adj_offsets = _ctx->adjacency.e_offsets[p_idx];
+        const PerStaticEnergy<unsigned>& adj_offsets = _ctx->adjacency.e_offsets[p_idx];
         unsigned adj_end = _ctx->adjacency.e_offsets[p_idx+1][0];
 
         Vec3r grad = Vec3r::Zero();
         Mat3r hess = Mat3r::Zero();
 
         // iterate through energy types
-        unsigned num_energies = static_cast<unsigned>(EnergyType::size);
-        Energy::ForEachEnergy([&]<EnergyType E>() {
+        unsigned num_energies = static_cast<unsigned>(EnergyType::count);
+        Energy::ForEachStaticEnergy([&]<StaticEnergyType E>() {
             unsigned e_type_idx = static_cast<unsigned>(E);
             // get the starting and ending offsets from the adjacency list
             // the start index of the adjacent energies of this type

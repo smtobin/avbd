@@ -85,8 +85,8 @@ void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext&
 
         // rebuild adjacency
         /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
-        ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
-        ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
+        // ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
+        // ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
     }
     w_ctx.barrier->arrive_and_wait();
 }
