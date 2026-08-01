@@ -131,7 +131,7 @@ struct LBVHTraversal
             else if (leaf_a || (!leaf_b && bvh.subtree_size[b] > bvh.subtree_size[a]))
             {
                 pq.push({a, bvh.left[b]});
-                pq.push({b, bvh.right[b]});
+                pq.push({a, bvh.right[b]});
             }
             // if B is a leaf, or subtree A is larger than subtree B, split A
             else

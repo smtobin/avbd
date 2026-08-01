@@ -64,21 +64,16 @@ void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext&
     }
     w_ctx.barrier->arrive_and_wait();
 
-        // build BVH
-    // if (w_ctx.idx == 0)
-    // {
-    //     _lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
-    // }
+    // build BVH
     _lbvh_builder.buildBVH_Parallel(w_ctx, all_worker_contexts, ctx);
+
+    // traverse BVH for potential collisions
     _lbvh_traversal.collisionBroadPhase(w_ctx, ctx.lbvh);
     _lbvh_traversal.mergeLeafPairs(w_ctx, all_worker_contexts, _potential_collisions);
 
+
     if (w_ctx.idx == 0)
     {
-        // traverse BVH for potential collisions
-        // _lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
-        // LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);
-
         // narrow-phase collision detection
         _narrowPhaseCollisionDetection(ctx);
 
