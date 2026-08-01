@@ -194,6 +194,58 @@ static void radixSort(const std::vector<T>& data,
     }
 }
 
+/** Parallel prefix sum
+ * @param w_ctx the worker context
+ * @param counts the counts for each item in the list
+ * @param out the output offsets for each item in the list
+ * @param n the number of items in the list
+ * @param chunk_totals shared scratch memory - size = num threads
+ */
+static void parallelPrefixSum(
+    WorkerThreadContext& w_ctx,
+    const unsigned* counts,
+    unsigned* out,
+    unsigned n,
+    std::vector<unsigned>& chunk_totals
+)
+{
+    auto [start, end] = w_ctx.computeStartEnd(n);
+
+    // each thread goes through its range and accumulates thread-local offsets
+    unsigned running = 0;
+    for (unsigned i = start; i < end; i++)
+    {
+        out[i] = running;
+        running += counts[i];
+    }
+    // store the total in chunk_totals for each thread
+    chunk_totals[w_ctx.idx] = running;
+    w_ctx.barrier->arrive_and_wait();
+
+    // main thread will accumulate the chunk_totals
+    // chunk_totals will now store the base offset for each thread
+    if (w_ctx.idx == 0)
+    {
+        unsigned base = 0;
+        for (unsigned t = 0; t < WorkerThreadContext::NUM_THREADS; t++)
+        {
+            unsigned tmp = chunk_totals[t];
+            chunk_totals[t] = base;
+            base += tmp;
+        }
+        out[n] = base; // grand total
+    }
+    w_ctx.barrier->arrive_and_wait();
+
+    unsigned base = chunk_totals[w_ctx.idx];
+    for (unsigned i = start; i < end; i++)
+    {
+        // increment the offsets based on the global start
+        out[i] += base;
+    }
+    w_ctx.barrier->arrive_and_wait();
+}
+
 /** Golden section search for minimizing a function F(t) over the interval t_start, t_end.
  * @returns the minimum value t_min
 */

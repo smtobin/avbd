@@ -83,13 +83,21 @@ void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext&
         // merge lists, and create/destroy collision constraints accordingly
         _handleDetectedCollisions(ctx);
 
+        
+    }
+    w_ctx.barrier->arrive_and_wait();
+
+    ctx.adjacency.buildAdjacency_Parallel(w_ctx, all_worker_contexts, ctx.particles, ctx.energies);
+    if (w_ctx.idx == 0)
+    {
         // rebuild adjacency
         /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
-        // ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
-        // ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
+        
+        ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
     }
     w_ctx.barrier->arrive_and_wait();
 }
+
 
 bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigned pi, unsigned pj)
 {
