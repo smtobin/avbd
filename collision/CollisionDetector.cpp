@@ -1,6 +1,7 @@
 #include "collision/CollisionDetector.hpp"
 
 #include "simulation/SimulationContext.hpp"
+#include "common/WorkerThreadContext.hpp"
 
 #include "common/Math.hpp"
 #include "common/Algorithm.hpp"
@@ -71,12 +72,12 @@ void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext&
     _lbvh_traversal.collisionBroadPhase(w_ctx, ctx.lbvh);
     _lbvh_traversal.mergeLeafPairs(w_ctx, all_worker_contexts, _potential_collisions);
 
+    // narrow-phase collision detection
+    _narrowPhaseCollisionDetection_Parallel(w_ctx, ctx);
+    _mergeDetectedCollisions(w_ctx, all_worker_contexts, _cur_detected_collisions);
 
     if (w_ctx.idx == 0)
     {
-        // narrow-phase collision detection
-        _narrowPhaseCollisionDetection(ctx);
-
         // handle detected collisions
         // sort the current detected collisions by key
         // merge lists, and create/destroy collision constraints accordingly
@@ -124,18 +125,10 @@ bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigne
     return false;
 }
 
-void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& ctx)
+void CollisionDetector::_processPotentialCollision(Sim::SimulationContext& ctx, unsigned a, unsigned b, std::vector<DetectedCollision>& detected_collisions)
 {
-    /** TODO: (07/19/26) Parallelize this? */
-    for (const auto& potential_collision : _potential_collisions)
-    {
-        // potential collisions are pairs of LBVH leaf node indices, which correspond to the collision pool's sorted order
-        // extract the primitive indices by indexing in the sorted order array
-        unsigned a = ctx.collision_pool.sorted_order[potential_collision.first];
-        unsigned b = ctx.collision_pool.sorted_order[potential_collision.second];
-
-        if (_shouldSkip(ctx.collision_pool, a, b))
-            continue;
+    if (_shouldSkip(ctx.collision_pool, a, b))
+            return;
 
         CollisionGeometryType type_a = ctx.collision_pool.getCollisionGeometryType(a);
         CollisionGeometryType type_b = ctx.collision_pool.getCollisionGeometryType(b);
@@ -151,17 +144,17 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
             
             case _makeCollisionKey(CollisionGeometryType::Triangle, CollisionGeometryType::Triangle):
             {
-                _triangleTriangle(ctx, a, b);
+                _triangleTriangle(ctx, a, b, detected_collisions);
                 break;
             }
             case _makeCollisionKey(CollisionGeometryType::Triangle, CollisionGeometryType::Sphere):
             {
-                _triangleSphere(ctx, a, b);
+                _triangleSphere(ctx, a, b, detected_collisions);
                 break;
             }
             case _makeCollisionKey(CollisionGeometryType::Sphere, CollisionGeometryType::Sphere):
             {
-                _sphereSphere(ctx, a, b);
+                _sphereSphere(ctx, a, b, detected_collisions);
                 break;
             }
 
@@ -171,7 +164,60 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
             }
             
         }
+}
+
+void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& ctx)
+{
+    for (const auto& potential_collision : _potential_collisions)
+    {
+        // potential collisions are pairs of LBVH leaf node indices, which correspond to the collision pool's sorted order
+        // extract the primitive indices by indexing in the sorted order array
+        unsigned a = ctx.collision_pool.sorted_order[potential_collision.first];
+        unsigned b = ctx.collision_pool.sorted_order[potential_collision.second];
+
+        _processPotentialCollision(ctx, a, b, _cur_detected_collisions);
     }
+}
+
+void CollisionDetector::_narrowPhaseCollisionDetection_Parallel(WorkerThreadContext& w_ctx, Sim::SimulationContext& ctx)
+{
+    auto [start, end] = w_ctx.computeStartEnd(_potential_collisions.size());
+    w_ctx.detected_collisions.clear();
+
+    for (unsigned c_idx = start; c_idx < end; c_idx++)
+    {
+        auto& potential_collision = _potential_collisions[c_idx];
+        // potential collisions are pairs of LBVH leaf node indices, which correspond to the collision pool's sorted order
+        // extract the primitive indices by indexing in the sorted order array
+        unsigned a = ctx.collision_pool.sorted_order[potential_collision.first];
+        unsigned b = ctx.collision_pool.sorted_order[potential_collision.second];
+
+        _processPotentialCollision(ctx, a, b, w_ctx.detected_collisions);
+    }
+    w_ctx.barrier->arrive_and_wait();
+}
+
+void CollisionDetector::_mergeDetectedCollisions(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, std::vector<DetectedCollision>& merged_detected_collisions)
+{
+    // main thread compute per-thread offsets
+    if (w_ctx.idx == 0)
+    {
+        _merge_offsets.resize(WorkerThreadContext::NUM_THREADS + 1);
+        _merge_offsets[0] = 0;
+        for (unsigned t = 0; t < WorkerThreadContext::NUM_THREADS; t++)
+        {
+            _merge_offsets[t+1] = _merge_offsets[t] + all_worker_contexts[t].detected_collisions.size();
+        }
+        merged_detected_collisions.resize(_merge_offsets.back());
+    }
+    w_ctx.barrier->arrive_and_wait();
+
+    // each thread copies its own buffer into its assigned slice
+    std::copy(
+        w_ctx.detected_collisions.begin(), w_ctx.detected_collisions.end(),
+        merged_detected_collisions.begin() + _merge_offsets[w_ctx.idx]
+    );
+    w_ctx.barrier->arrive_and_wait();
 }
 
 
@@ -327,7 +373,7 @@ void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCo
 }
 
 
-void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere)
+void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere, std::vector<DetectedCollision>& detected_collisions)
 {
     // std::cout << "Testing sphere-triangle collision..." << std::endl;
     const auto& triangle_idx = ctx.collision_pool.particle_indices[triangle];
@@ -371,7 +417,7 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
         collision.TriangleRigid.rb = sphere_idx;
         collision.TriangleRigid.cp_rb_local = cp_rb_local;
 
-        _cur_detected_collisions.push_back(std::move(collision));
+        detected_collisions.push_back(std::move(collision));
     }
 
     // for now, expand sphere radius by relative velocity
@@ -425,14 +471,14 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
 
 }
 
-void CollisionDetector::_triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2)
+void CollisionDetector::_triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2, std::vector<DetectedCollision>& detected_collisions)
 {
     /** TODO: (07/20/26) triangle-triangle collision detection */
     // std::cout << "Testing triangle-triangle collision..." << std::endl;
     // throw std::runtime_error("Triangle-triangle collision detection not implemented.");
 }
 
-void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2)
+void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2, std::vector<DetectedCollision>& detected_collisions)
 {
     /** TODO: (07/20/26) sphere-sphere collision detection */
     throw std::runtime_error("Sphere-sphere collision detetction not implemented.");

@@ -4,6 +4,7 @@
 #include "common/SpinBarrier.hpp"
 #include "common/TombstonePool.hpp"
 #include "collision/AABB.hpp"
+#include "collision/DetectedCollision.hpp"
 
 /** Basically a memory pool for the different stages of the time step for each worker.
  * 
@@ -20,6 +21,9 @@ struct alignas(64) WorkerThreadContext
 
     // stores potentially colliding leaf pairs detected during broad phase
     std::vector<std::pair<unsigned, unsigned>> potential_collisions; 
+
+    // stores detected collisions from narrow phase
+    std::vector<DetectedCollision> detected_collisions;
 
     // scratch memory for computation
     union 
