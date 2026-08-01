@@ -191,6 +191,7 @@ struct ParticleAdjacency {
                 }
             }
         });
+        w_ctx.barrier->arrive_and_wait();
 
         // step 2: parallel prefix sum
         Algorithm::parallelPrefixSum(

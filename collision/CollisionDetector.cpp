@@ -87,12 +87,36 @@ void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext&
     }
     w_ctx.barrier->arrive_and_wait();
 
-    ctx.adjacency.buildAdjacency_Parallel(w_ctx, all_worker_contexts, ctx.particles, ctx.energies);
+    // ctx.adjacency.buildAdjacency_Parallel(w_ctx, all_worker_contexts, ctx.particles, ctx.energies);
     if (w_ctx.idx == 0)
     {
         // rebuild adjacency
+        // std::cout << "=== Adjacency parallel ===" << std::endl;
+        // for (unsigned v : ctx.particles)
+        // {
+        //     std::cout << "Particle " << v << ": " << std::endl;
+        //     unsigned start = ctx.adjacency.e_offsets[v][0];
+        //     unsigned end = ctx.adjacency.e_offsets[v+1][0];
+        //     for (unsigned i = start; i < end; i++)
+        //     {
+        //         std::cout << " Entry " << i << ": " << "e_idx=" << ctx.adjacency.e_entries[i].energy_idx << " type=" << static_cast<unsigned>(ctx.adjacency.e_entries[i].energy_type) << std::endl;
+        //     }
+        // }
         /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
-        
+        ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
+
+        // std::cout << "=== Adjacency serial ===" << std::endl;
+        // for (unsigned v : ctx.particles)
+        // {
+        //     std::cout << "Particle " << v << ": " << std::endl;
+        //     unsigned start = ctx.adjacency.e_offsets[v][0];
+        //     unsigned end = ctx.adjacency.e_offsets[v+1][0];
+        //     for (unsigned i = start; i < end; i++)
+        //     {
+        //         std::cout << " Entry " << i << ": " << "e_idx=" << ctx.adjacency.e_entries[i].energy_idx << " type=" << static_cast<unsigned>(ctx.adjacency.e_entries[i].energy_type) << std::endl;
+        //     }
+        // }
+
         ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
     }
     w_ctx.barrier->arrive_and_wait();
