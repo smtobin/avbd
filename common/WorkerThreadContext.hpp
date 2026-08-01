@@ -18,6 +18,9 @@ struct alignas(64) WorkerThreadContext
     // pointer to global spin barrier
     SpinBarrier* barrier;
 
+    // stores potentially colliding leaf pairs detected during broad phase
+    std::vector<std::pair<unsigned, unsigned>> potential_collisions; 
+
     // scratch memory for computation
     union 
     {

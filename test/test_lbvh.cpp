@@ -214,7 +214,8 @@ void testFewTrianglesBVH()
     lbvh_builder.buildBVH(ctx.particles, col_pool, lbvh, 1e-3);
 
     std::vector<std::pair<unsigned, unsigned>> collision_pairs;
-    Collision::LBVHTraversal::traverseSelfIterative(lbvh, lbvh.root, collision_pairs);
+    Collision::LBVHTraversal traversal;
+    traversal.traverseSelfIterative(lbvh, lbvh.root, lbvh.root, collision_pairs);
     for (const auto& collision_pair : collision_pairs)
     {
         std::cout << "Potential collision between nodes " << collision_pair.first << " and " << collision_pair.second << std::endl;
@@ -337,7 +338,8 @@ void testSpheresAndMeshBVH()
     ctx.lbvh.printTreeWithInfo(ctx.collision_pool);
 
     std::vector<std::pair<unsigned, unsigned>> collision_pairs;
-    Collision::LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, collision_pairs);
+    Collision::LBVHTraversal traversal;
+    traversal.traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, ctx.lbvh.root, collision_pairs);
     for (const auto& collision_pair : collision_pairs)
     {
         if (ctx.collision_pool.object_id[collision_pair.first] == ctx.collision_pool.object_id[collision_pair.second])

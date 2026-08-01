@@ -5,10 +5,10 @@
 namespace Collision
 {
 
-static constexpr unsigned PARALLEL_RADIX_SORT_THRESHOLD = 50000;
-static constexpr unsigned PARALLEL_AABB_MORTON_THRESHOLD = 500;
-static constexpr unsigned PARALLEL_CONSTRUCT_TREE_THRESHOLD = 500;
-static constexpr unsigned PARALLEL_ASSEMBLE_BVH_THRESHOLD = 5000;
+static constexpr unsigned PARALLEL_RADIX_SORT_THRESHOLD = 50000;    // parallel radix sort has many barriers
+static constexpr unsigned PARALLEL_AABB_MORTON_THRESHOLD = 500;     // computing AABB and Morton codes parallelizes well
+static constexpr unsigned PARALLEL_CONSTRUCT_TREE_THRESHOLD = 500;  // constructing the tree parallelizes well
+static constexpr unsigned PARALLEL_ASSEMBLE_BVH_THRESHOLD = 5000;   // refit BVH pass requires lots of atomic updates
 
 void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh, Real dt)
 {

@@ -2,9 +2,6 @@
 
 #include "simulation/SimulationContext.hpp"
 
-#include "collision/LBVHBuilder.hpp"
-#include "collision/LBVHTraversal.hpp"
-
 #include "common/Math.hpp"
 #include "common/Algorithm.hpp"
 
@@ -36,7 +33,7 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
     _lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
 
     // traverse BVH for potential collisions
-    LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);
+    _lbvh_traversal.traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, ctx.lbvh.root, _potential_collisions);
 
     // narrow-phase collision detection
     _narrowPhaseCollisionDetection(ctx);
@@ -73,13 +70,14 @@ void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext&
     //     _lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
     // }
     _lbvh_builder.buildBVH_Parallel(w_ctx, all_worker_contexts, ctx);
-    w_ctx.barrier->arrive_and_wait();
+    _lbvh_traversal.collisionBroadPhase(w_ctx, ctx.lbvh);
+    _lbvh_traversal.mergeLeafPairs(w_ctx, all_worker_contexts, _potential_collisions);
 
     if (w_ctx.idx == 0)
     {
         // traverse BVH for potential collisions
         // _lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
-        LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);
+        // LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);
 
         // narrow-phase collision detection
         _narrowPhaseCollisionDetection(ctx);

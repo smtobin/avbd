@@ -3,6 +3,7 @@
 #include "common/common.hpp"
 #include "collision/CollisionPrimitivePool.hpp"
 #include "collision/LBVHBuilder.hpp"
+#include "collision/LBVHTraversal.hpp"
 #include "collision/DetectedCollision.hpp"
 
 namespace Collision
@@ -13,6 +14,9 @@ struct CollisionDetector
 private:
     /** Responsible for building the BVH */
     LBVHBuilder _lbvh_builder;
+    
+    /** Responsible for traversing the BVH */
+    LBVHTraversal _lbvh_traversal;
 
     /** Cache for potential collisions. */
     std::vector<std::pair<unsigned, unsigned>> _potential_collisions;
