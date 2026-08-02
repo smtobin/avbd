@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/ParticleAdjacency.hpp"
+#include "common/StaticParticleAdjacency.hpp"
 
 #include <vector>
 
@@ -20,7 +20,7 @@ struct ColorList
      * 
      * Uses Welsh-Powell greedy coloring - colors vertices in order according to their degree (number of adjacent vertices)
      */
-    void greedyColor(const ParticleAdjacency& adjacency, unsigned num_particles)
+    void greedyColor(const StaticParticleAdjacency& adjacency, unsigned num_particles)
     {
         // resize the colors to the number of particles
         color.resize(num_particles);
@@ -67,7 +67,7 @@ struct ColorList
      * 
      * Supposedly produces a lower number of colors than Welsh-Powell.
      */
-    void greedyColor2(const ParticleAdjacency& adjacency, unsigned num_particles)
+    void greedyColor2(const StaticParticleAdjacency& adjacency, unsigned num_particles)
     {
         color.resize(num_particles);
         color.assign(num_particles, UNCOLORED);
@@ -161,7 +161,7 @@ struct ColorList
     /** Slight post-processing of colors
      * Lump small colors (<20% of largest color into other colors)
      */
-    void mergeSmallColors(const ParticleAdjacency& adjacency, unsigned num_particles)
+    void mergeSmallColors(const StaticParticleAdjacency& adjacency, unsigned num_particles)
     {
         // find small colors (<20% of largest color)
         unsigned largest_color_size = 0;
@@ -217,10 +217,11 @@ struct ColorList
         num_colors -= small_colors.size();
     }
 
-    void buildColorList(const ParticleAdjacency& adjacency, unsigned num_particles)
+    /** Builds an initial color list based on the static adjacency */
+    void buildInitialColorList(const StaticParticleAdjacency& static_adjacency, unsigned num_particles)
     {
         // first, perform greedy coloring on the particle adjacency structure
-        greedyColor2(adjacency, num_particles);
+        greedyColor2(static_adjacency, num_particles);
 
         // count each color
         color_counts.resize(num_colors);

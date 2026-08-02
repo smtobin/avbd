@@ -219,88 +219,126 @@ private:
             return;
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
-        const PerStaticEnergy<unsigned>& adj_offsets = _ctx->adjacency.e_offsets[p_idx];
-        unsigned adj_end = _ctx->adjacency.e_offsets[p_idx+1][0];
-
         Vec3r grad = Vec3r::Zero();
         Mat3r hess = Mat3r::Zero();
 
-        // iterate through energy types
-        unsigned num_energies = static_cast<unsigned>(EnergyType::count);
-        Energy::ForEachStaticEnergy([&]<StaticEnergyType E>() {
-            unsigned e_type_idx = static_cast<unsigned>(E);
-            // get the starting and ending offsets from the adjacency list
-            // the start index of the adjacent energies of this type
-            unsigned e_adj = adj_offsets[e_type_idx]; 
-            // the end index (use conditional to wrap around if needed)
-            unsigned final_e_adj = (e_type_idx+1 == num_energies) ? adj_end : adj_offsets[e_type_idx+1];
+        /** Process "static" energies */
+        {
+            const PerStaticEnergy<unsigned>& static_adj_offsets = _ctx->static_adjacency.e_offsets[p_idx];
+            unsigned adj_end = _ctx->static_adjacency.e_offsets[p_idx+1][0];
 
-            using Solver = SolverFor<E>::type;
-            const auto& energy_pool = _ctx->energies.template get<E>();
+            // iterate through energy types
+            unsigned num_energies = static_cast<unsigned>(StaticEnergyType::count);
+            Energy::ForEachStaticEnergy([&]<StaticEnergyType E>() {
+                unsigned e_type_idx = static_cast<unsigned>(E);
+                // get the starting and ending offsets from the adjacency list
+                // the start index of the adjacent energies of this type
+                unsigned e_adj = static_adj_offsets[e_type_idx]; 
+                // the end index (use conditional to wrap around if needed)
+                unsigned final_e_adj = (e_type_idx+1 == num_energies) ? adj_end : static_adj_offsets[e_type_idx+1];
 
-            // if solver has AVX accumulate4 implemented, use that
-            if constexpr (Energy::HasAccumulate4<Solver>)
-            {
-                // process in chunks of 4 using AVX
-                for (; e_adj+3 < final_e_adj; e_adj+=4)
+                using Solver = SolverFor<E>::type;
+                const auto& energy_pool = _ctx->energies.template get<E>();
+
+                // if solver has AVX accumulate4 implemented, use that
+                if constexpr (Energy::HasAccumulate4<Solver>)
                 {
-                    const ParticleAdjacency::Entry& entry1 = _ctx->adjacency.e_entries[e_adj];
-                    const ParticleAdjacency::Entry& entry2 = _ctx->adjacency.e_entries[e_adj+1];
-                    const ParticleAdjacency::Entry& entry3 = _ctx->adjacency.e_entries[e_adj+2];
-                    const ParticleAdjacency::Entry& entry4 = _ctx->adjacency.e_entries[e_adj+3];
-                    unsigned e_idx[4] = {entry1.energy_idx,
-                        entry2.energy_idx,
-                        entry3.energy_idx,
-                        entry4.energy_idx};
-                    unsigned l_idx[4] = {entry1.local_vertex_idx,
-                        entry2.local_vertex_idx,
-                        entry3.local_vertex_idx,
-                        entry4.local_vertex_idx};
-                    Solver::accumulate4(
-                        e_idx,
-                        energy_pool,
-                        _ctx->particles,
-                        l_idx,
-                        hess,
-                        grad,
-                        dt
-                    );
+                    // process in chunks of 4 using AVX
+                    for (; e_adj+3 < final_e_adj; e_adj+=4)
+                    {
+                        const StaticParticleAdjacency::Entry& entry1 = _ctx->static_adjacency.e_entries[e_adj];
+                        const StaticParticleAdjacency::Entry& entry2 = _ctx->static_adjacency.e_entries[e_adj+1];
+                        const StaticParticleAdjacency::Entry& entry3 = _ctx->static_adjacency.e_entries[e_adj+2];
+                        const StaticParticleAdjacency::Entry& entry4 = _ctx->static_adjacency.e_entries[e_adj+3];
+                        unsigned e_idx[4] = {entry1.energy_idx,
+                            entry2.energy_idx,
+                            entry3.energy_idx,
+                            entry4.energy_idx};
+                        unsigned l_idx[4] = {entry1.local_vertex_idx,
+                            entry2.local_vertex_idx,
+                            entry3.local_vertex_idx,
+                            entry4.local_vertex_idx};
+                        Solver::accumulate4(
+                            e_idx,
+                            energy_pool,
+                            _ctx->particles,
+                            l_idx,
+                            hess,
+                            grad,
+                            dt
+                        );
+                    }
+
+                    // process remainder
+                    for (; e_adj < final_e_adj; e_adj++)
+                    {
+                        const StaticParticleAdjacency::Entry& entry = _ctx->static_adjacency.e_entries[e_adj];
+                        Solver::accumulate(
+                            entry.energy_idx,
+                            energy_pool,
+                            _ctx->particles,
+                            entry.local_vertex_idx,
+                            hess,
+                            grad,
+                            dt
+                        );
+                    }
                 }
-
-                // process remainder
-                for (; e_adj < final_e_adj; e_adj++)
+                // otherwise fall back to normal 1-by-1 computation
+                else
                 {
-                    const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e_adj];
-                    Solver::accumulate(
-                        entry.energy_idx,
-                        energy_pool,
-                        _ctx->particles,
-                        entry.local_vertex_idx,
-                        hess,
-                        grad,
-                        dt
-                    );
+                    for (; e_adj < final_e_adj; e_adj++)
+                    {
+                        const StaticParticleAdjacency::Entry& entry = _ctx->static_adjacency.e_entries[e_adj];
+                        Solver::accumulate(
+                            entry.energy_idx,
+                            energy_pool,
+                            _ctx->particles,
+                            entry.local_vertex_idx,
+                            hess,
+                            grad,
+                            dt
+                        );
+                    }
                 }
             }
-            // otherwise fall back to normal 1-by-1 computation
-            else
-            {
-                for (; e_adj < final_e_adj; e_adj++)
-                {
-                    const ParticleAdjacency::Entry& entry = _ctx->adjacency.e_entries[e_adj];
-                    Solver::accumulate(
-                        entry.energy_idx,
-                        energy_pool,
-                        _ctx->particles,
-                        entry.local_vertex_idx,
-                        hess,
-                        grad,
-                        dt
-                    );
-                }
-            }
+            );
         }
-        );
+
+        /** Process "dynamic" energies */
+        {
+            const PerDynamicEnergy<unsigned>& dyn_adj_offsets = _ctx->dynamic_adjacency.e_offsets[p_idx];
+            unsigned adj_end = _ctx->dynamic_adjacency.e_offsets[p_idx+1][0];
+
+            // iterate through energy types
+            unsigned num_energies = static_cast<unsigned>(DynamicEnergyType::count);
+            Energy::ForEachDynamicEnergy([&]<DynamicEnergyType E>() {
+                unsigned e_type_idx = static_cast<unsigned>(E);
+                // get the starting and ending offsets from the adjacency list
+                // the start index of the adjacent energies of this type
+                unsigned e_adj = dyn_adj_offsets[e_type_idx]; 
+                // the end index (use conditional to wrap around if needed)
+                unsigned final_e_adj = (e_type_idx+1 == num_energies) ? adj_end : dyn_adj_offsets[e_type_idx+1];
+
+                using Solver = SolverFor<E>::type;
+                const auto& energy_pool = _ctx->energies.template get<E>();
+                // dynamic constraints always 1-by-1 computation
+                for (; e_adj < final_e_adj; e_adj++)
+                {
+                    const DynamicParticleAdjacency::Entry& entry = _ctx->dynamic_adjacency.e_entries[e_adj];
+                    Solver::accumulate(
+                        entry.energy_idx,
+                        energy_pool,
+                        _ctx->particles,
+                        entry.local_vertex_idx,
+                        hess,
+                        grad,
+                        dt
+                    );
+                }
+            }
+            );
+        }
 
         // assemble LHS and RHS of single-particle system
         Real mass = _ctx->particles.masses[p_idx];

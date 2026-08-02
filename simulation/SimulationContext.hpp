@@ -2,7 +2,8 @@
 
 #include "common/common.hpp"
 #include "common/ParticlePool.hpp"
-#include "common/ParticleAdjacency.hpp"
+#include "common/StaticParticleAdjacency.hpp"
+#include "common/DynamicParticleAdjacency.hpp"
 #include "common/ColorList.hpp"
 #include "energy/EnergyRegistry.hpp"
 #include "collision/CollisionPrimitivePool.hpp"
@@ -21,7 +22,8 @@ struct SimulationContext
     Energy::EnergyRegistry energies;
 
     // adjacency information for particles
-    ParticleAdjacency adjacency;
+    StaticParticleAdjacency static_adjacency;
+    DynamicParticleAdjacency dynamic_adjacency;
     ColorList coloring;
 
     // collision detection

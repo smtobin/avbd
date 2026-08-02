@@ -14,7 +14,7 @@
 template <typename T>
 using PerStaticEnergy = std::array<T, (unsigned)StaticEnergyType::count>;
 
-struct ParticleAdjacency {
+struct StaticParticleAdjacency {
     // For each particle, the range [adj_offsets[v], adj_offsets[v+1])
     // gives the list of constraint references in adj_entries
     std::vector<PerStaticEnergy<unsigned>> e_offsets;   // size: numParticles + 1

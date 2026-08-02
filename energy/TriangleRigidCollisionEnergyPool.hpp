@@ -19,6 +19,7 @@ struct TriangleRigidCollisionEnergyPool : HardConstraintEnergyPool<TriangleRigid
 {
     static constexpr int NumParticlesPerEnergy = 4;
     static constexpr EnergyType Type = EnergyType::TRIANGLE_RIGID_COLLISION;
+    static constexpr DynamicEnergyType DynamicType = DynamicEnergyType::TRIANGLE_RIGID_COLLISION;
     using SolverType = TriangleRigidCollisionEnergySolver;
 
     explicit TriangleRigidCollisionEnergyPool(unsigned capacity)

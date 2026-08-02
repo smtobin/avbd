@@ -46,8 +46,9 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 
     // rebuild adjacency
     /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
-    ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
-    ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
+    // ctx.static_adjacency.buildAdjacency(ctx.particles, ctx.energies);
+    ctx.dynamic_adjacency.buildAdjacency(ctx.particles, ctx.energies);
+    // ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
 }
 
 void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx)
@@ -103,7 +104,8 @@ void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext&
         //     }
         // }
         /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
-        ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
+        // ctx.static_adjacency.buildAdjacency(ctx.particles, ctx.energies);
+        ctx.dynamic_adjacency.buildAdjacency(ctx.particles, ctx.energies);
 
         // std::cout << "=== Adjacency serial ===" << std::endl;
         // for (unsigned v : ctx.particles)
@@ -117,7 +119,7 @@ void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext&
         //     }
         // }
 
-        ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
+        // ctx.coloring.buildInitialColorList(ctx.static_adjacency, ctx.dynamic_adjacency, ctx.particles.totalSize());
     }
     w_ctx.barrier->arrive_and_wait();
 }
