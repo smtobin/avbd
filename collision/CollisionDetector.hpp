@@ -81,9 +81,6 @@ private:
     inline void _addCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
     inline void _removeCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
     inline void _updateCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
-
-    /** Tries to mark a particle as dirty in the color list. If it has already been marked dirty this frame, it won't be added to the dirty list. */
-    inline void _markParticleDirty(unsigned p_idx, Sim::SimulationContext& ctx);
     
 
 public:

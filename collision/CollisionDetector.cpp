@@ -313,19 +313,6 @@ void CollisionDetector::_handleDetectedCollisions(Sim::SimulationContext& ctx)
         _removeCollision(ctx, _prev_detected_collisions[_prev_sorted_order[prev_idx]]);
 }
 
-void CollisionDetector::_markParticleDirty(unsigned p_idx, Sim::SimulationContext& ctx)
-{
-    // using last dirty round prevents duplication
-    // i.e. dirty particles only added once
-    // note: this assumes that last_dirty_round has enough allocated space for all particles in the sim
-    if (ctx.coloring.last_dirty_round[p_idx] != 0)
-    {
-        ctx.coloring.last_dirty_round[p_idx] = 0;
-        ctx.coloring.touched_this_frame.push_back(p_idx);
-        ctx.coloring.dirty.push_back(p_idx);
-    }
-}
-
 void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedCollision& collision)
 {
     switch (collision.type)
@@ -355,10 +342,10 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
             collision.e_idx = slot;
 
             // add particles involved in this collision to the coloring dirty list for recoloring
-            _markParticleDirty(collision.TriangleRigid.tri[0], ctx);
-            _markParticleDirty(collision.TriangleRigid.tri[1], ctx);
-            _markParticleDirty(collision.TriangleRigid.tri[2], ctx);
-            _markParticleDirty(collision.TriangleRigid.rb, ctx);
+            ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[0]);
+            ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[1]);
+            ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[2]);
+            ctx.coloring.markParticleDirty(collision.TriangleRigid.rb);
             break;
         }
         default:

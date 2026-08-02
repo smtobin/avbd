@@ -64,6 +64,7 @@ struct ColorList
     /** Initializes memory based on the max particle capacity in the particle pool */
     ColorList(unsigned particles_capacity)
         : color(particles_capacity, UNCOLORED)
+        , is_conflicted(particles_capacity, 0)
         , last_dirty_round(particles_capacity, SENTINEL)
         , candidate_color(particles_capacity)
     {
@@ -336,11 +337,34 @@ struct ColorList
         }
     }
 
+    /** Tries to mark a particle as dirty in the color list. If it has already been marked dirty this frame, it won't be added to the dirty list. */
+    inline void markParticleDirty(unsigned p_idx)
+    {
+        // using last dirty round prevents duplication
+        // i.e. dirty particles only added once
+        // note: this assumes that last_dirty_round has enough allocated space for all particles in the sim
+        if (last_dirty_round[p_idx] != 0)
+        {
+            last_dirty_round[p_idx] = 0;
+            touched_this_frame.push_back(p_idx);
+            dirty.push_back(p_idx);
+        }
+    }
+
+
     /** Incremental coloring to fix potential conflicts given the new particle adjacency */
     void incrementalRecoloring(const StaticParticleAdjacency& static_adj, const DynamicParticleAdjacency& dynamic_adj, unsigned num_particles)
     {
         constexpr unsigned MAX_COLOR_ITERS = 6;
         constexpr unsigned NUM_WORDS_IN_BITSET = 4;     // 4*64 = 256 colors supported
+
+        // reset conflicted particles
+        // these will still be marked "dirty" from last frame and checked again
+        for (unsigned p_idx : touched_conflicted)
+        {
+            is_conflicted[p_idx] = 0;
+        }
+        touched_conflicted.clear();
 
         unsigned iter = 0;
         while (!dirty.empty() && iter < MAX_COLOR_ITERS)
@@ -375,7 +399,16 @@ struct ColorList
 
                 // if there is a conflict and it is determined that this particle must recolor,
                 // get the first unused color and use it as the candidate color
-                candidate_color[p_idx] = must_recolor ? bitset.findFirstUnset() : color[p_idx];
+                if (must_recolor)
+                {
+                    candidate_color[p_idx] = bitset.findFirstUnset();
+                    if (candidate_color[p_idx] >= num_colors)
+                        num_colors++;
+                }
+                else
+                {
+                    candidate_color[p_idx] = color[p_idx];
+                }
             }
 
             // apply and propagate - a changed color might create a new conflict with a neighbor that wasn't dirty before
@@ -425,6 +458,12 @@ struct ColorList
         // if there are leftover dirty particles, finalize the list of conflicts by checking the dirties against their neighbors
         if (!dirty.empty())
             finalizeConflicts(static_adj, dynamic_adj, dirty);
+        // otherwise, we must still set up the empty conflict CSR structure
+        else
+        {
+            conflicted_by_color_counts.assign(num_colors+1, 0);
+            conflicted_by_color_offsets.assign(num_colors+1, 0);
+        }
 
         // rebuild CSR
         rebuildWorkList(num_particles);
@@ -436,6 +475,13 @@ struct ColorList
             last_dirty_round[p] = SENTINEL;
         }
         touched_this_frame.clear();
+
+        // residual (still-unresolved) particles stay flagged at the seed marker so
+        // _markParticleDirty won't re-queue them as duplicates before the next call
+        for (unsigned p : dirty)
+        {
+            last_dirty_round[p] = 0;
+        }
     }
 
     void finalizeConflicts(const StaticParticleAdjacency& static_adj, const DynamicParticleAdjacency& dynamic_adj, const std::vector<unsigned>& residual_dirty)
@@ -509,13 +555,6 @@ struct ColorList
         {
             conflicted_by_color_entries[cursor[color[p_idx]]++] = p_idx;
         }
-
-        /** Reset conflicted particles (we have already built the CSR structure) */
-        for (unsigned p_idx : touched_conflicted)
-        {
-            is_conflicted[p_idx] = 0;
-        }
-        touched_conflicted.clear();
 
     }
 };

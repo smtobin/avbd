@@ -76,8 +76,12 @@ public:
                 _solveParticleRangeInColor(w_ctx, c, dt);
                 w_ctx.barrier->arrive_and_wait();
 
-                // copy buffer into vertices
-                // _ctx->particles.positions = _ctx->particles.buffered_positions;
+                // only pay the extra sync when this color actually has leftover conflicts
+                if (_ctx->coloring.conflicted_by_color_offsets[c+1] != _ctx->coloring.conflicted_by_color_offsets[c])
+                {
+                    _commitConflictedInColor(w_ctx, c);
+                    w_ctx.barrier->arrive_and_wait();
+                }
             }
 
             // Chebyshev acceleration
@@ -95,6 +99,22 @@ public:
 
         _particleRangeVelocityUpdate(w_ctx, dt);
         w_ctx.barrier->arrive_and_wait();
+    }
+
+    /** Commits particles within a color that are conflicted.
+     * During the solve step, conflicted particle updates are buffered, so we must commit the buffered positions.
+     */
+    void _commitConflictedInColor(WorkerThreadContext& w_ctx, unsigned c)
+    {
+        unsigned start = _ctx->coloring.conflicted_by_color_offsets[c];
+        unsigned end   = _ctx->coloring.conflicted_by_color_offsets[c+1];
+
+        auto [lo, hi] = w_ctx.computeStartEnd(end - start);
+        for (unsigned k = start + lo; k < start + hi; k++)
+        {
+            unsigned p = _ctx->coloring.conflicted_by_color_entries[k];
+            _ctx->particles.positions[p] = _ctx->particles.buffered_positions[p];
+        }
     }
 
     /** Worker thread inertial update over its range of particles */
@@ -353,9 +373,12 @@ private:
 
         // std::cout << "dx: " << dx.transpose() << std::endl;
 
-        _ctx->particles.positions[p_idx] += dx;
-        // put positions into a buffer
-        // _ctx->particles.buffered_positions[p_idx] = _ctx->particles.positions[p_idx] + dx;
+        // if this particle has an intra-color conflict, buffer its update
+        if (_ctx->coloring.is_conflicted[p_idx])
+            _ctx->particles.buffered_positions[p_idx] = _ctx->particles.positions[p_idx] + dx;
+        // otherwise handle it normally
+        else
+            _ctx->particles.positions[p_idx] += dx;
     }
 
     void _particleChebyshevAcceleration(unsigned p_idx, Real omega)
