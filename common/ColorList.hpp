@@ -44,6 +44,15 @@ struct ColorList
     std::vector<unsigned> color_offsets;    // per-color offsets
     std::vector<unsigned> work_list;    // particle indices, grouped by color
 
+    std::vector<uint8_t> is_conflicted;         // tracks which particles have intra-color conflicts
+    std::vector<unsigned> touched_conflicted;   // tracks which particles were "touched" by the conflict algorithm
+
+    /** CSR structure for per-color conflicted particles */
+    std::vector<unsigned> conflicted_by_color_offsets;  // size num_colors + 1
+    std::vector<unsigned> conflicted_by_color_counts;   // per color conflicted counts, size = num_colors + 1
+    std::vector<unsigned> conflicted_by_color_entries;  // size = leftover conflict count
+
+    /** For incremental recoloring */
     std::vector<unsigned> dirty;    // list of particle indices that must be checked for conflicts. Populated by collision detection
     std::vector<unsigned> next_dirty;   // buffer of dirty vertices for next iteration of recoloring 
     std::vector<unsigned> last_dirty_round;     // the "round" of recoloring that this particle was last dirty
@@ -205,6 +214,18 @@ struct ColorList
 
     }
 
+    void countColors(unsigned num_particles)
+    {
+        // count each color
+        color_counts.resize(num_colors);
+        color_counts.assign(num_colors, 0);
+        for (unsigned c_idx = 0; c_idx < num_particles; c_idx++)
+        {
+            // std::cout << "Color: " << c << std::endl;
+            color_counts[color[c_idx]]++;
+        }
+    }
+
     /** Slight post-processing of colors
      * Lump small colors (<20% of largest color into other colors)
      */
@@ -234,28 +255,32 @@ struct ColorList
                     // look at neighbors and find color with fewest conflicts
                     unsigned best_color = UNCOLORED;
                     unsigned best_conflicts = std::numeric_limits<unsigned>::max();
-                    for (unsigned candidate_color = 0; candidate_color < num_colors; candidate_color++)
+                    for (unsigned candidate = 0; candidate < num_colors; candidate++)
                     {
                         unsigned conflicts = 0;
-                        if (candidate_color == small_color)
+                        if (candidate == small_color)
                             continue;
 
                         for (unsigned e = adjacency.p_offsets[p_idx]; e < adjacency.p_offsets[p_idx+1]; e++)
                         {
                             unsigned neighbor = adjacency.p_neighbors[e];
-                            if (color[neighbor] == candidate_color)
+                            if (color[neighbor] == candidate)
                                 conflicts++;
                         }
 
                         if (conflicts < best_conflicts)
                         {
-                            best_color = candidate_color;
+                            best_color = candidate;
                             best_conflicts = conflicts;
                         }
                     }
                     
                     // assign the color with least conflicts
                     color[p_idx] = best_color;
+                    // mark this particle as dirty
+                    dirty.push_back(p_idx);
+                    last_dirty_round[p_idx] = 0;
+                    touched_this_frame.push_back(p_idx);
                     
                 }
             }
@@ -265,10 +290,27 @@ struct ColorList
     }
 
     /** Builds an initial color list based on the static adjacency */
-    void buildInitialColorList(const StaticParticleAdjacency& static_adjacency, unsigned num_particles)
+    void buildInitialColorList(const StaticParticleAdjacency& static_adjacency, const DynamicParticleAdjacency& dynamic_adjacency, unsigned num_particles)
     {
         // first, perform greedy coloring on the particle adjacency structure
         greedyColor2(static_adjacency, num_particles);
+
+        /** TODO: (08/02/26) merge small colors? The commented code does not work properly. Idk if this something that actually is needed, however */
+        // count each color (necessary for merging the small colors)
+        // countColors(num_particles);
+
+        // std::cout << "Initial coloring - " << num_colors << " colors: " << std::endl;
+        // for (unsigned i = 0; i < num_colors; i++)
+        //     std::cout << "  Color " << i << ": " << color_counts[i] << std::endl;
+
+        
+        // mergeSmallColors(static_adjacency, num_particles);
+
+        // incrementalRecoloring(static_adjacency, dynamic_adjacency, num_particles);
+
+        // std::cout << "After small color merging - " << num_colors << " colors: " << std::endl;
+        // for (unsigned i = 0; i < num_colors; i++)
+        //     std::cout << "  Color " << i << ": " << color_counts[i] << std::endl;
 
         rebuildWorkList(num_particles);
         
@@ -276,35 +318,12 @@ struct ColorList
 
     void rebuildWorkList(unsigned num_particles)
     {
-        // count each color
-        color_counts.resize(num_colors);
-        color_counts.assign(num_colors, 0);
-        for (unsigned c_idx = 0; c_idx < num_particles; c_idx++)
-        {
-            // std::cout << "Color: " << c << std::endl;
-            color_counts[color[c_idx]]++;
-        }
-
-        // std::cout << "Initial coloring - " << num_colors << " colors: " << std::endl;
-        // for (unsigned i = 0; i < num_colors; i++)
-        //     std::cout << "  Color " << i << ": " << color_counts[i] << std::endl;
-
-        // mergeSmallColors(adjacency, num_particles);
-
-        color_counts.resize(num_colors);
-        color_counts.assign(num_colors, 0);
-        for (unsigned c_idx = 0; c_idx < num_particles; c_idx++)
-        {
-            // std::cout << "Color: " << c << std::endl;
-            color_counts[color[c_idx]]++;
-        }
-
-        // std::cout << "After small color merging - " << num_colors << " colors: " << std::endl;
-        // for (unsigned i = 0; i < num_colors; i++)
-        //     std::cout << "  Color " << i << ": " << color_counts[i] << std::endl;
+        // recount colors
+        countColors(num_particles);
 
         // use counts to generate offsets
         color_offsets.resize(num_colors+1, 0);
+        color_offsets[0] = 0;
         for (unsigned c = 0; c < num_colors; c++)
             color_offsets[c+1] = color_offsets[c] + color_counts[c];
 
@@ -403,14 +422,100 @@ struct ColorList
 
         std::cout << "Remaining 'dirty' particles: " << dirty.size() << std::endl;
 
+        // if there are leftover dirty particles, finalize the list of conflicts by checking the dirties against their neighbors
+        if (!dirty.empty())
+            finalizeConflicts(static_adj, dynamic_adj, dirty);
+
         // rebuild CSR
         rebuildWorkList(num_particles);
 
         // reset touched and last dirty lists
+        // important to do this now because CollisionDetector will add dirty particles before recoloring is performed
         for (unsigned p : touched_this_frame)
         {
             last_dirty_round[p] = SENTINEL;
         }
         touched_this_frame.clear();
+    }
+
+    void finalizeConflicts(const StaticParticleAdjacency& static_adj, const DynamicParticleAdjacency& dynamic_adj, const std::vector<unsigned>& residual_dirty)
+    {
+        for (unsigned p_idx : residual_dirty)
+        {
+            /** TODO: (08/02/26) Replace with "forEachNeighbor" or some nice way to iterate over adjacency structure */
+            unsigned static_p_start = static_adj.p_offsets[p_idx];
+            unsigned static_p_end = static_adj.p_offsets[p_idx+1];
+            unsigned dyn_p_start = dynamic_adj.p_offsets[p_idx];
+            unsigned dyn_p_end = dynamic_adj.p_offsets[p_idx+1];
+
+            for (unsigned n_idx = static_p_start; n_idx < static_p_end; n_idx++)
+            {
+                unsigned neighbor = static_adj.p_neighbors[n_idx];
+                if (color[neighbor] == color[p_idx])
+                {
+                    if (!is_conflicted[p_idx])
+                    {
+                        is_conflicted[p_idx] = 1;
+                        touched_conflicted.push_back(p_idx);
+                    }
+                    if (!is_conflicted[neighbor])
+                    {
+                        is_conflicted[neighbor] = 1;
+                        touched_conflicted.push_back(neighbor);
+                    }
+                }
+                
+            }
+
+            for (unsigned n_idx = dyn_p_start; n_idx < dyn_p_end; n_idx++)
+            {
+                unsigned neighbor = dynamic_adj.p_neighbors[n_idx];
+                if (color[neighbor] == color[p_idx])
+                {
+                    if (!is_conflicted[p_idx])
+                    {
+                        is_conflicted[p_idx] = 1;
+                        touched_conflicted.push_back(p_idx);
+                    }
+                    if (!is_conflicted[neighbor])
+                    {
+                        is_conflicted[neighbor] = 1;
+                        touched_conflicted.push_back(neighbor);
+                    }
+                }
+            }
+        }
+
+        /** Build CSR structure per color for in-conflict particles */
+        // count number of conflicted particles in each color
+        conflicted_by_color_counts.resize(num_colors);
+        conflicted_by_color_counts.assign(num_colors, 0);
+        for (unsigned p_idx : touched_conflicted)
+        {
+            conflicted_by_color_counts[color[p_idx]]++;
+        }
+        // use counts to generate offsets
+        conflicted_by_color_offsets.resize(num_colors+1, 0);
+        conflicted_by_color_offsets[0] = 0;
+        for (unsigned c = 0; c < num_colors; c++)
+        {
+            conflicted_by_color_offsets[c+1] = conflicted_by_color_offsets[c] + conflicted_by_color_counts[c];
+        }
+
+        // use offsets to generate entries
+        conflicted_by_color_entries.resize(conflicted_by_color_offsets.back());
+        auto cursor = conflicted_by_color_offsets;
+        for (unsigned p_idx : touched_conflicted)
+        {
+            conflicted_by_color_entries[cursor[color[p_idx]]++] = p_idx;
+        }
+
+        /** Reset conflicted particles (we have already built the CSR structure) */
+        for (unsigned p_idx : touched_conflicted)
+        {
+            is_conflicted[p_idx] = 0;
+        }
+        touched_conflicted.clear();
+
     }
 };

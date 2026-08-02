@@ -86,7 +86,7 @@ void Simulation::setup()
     // after creating the objects, build the adjacency structure
     _ctx.static_adjacency.buildAdjacency(_ctx.particles, _ctx.energies);
     _ctx.dynamic_adjacency.buildAdjacency(_ctx.particles, _ctx.energies);
-    _ctx.coloring.buildInitialColorList(_ctx.static_adjacency, _ctx.particles.totalSize());
+    _ctx.coloring.buildInitialColorList(_ctx.static_adjacency, _ctx.dynamic_adjacency, _ctx.particles.totalSize());
     
     
 }
