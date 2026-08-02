@@ -5,6 +5,35 @@
 
 #include <vector>
 
+template <unsigned N>
+struct ColorBitset
+{
+    uint64_t bitset[N];     // 64*N colors supported
+
+    ColorBitset()
+        : bitset({})
+    {
+    }
+
+    inline void addColor(unsigned c)
+    {
+        bitset[c / 64] |= (1ull << (c % 64));
+    }
+
+    inline unsigned findFirstUnset()
+    {
+        for (unsigned w = 0; w < N; w++)
+        {
+            uint64_t inverted = ~bitset[w];
+            if (inverted != 0)
+                return w * 64  + std::countr_zero(inverted);
+        }
+
+        // every color in range is taken - throw an error
+        throw std::runtime_error("Ran out of colors!");
+    }
+};
+
 struct ColorList
 {
     static constexpr unsigned UNCOLORED = std::numeric_limits<unsigned>::max();
@@ -14,6 +43,14 @@ struct ColorList
     std::vector<unsigned> color_counts;     // number of particles per color
     std::vector<unsigned> color_offsets;    // per-color offsets
     std::vector<unsigned> work_list;    // particle indices, grouped by color
+
+    std::vector<unsigned> dirty;    // list of particle indices that must be checked for conflicts. Populated by collision detection
+    std::vector<unsigned> next_dirty;   // buffer of dirty vertices for next iteration of recoloring 
+    std::vector<unsigned> last_dirty_round;     // the "round" of recoloring that this particle was last dirty
+    std::vector<unsigned> candidate_color;      // buffered candidate colors for dirty vertices
+    std::vector<unsigned> touched_this_frame;   // list of particles that were touched by the recoloring algorithm this frame
+
+    static constexpr unsigned SENTINEL = 0xFFFFFFFFu;   // sentinel value for the last dirty round
 
     /** Greedy coloring of the particles given the adjacency structure.
      * Also sets the number of colors in the coloring.
@@ -223,6 +260,12 @@ struct ColorList
         // first, perform greedy coloring on the particle adjacency structure
         greedyColor2(static_adjacency, num_particles);
 
+        rebuildWorkList(num_particles);
+        
+    }
+
+    void rebuildWorkList(unsigned num_particles)
+    {
         // count each color
         color_counts.resize(num_colors);
         color_counts.assign(num_colors, 0);
@@ -262,5 +305,104 @@ struct ColorList
         {
             work_list[cursor[color[v]]++] = v;
         }
+    }
+
+    /** Incremental coloring to fix potential conflicts given the new particle adjacency */
+    void incrementalRecoloring(const StaticParticleAdjacency& static_adj, const DynamicParticleAdjacency& dynamic_adj, unsigned num_particles)
+    {
+        constexpr unsigned MAX_COLOR_ITERS = 6;
+        constexpr unsigned NUM_WORDS_IN_BITSET = 4;     // 4*64 = 256 colors supported
+
+        candidate_color.resize(color.size());
+
+        unsigned iter = 0;
+        while (!dirty.empty() && iter < MAX_COLOR_ITERS)
+        {
+            for (unsigned p_idx : dirty)
+            {
+                // gather colors used by static and dynamic neighbors
+                ColorBitset<NUM_WORDS_IN_BITSET> bitset;
+                unsigned static_p_start = static_adj.p_offsets[p_idx];
+                unsigned static_p_end = static_adj.p_offsets[p_idx+1];
+                unsigned dyn_p_start = dynamic_adj.p_offsets[p_idx];
+                unsigned dyn_p_end = dynamic_adj.p_offsets[p_idx+1];
+
+                bool must_recolor = false;
+                for (unsigned n_idx = static_p_start; n_idx < static_p_end; n_idx++)
+                {
+                    unsigned neighbor = static_adj.p_neighbors[n_idx];
+                    unsigned c_neighbor = color[neighbor];
+                    bitset.addColor(c_neighbor);
+                    if (c_neighbor == color[p_idx] && neighbor < p_idx)
+                        must_recolor = true;
+                }
+
+                for (unsigned n_idx = dyn_p_start; n_idx < dyn_p_end; n_idx++)
+                {
+                    unsigned neighbor = dynamic_adj.p_neighbors[n_idx];
+                    unsigned c_neighbor = color[neighbor];
+                    bitset.addColor(c_neighbor);
+                    if (c_neighbor == color[p_idx] && neighbor < p_idx)
+                        must_recolor = true;
+                }
+
+                // if there is a conflict and it is determined that this particle must recolor,
+                // get the first unused color and use it as the candidate color
+                candidate_color[p_idx] = must_recolor ? bitset.findFirstUnset() : color[p_idx];
+            }
+
+            // apply and propagate - a changed color might create a new conflict with a neighbor that wasn't dirty before
+            next_dirty.clear();
+            for (unsigned p_idx : dirty)
+            {
+                if (candidate_color[p_idx] != color[p_idx])
+                {
+                    color[p_idx] = candidate_color[p_idx];
+
+                    unsigned static_p_start = static_adj.p_offsets[p_idx];
+                    unsigned static_p_end = static_adj.p_offsets[p_idx+1];
+                    unsigned dyn_p_start = dynamic_adj.p_offsets[p_idx];
+                    unsigned dyn_p_end = dynamic_adj.p_offsets[p_idx+1];
+
+                    for (unsigned n_idx = static_p_start; n_idx < static_p_end; n_idx++)
+                    {
+                        unsigned neighbor = static_adj.p_neighbors[n_idx];
+                        if (last_dirty_round[neighbor] != iter + 1)
+                        {
+                            last_dirty_round[neighbor] = iter + 1;
+                            touched_this_frame.push_back(neighbor);
+                            next_dirty.push_back(neighbor);
+                        }
+                        
+                    }
+
+                    for (unsigned n_idx = dyn_p_start; n_idx < dyn_p_end; n_idx++)
+                    {
+                        unsigned neighbor = dynamic_adj.p_neighbors[n_idx];
+                        if (last_dirty_round[neighbor] != iter + 1)
+                        {
+                            last_dirty_round[neighbor] = iter + 1;
+                            touched_this_frame.push_back(neighbor);
+                            next_dirty.push_back(neighbor);
+                        }
+                    }
+                }
+            }
+
+            dirty.swap(next_dirty);
+            iter++;
+        }
+
+        std::cout << "Remaining 'dirty' particles: " << dirty.size() << std::endl;
+
+        // rebuild CSR
+        rebuildWorkList(num_particles);
+
+        // reset touched and last dirty lists
+        for (unsigned p : touched_this_frame)
+        {
+            last_dirty_round[p] = SENTINEL;
+        }
+        touched_this_frame.clear();
     }
 };
