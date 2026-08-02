@@ -52,6 +52,15 @@ struct ColorList
 
     static constexpr unsigned SENTINEL = 0xFFFFFFFFu;   // sentinel value for the last dirty round
 
+    /** Initializes memory based on the max particle capacity in the particle pool */
+    ColorList(unsigned particles_capacity)
+        : color(particles_capacity, UNCOLORED)
+        , last_dirty_round(particles_capacity, SENTINEL)
+        , candidate_color(particles_capacity)
+    {
+
+    }
+
     /** Greedy coloring of the particles given the adjacency structure.
      * Also sets the number of colors in the coloring.
      * 
@@ -59,10 +68,8 @@ struct ColorList
      */
     void greedyColor(const StaticParticleAdjacency& adjacency, unsigned num_particles)
     {
-        // resize the colors to the number of particles
-        color.resize(num_particles);
-        // reset all colors
-        color.assign(num_particles, UNCOLORED);
+        // reset all colors within particle range
+        std::fill(color.begin(), color.begin() + num_particles, UNCOLORED);
 
         // scratch space for storing which colors are "used" by adjacent vertices
         std::vector<bool> used_color;
@@ -106,8 +113,7 @@ struct ColorList
      */
     void greedyColor2(const StaticParticleAdjacency& adjacency, unsigned num_particles)
     {
-        color.resize(num_particles);
-        color.assign(num_particles, UNCOLORED);
+        std::fill(color.begin(), color.begin() + num_particles, UNCOLORED);
 
         std::vector<unsigned> saturation(num_particles, 0);
 
@@ -139,6 +145,10 @@ struct ColorList
                 else if (saturation[j] == saturation[best] && deg_j > deg_best)
                     best = j;
             }
+
+            if (best == UNCOLORED)
+                throw std::runtime_error("best color is UNCOLORED!");
+                
 
             // reset the used color buffer
             used_color.assign(used_color.size(), false);
@@ -269,10 +279,10 @@ struct ColorList
         // count each color
         color_counts.resize(num_colors);
         color_counts.assign(num_colors, 0);
-        for (unsigned c : color)
+        for (unsigned c_idx = 0; c_idx < num_particles; c_idx++)
         {
             // std::cout << "Color: " << c << std::endl;
-            color_counts[c]++;
+            color_counts[color[c_idx]]++;
         }
 
         // std::cout << "Initial coloring - " << num_colors << " colors: " << std::endl;
@@ -283,10 +293,10 @@ struct ColorList
 
         color_counts.resize(num_colors);
         color_counts.assign(num_colors, 0);
-        for (unsigned c : color)
+        for (unsigned c_idx = 0; c_idx < num_particles; c_idx++)
         {
             // std::cout << "Color: " << c << std::endl;
-            color_counts[c]++;
+            color_counts[color[c_idx]]++;
         }
 
         // std::cout << "After small color merging - " << num_colors << " colors: " << std::endl;
@@ -312,8 +322,6 @@ struct ColorList
     {
         constexpr unsigned MAX_COLOR_ITERS = 6;
         constexpr unsigned NUM_WORDS_IN_BITSET = 4;     // 4*64 = 256 colors supported
-
-        candidate_color.resize(color.size());
 
         unsigned iter = 0;
         while (!dirty.empty() && iter < MAX_COLOR_ITERS)

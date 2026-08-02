@@ -37,6 +37,7 @@ struct SimulationContext
     SimulationContext()
         : particles(1000, 1000)
         , energies(1000)
+        , coloring(1000)
         , collision_pool(1000, 1000)
     {
         
@@ -51,6 +52,7 @@ struct SimulationContext
     )
      : particles(particles_capacity, oriented_particles_capacity)
      , energies(energies_capacity)
+     , coloring(particles_capacity)
      , collision_pool(collision_primitive_capacity, collision_sdf_capacity)
     {
         
