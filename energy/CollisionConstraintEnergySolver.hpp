@@ -20,52 +20,61 @@ struct CollisionConstraintEnergySolver
     )
     {
         // evaluate the constraint
-        Vec3r C = CollisionConstraintSolver::evaluateConstraint(c_idx, energies, particles);
+        Real C_n, C_t, C_b;
+        CollisionConstraintSolver::evaluateConstraint(c_idx, energies, particles, C_n, C_t, C_b);
 
         // subtract off previous constraint violation
-        Vec3r C_corr = C - CONSTRAINT_ALPHA * energies.data[c_idx].C_prev;
+        Real C_corr_n = C_n - CONSTRAINT_ALPHA * energies.data[c_idx].C_n_prev;
+        Real C_corr_t = C_t - CONSTRAINT_ALPHA * energies.data[c_idx].C_t_prev;
+        Real C_corr_b = C_b - CONSTRAINT_ALPHA * energies.data[c_idx].C_b_prev;
         
-        // extract the current stiffness and Lagrange multiplier
-        Vec3r& k = energies.data[c_idx].k;
-        Vec3r& lambda = energies.data[c_idx].lambda;
+        // extract the current stiffnesses and Lagrange multipliers
+        Real& k_n = energies.data[c_idx].k_n;
+        Real& k_t = energies.data[c_idx].k_t;
+        Real& k_b = energies.data[c_idx].k_b;
+        Real& lambda_n = energies.data[c_idx].lambda_n;
+        Real& lambda_t = energies.data[c_idx].lambda_t;
+        Real& lambda_b = energies.data[c_idx].lambda_b;
 
-        Vec3r lambda_p = k.cwiseProduct(C_corr) + lambda;
+        Real lambda_n_plus = k_n * C_corr_n + lambda_n;
+        Real lambda_t_plus = k_t * C_corr_t + lambda_t;
+        Real lambda_b_plus = k_b * C_corr_b + lambda_b;
 
         // update normal stiffness - equation (12)
         // for collision constraints, lambda min = 0
-        if (lambda_p[2] > 0)
+        if (lambda_n_plus > 0)
         {
             // additive stiffness update
-            k[2] += STIFFNESS_BETA * C_corr[2];
+            k_n += STIFFNESS_BETA * C_corr_n;
 
             // store the current constraint violation
-            energies.data[c_idx].C_prev[2] = C[2];
+            energies.data[c_idx].C_n_prev = C_n;
         }
 
         // update normal lambda - equation (11)
-        lambda[2] = std::max(Real(0), lambda_p[2]);
+        lambda_n = std::max(Real(0), lambda_n_plus);
 
         // update tangent and binromal stiffness - equation (12)
-        Vec2r lambda_tb_p(lambda_p[0], lambda_p[1]);
-        Real lambda_tb_p_mag = std::sqrt(lambda_p[0]*lambda_p[0] + lambda_p[1]*lambda_p[1]);
+        Vec2r lambda_tb_plus(lambda_t_plus, lambda_b_plus);
+        Real lambda_tb_plus_mag = lambda_tb_plus.norm();
         Real mu = 0.2;
         /** TODO: (08/04/26) make coeff of friction a part of data.
          * TODO: (08/04/26) static + dynamic friction?
          */
-        Real lambda_tb_max = mu*lambda_p[2];
-        if (lambda_tb_p_mag < lambda_tb_max)
+        Real lambda_tb_max = mu*lambda_n_plus;
+        if (lambda_tb_plus_mag < lambda_tb_max)
         {
-            k[0] += STIFFNESS_BETA * C_corr[0];
-            k[1] += STIFFNESS_BETA * C_corr[1];
+            k_t += STIFFNESS_BETA * C_corr_t;
+            k_b += STIFFNESS_BETA * C_corr_b;
 
-            energies.data[c_idx].C_prev[0] = C[0];
-            energies.data[c_idx].C_prev[1] = C[1];
+            energies.data[c_idx].C_t_prev = C_t;
+            energies.data[c_idx].C_b_prev = C_b;
         }
         else
         {
-            Vec2r lambda_tb_clamped = lambda_tb_p / (lambda_tb_p_mag + 1e-8) * lambda_tb_max;
-            lambda[0] = lambda_tb_clamped[0];
-            lambda[1] = lambda_tb_clamped[1];
+            Vec2r lambda_tb_clamped = lambda_tb_plus / (lambda_tb_plus_mag + 1e-8) * lambda_tb_max;
+            lambda_t = lambda_tb_clamped[0];
+            lambda_b = lambda_tb_clamped[1];
         }
 
         
@@ -82,8 +91,12 @@ struct CollisionConstraintEnergySolver
         ParticlePool& /* particles */
     )
     {
-        energies.data[c_idx].lambda = CONSTRAINT_ALPHA * STIFFNESS_GAMMA * energies.data[c_idx].lambda;
-        energies.data[c_idx].k = (STIFFNESS_GAMMA * energies.data[c_idx].k).cwiseMax(energies.k_start);
+        energies.data[c_idx].lambda_n *= CONSTRAINT_ALPHA * STIFFNESS_GAMMA;
+        energies.data[c_idx].lambda_t *= CONSTRAINT_ALPHA * STIFFNESS_GAMMA;
+        energies.data[c_idx].lambda_b *= CONSTRAINT_ALPHA * STIFFNESS_GAMMA;
+        energies.data[c_idx].k_n = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_n, energies.k_start);
+        energies.data[c_idx].k_t = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_t, energies.k_start);
+        energies.data[c_idx].k_b = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_b, energies.k_start);
     }
 
     /** Computes the Hessian and gradient for a specified particle affected by this energy.
@@ -107,53 +120,61 @@ struct CollisionConstraintEnergySolver
     )
     {
         // evaluate the constraint, gradients, and Hessians for the constraint for each particle involved
+        Real C_n, C_t, C_b;
         Vec3r C_grad_n, C_grad_t, C_grad_b;
         Mat3r C_hess_n, C_hess_t, C_hess_b;
-        Vec3r C_raw;
         CollisionConstraintSolver::constraintGradientHessian(
             e_idx, energies, particles, local_idx, // inputs
-            C_raw, 
+            C_n, C_t, C_b, 
             C_grad_n, C_grad_t, C_grad_b,
             C_hess_n, C_hess_t, C_hess_b  // outputs
         );
-        // alpha correction on the constraint violation
-        Vec3r C = C_raw - CONSTRAINT_ALPHA * energies.data[e_idx].C_prev;
+        // subtract off previous constraint violation
+        Real C_corr_n = C_n - CONSTRAINT_ALPHA * energies.data[e_idx].C_n_prev;
+        Real C_corr_t = C_t - CONSTRAINT_ALPHA * energies.data[e_idx].C_t_prev;
+        Real C_corr_b = C_b - CONSTRAINT_ALPHA * energies.data[e_idx].C_b_prev;
 
-        const Vec3r& k = energies.data[e_idx].k;
-        const Vec3r& lambda = energies.data[e_idx].lambda;
+        // extract the current stiffnesses and Lagrange multipliers
+        Real k_n = energies.data[e_idx].k_n;
+        Real k_t = energies.data[e_idx].k_t;
+        Real k_b = energies.data[e_idx].k_b;
+        Real lambda_n = energies.data[e_idx].lambda_n;
+        Real lambda_t = energies.data[e_idx].lambda_t;
+        Real lambda_b = energies.data[e_idx].lambda_b;
+
 
         // Lagrange multiplier for normal
-        Real lambda_p_n = std::max(Real(0), k[2]*C[2] + lambda[2]);
+        Real lambda_n_plus = std::max(Real(0), k_n * C_corr_n + lambda_n);
 
         // Lagrange multipliers for tangent and binormal
-        Vec2r lambda_p_tb(k[0]*C[0] + lambda[0], k[1]*C[1] + lambda[1]);
+        Vec2r lambda_tb_plus(k_t*C_corr_t + lambda_t, k_b*C_corr_b + lambda_b);
         // clamp magnitude
-        Real lambda_p_tb_mag = lambda_p_tb.norm();
+        Real lambda_tb_plus_mag = lambda_tb_plus.norm();
         Real mu = 0.2;
-        Real lambda_p_tb_max = mu*lambda_p_n;
-        if (lambda_p_tb_mag > lambda_p_tb_max)
+        Real lambda_tb_max = mu*lambda_n_plus;
+        if (lambda_tb_plus_mag > lambda_tb_max)
         {
-            lambda_p_tb = lambda_p_tb / (lambda_p_tb.norm() + 1e-8) * lambda_p_tb_max;
+            lambda_tb_plus = lambda_tb_plus / (lambda_tb_plus.norm() + 1e-8) * lambda_tb_max;
         }
         
         
         /** TODO: (08/04/26) After we've clamped the lambdas, these will always be false...? */
         // stiffness rescaling for normal - equation (14)
-        Real k_scaled_n = k[2];
-        if (lambda_p_n < 0 && std::abs(C[2]) > 1e-12)
-            k_scaled_n =  -lambda[2] / C[2];
+        Real k_scaled_n = k_n;
+        if (lambda_n_plus < 0 && std::abs(C_n) > 1e-12)
+            k_scaled_n =  -lambda_n / C_n;
         
         // stiffness rescling for tangent and binormal - equation (14)
-        Vec2r k_scaled_tb(k[0], k[1]);
-        Vec2r C_tb(C[0], C[1]);
-        if (lambda_p_tb.norm() > lambda_p_tb_max && C_tb.norm() > 1e-12)
+        Vec2r k_scaled_tb(k_t, k_b);
+        Vec2r C_tb(C_corr_t, C_corr_b);
+        if (lambda_tb_plus.norm() > lambda_tb_max && C_tb.norm() > 1e-12)
         {
-            k_scaled_tb = k_scaled_tb / k_scaled_tb.norm() * (lambda_p_tb_max - lambda_p_tb.norm()) / C_tb.norm();
+            k_scaled_tb = k_scaled_tb / k_scaled_tb.norm() * (lambda_tb_max - lambda_tb_plus.norm()) / C_tb.norm();
         }
         // gradient
-        Vec3r grad_n = lambda_p_n * C_grad_n;
-        Vec3r grad_t = lambda_p_tb[0] * C_grad_t;
-        Vec3r grad_b = lambda_p_tb[1] * C_grad_b;
+        Vec3r grad_n = lambda_n_plus * C_grad_n;
+        Vec3r grad_t = lambda_tb_plus[0] * C_grad_t;
+        Vec3r grad_b = lambda_tb_plus[1] * C_grad_b;
 
             // Hessian
             /** TODO: do diagonalization of Hessian component
@@ -164,11 +185,11 @@ struct CollisionConstraintEnergySolver
              */
             
 
-        Mat3r hess_n = (k_scaled_n * C[2] + lambda[2]) * C_hess_n +
+        Mat3r hess_n = (k_scaled_n * C_n + lambda_n) * C_hess_n +
             k_scaled_n * C_grad_n* C_grad_n.transpose();
-        Mat3r hess_t = (k_scaled_tb[0] * C[0] + lambda[0]) * C_hess_t +
+        Mat3r hess_t = (k_scaled_tb[0] * C_t + lambda_t) * C_hess_t +
             k_scaled_tb[0] * C_grad_t * C_grad_t.transpose();
-        Mat3r hess_b = (k_scaled_tb[1] * C[1] + lambda[1]) * C_hess_b +
+        Mat3r hess_b = (k_scaled_tb[1] * C_b + lambda_b) * C_hess_b +
             k_scaled_tb[1] * C_grad_b * C_grad_b.transpose();
 
         particle_H += hess_n + hess_t + hess_b;

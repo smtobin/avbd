@@ -11,10 +11,11 @@ struct TriangleRigidCollisionConstraintSolver
     /** Public typedefs */
     using PoolType = TriangleRigidCollisionEnergyPool;
 
-    static Vec3r evaluateConstraint(
+    static void evaluateConstraint(
         unsigned c_idx,
         const TriangleRigidCollisionEnergyPool& energies,
-        ParticlePool& particles
+        ParticlePool& particles,
+        Real& C_n, Real& C_t, Real& C_b
     )
     {
         const Vec3r& n = energies.data[c_idx].normal;
@@ -35,10 +36,9 @@ struct TriangleRigidCollisionConstraintSolver
         const Vec3r cp_rb = rb_pos + rb_rot * cp_rb_local;
 
         Vec3r diff = cp_rb - cp_tri;
-        Vec3r C;
-        C[2] = n.dot(diff);
-        C[0] = t.dot(diff);
-        C[1] = b.dot(diff);
+        C_n = n.dot(diff);
+        C_t = t.dot(diff);
+        C_b = b.dot(diff);
 
         // if (C > 0)
         // {
@@ -47,9 +47,6 @@ struct TriangleRigidCollisionConstraintSolver
         //     particles.in_collision[indices[2]] = true;
         //     particles.in_collision[indices[3]] = true;
         // }
-
-        // std::cout << "  C: " << C << std::endl;
-        return C;
     }
 
     static void constraintGradientHessian(
@@ -57,7 +54,7 @@ struct TriangleRigidCollisionConstraintSolver
         const TriangleRigidCollisionEnergyPool& energies,
         ParticlePool& particles,
         unsigned local_idx,
-        Vec3r& C,
+        Real& C_n, Real& C_t, Real& C_b,
         Vec3r& C_grad_n, Vec3r& C_grad_t, Vec3r& C_grad_b,
         Mat3r& C_hess_n, Mat3r& C_hess_t, Mat3r& C_hess_b
     )
@@ -80,9 +77,9 @@ struct TriangleRigidCollisionConstraintSolver
         const Vec3r cp_rb = rb_pos + rb_rot * cp_rb_local;
 
         Vec3r diff = cp_rb - cp_tri;
-        C[2] = n.dot(diff);
-        C[0] = t.dot(diff);
-        C[1] = b.dot(diff);
+        C_n = n.dot(diff);
+        C_t = t.dot(diff);
+        C_b = b.dot(diff);
 
         // if (C > 0)
         // {

@@ -403,6 +403,9 @@ void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCo
         }
         case DetectedCollisionType::TriangleRigid:
         {
+            /** TODO: (08/04/26) Update tangent and binormal vectors so that they are coherent with last frame.
+             * Update Lagrange multipliers in tangent and binormal directions so that total force stays the same.
+             */
             Energy::TriangleRigidCollisionEnergyInfo& info = ctx.energies.triangle_rigid_collision.data[collision.e_idx];
             info.normal = collision.normal;
             info.cp_rb_local = collision.TriangleRigid.cp_rb_local;

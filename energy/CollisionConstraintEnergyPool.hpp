@@ -8,12 +8,15 @@ namespace Energy
 
 struct CollisionConstraintEnergyInfo
 {
-    Vec3r k;        // the finite stiffnesses of the quadratic energy (one for each direction of the collision basis)
-    Vec3r lambda;   // the Lagrange multipliers enforcing the constraints (tangent, binormal, normal)
-    Vec3r C_prev;   // the constraint violation at the end of the previous time step
-    Vec3r tangent;  // 
-    Vec3r binormal;
-    Vec3r normal;
+    Real k_n; Real k_t; Real k_b;        // the finite stiffnesses of the quadratic energy (one for each direction of the collision basis)
+    Real lambda_n; Real lambda_t; Real lambda_b;   // the Lagrange multipliers enforcing the constraints (normal, tangent, binormal)
+    Real C_n_prev; Real C_t_prev; Real C_b_prev;   // the constraint violation at the end of the previous time step
+
+    /** The collision orthonormal frame */
+    Vec3r normal;   // collision normal vector
+    Vec3r tangent;  // collision tangent vector
+    Vec3r binormal; // collision binormal vector
+    
 };
 
 /** Pool of memory specifically for collision-related constraint energies */
@@ -40,9 +43,15 @@ struct CollisionConstraintEnergyPool : TombstonePool
         unsigned slot = allocSlot();
 
         // initialize lambda and k
-        data[slot].lambda = Vec3r::Zero();
-        data[slot].k = Vec3r::Constant(k_start);
-        data[slot].C_prev = Vec3r::Zero();
+        data[slot].lambda_n = 0;
+        data[slot].lambda_t = 0;
+        data[slot].lambda_b = 0;
+        data[slot].k_n = 0;
+        data[slot].k_t = 0;
+        data[slot].k_b = 0;
+        data[slot].C_n_prev = 0;
+        data[slot].C_t_prev = 0;
+        data[slot].C_b_prev = 0;
 
         return slot;
     }
