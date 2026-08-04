@@ -329,6 +329,8 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
         }
         case DetectedCollisionType::TriangleRigid:
         {
+            Vec3r t, b;
+            Math::completeOrthonormalBasisGivenNormal(collision.normal, t, b);
             unsigned slot = ctx.energies.triangle_rigid_collision.addEnergy(
                 collision.TriangleRigid.tri[0],
                 collision.TriangleRigid.tri[1],
@@ -336,6 +338,8 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
                 collision.TriangleRigid.rb,
                 nullptr,
                 collision.normal,
+                t,
+                b,
                 collision.TriangleRigid.barys,
                 collision.TriangleRigid.cp_rb_local
             );

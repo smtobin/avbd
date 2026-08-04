@@ -28,7 +28,7 @@ objects:
     type: "TetMeshObject"
     name: "test"
     filename: "../resource/tumor.msh"
-    position: [0, 15, 0]
+    position: [0, 10, 0]
     scaling: [1, 1, 1]
     position-by-com: true
     # material parameters
@@ -43,8 +43,8 @@ objects:
     draw-faces: True
     color: [1.0, 0.5, 0]
 
-  - 
-    type: "RigidSphere"
-    fixed: true
-    position: [0, 0, 0]
-    radius: 5
+  # - 
+  #   type: "RigidSphere"
+  #   fixed: true
+  #   position: [0, 0, 0]
+  #   radius: 5

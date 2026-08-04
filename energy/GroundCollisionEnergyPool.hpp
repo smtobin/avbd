@@ -1,16 +1,16 @@
 #pragma once
 
-#include "energy/HardConstraintEnergyPool.hpp"
+#include "energy/CollisionConstraintEnergyPool.hpp"
 
 namespace Energy
 {
 
-struct GroundCollisionEnergyInfo : HardConstraintEnergyInfo
+struct GroundCollisionEnergyInfo : CollisionConstraintEnergyInfo
 {
     Vec1u particle_indices;     // particle indices for each constraint
 };
 
-struct GroundCollisionEnergyPool : HardConstraintEnergyPool<GroundCollisionEnergyInfo>
+struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollisionEnergyInfo>
 {
     static constexpr int NumParticlesPerEnergy = 1; // number of particles per constraint
     static constexpr EnergyType Type = EnergyType::GROUND_COLLISION; // type of energy in the EnergyType enum
@@ -18,7 +18,7 @@ struct GroundCollisionEnergyPool : HardConstraintEnergyPool<GroundCollisionEnerg
     using SolverType = GroundCollisionEnergySolver;     // solver class type
 
     explicit GroundCollisionEnergyPool(unsigned capacity)
-        : HardConstraintEnergyPool(capacity, 1e2, 0)
+        : CollisionConstraintEnergyPool(capacity, 1e2)
     {
 
     }
@@ -30,7 +30,7 @@ struct GroundCollisionEnergyPool : HardConstraintEnergyPool<GroundCollisionEnerg
     unsigned addEnergy(unsigned particle_index)
     {
         // parent will call allocSlot()
-        unsigned slot = HardConstraintEnergyPool::addEnergy();
+        unsigned slot = CollisionConstraintEnergyPool::addEnergy();
 
         // particle_indices[slot][0] = particle_index;
         data[slot].particle_indices[0] = particle_index;
