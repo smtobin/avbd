@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CollisionConstraintEnergyPool.hpp"
+#include "common/Math.hpp"
 
 namespace Energy
 {
@@ -8,6 +9,47 @@ namespace Energy
 template <typename CollisionEnergyPool, typename CollisionConstraintSolver>
 struct CollisionConstraintEnergySolver
 {
+    /** Updates the collision normal, which causes an update to the collision tangent and binormal.
+     * The Lagrange multipliers associated with the tangent and binormal are updated so that the total force remains the same.
+     */
+    static void updateCollisionFrame(
+        unsigned c_idx,
+        CollisionEnergyPool& energies,
+        const Vec3r& new_normal
+    )
+    {
+        // extract old n, t, b
+        Vec3r& t = energies.data[c_idx].tangent;
+        Vec3r& b = energies.data[c_idx].binormal;
+        Vec3r& n = energies.data[c_idx].normal;
+
+        Real& lambda_t = energies.data[c_idx].lambda_t;
+        Real& lambda_b = energies.data[c_idx].lambda_b;
+
+        // compute old frictional force
+        Vec3r f_tb_old = lambda_t * t + lambda_b * b;
+
+        // project last frame's tangent vector onto the plane orthogonal to the new normal vector
+        Vec3r t_proj = t - (t.dot(new_normal))*new_normal;
+        // renormalize - this is the new tangent vector given the new normal
+        // designed to be coherent from previous frames, so that the collision frame does not change too drastically between frames
+        Real t_proj_mag = t_proj.norm();
+        if (t_proj_mag > 1e-8)
+        {
+            t = t_proj / t_proj_mag;
+            b = new_normal.cross(t);
+        }
+        else
+        {
+            Math::completeOrthonormalBasisGivenNormal(n, t, b);
+        }
+        n = new_normal;
+
+        // update tangent and binormal lambda so that friction force stays the same
+        lambda_t = f_tb_old.dot(t);
+        lambda_b = f_tb_old.dot(b);
+    }
+
     /** Updates the stiffness and Lagrange multiplier after the iteration
      * @param c_idx : the constraint index
      * @param energies : the memory pool for the energy
@@ -57,7 +99,7 @@ struct CollisionConstraintEnergySolver
         // update tangent and binromal stiffness - equation (12)
         Vec2r lambda_tb_plus(lambda_t_plus, lambda_b_plus);
         Real lambda_tb_plus_mag = lambda_tb_plus.norm();
-        Real mu = 0.2;
+        Real mu = 0.4;
         /** TODO: (08/04/26) make coeff of friction a part of data.
          * TODO: (08/04/26) static + dynamic friction?
          */
@@ -150,7 +192,7 @@ struct CollisionConstraintEnergySolver
         Vec2r lambda_tb_plus(k_t*C_corr_t + lambda_t, k_b*C_corr_b + lambda_b);
         // clamp magnitude
         Real lambda_tb_plus_mag = lambda_tb_plus.norm();
-        Real mu = 0.2;
+        Real mu = 0.4;
         Real lambda_tb_max = mu*lambda_n_plus;
         if (lambda_tb_plus_mag > lambda_tb_max)
         {

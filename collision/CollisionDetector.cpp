@@ -3,6 +3,8 @@
 #include "simulation/SimulationContext.hpp"
 #include "common/WorkerThreadContext.hpp"
 
+#include "energy/TriangleRigidCollisionEnergySolver.hpp"
+
 #include "common/Math.hpp"
 #include "common/Algorithm.hpp"
 
@@ -407,9 +409,9 @@ void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCo
              * Update Lagrange multipliers in tangent and binormal directions so that total force stays the same.
              */
             Energy::TriangleRigidCollisionEnergyInfo& info = ctx.energies.triangle_rigid_collision.data[collision.e_idx];
-            info.normal = collision.normal;
             info.cp_rb_local = collision.TriangleRigid.cp_rb_local;
             info.barys = collision.TriangleRigid.barys;
+            Energy::TriangleRigidCollisionEnergySolver::updateCollisionFrame(collision.e_idx, ctx.energies.triangle_rigid_collision, collision.normal);
             break;
         }
         default:
