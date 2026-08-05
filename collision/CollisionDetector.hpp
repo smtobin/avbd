@@ -2,6 +2,8 @@
 
 #include "common/common.hpp"
 #include "collision/CollisionPrimitivePool.hpp"
+#include "collision/LBVHBuilder.hpp"
+#include "collision/LBVHTraversal.hpp"
 #include "collision/DetectedCollision.hpp"
 
 namespace Collision
@@ -10,6 +12,12 @@ namespace Collision
 struct CollisionDetector
 {
 private:
+    /** Responsible for building the BVH */
+    LBVHBuilder _lbvh_builder;
+    
+    /** Responsible for traversing the BVH */
+    LBVHTraversal _lbvh_traversal;
+
     /** Cache for potential collisions. */
     std::vector<std::pair<unsigned, unsigned>> _potential_collisions;
 
@@ -20,6 +28,9 @@ private:
     /** Current detected collisions and accompanying order sorted by key */
     std::vector<DetectedCollision> _cur_detected_collisions;
     std::vector<unsigned> _cur_sorted_order;
+
+    /** Offsets for merging detected collisions after parallel narrow-phase */
+    std::vector<unsigned> _merge_offsets;
 
     /** Generates a unique constexpr collision key for each pair of colliding objects that we can switch over. */
     constexpr static unsigned _makeCollisionKey(CollisionGeometryType a, CollisionGeometryType b)
@@ -38,11 +49,20 @@ private:
 
     /** Perform narrow-phase collision detection. */
     inline void _narrowPhaseCollisionDetection(Sim::SimulationContext& ctx);
+    
+    /** Perform narrow-phase collision detection in parallel. */
+    inline void _narrowPhaseCollisionDetection_Parallel(WorkerThreadContext& w_ctx, Sim::SimulationContext& ctx);
+
+    /** Merge detected collisions from each thread into global detected collisions vector */
+    inline void _mergeDetectedCollisions(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, std::vector<DetectedCollision>& merged_detected_collisions);
+
+    /** Check a pair of primitives a and b for collision */
+    inline void _processPotentialCollision(Sim::SimulationContext& ctx, unsigned a, unsigned b, std::vector<DetectedCollision>& detected_collisions);
 
     /** Specific subroutines for primitive-primitive narrow-phase collision checks */
-    inline void _triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere);
-    inline void _triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2);
-    inline void _sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2);
+    inline void _triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere, std::vector<DetectedCollision>& detected_collisions);
+    inline void _triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2, std::vector<DetectedCollision>& detected_collisions);
+    inline void _sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2, std::vector<DetectedCollision>& detected_collisions);
 
     /** General triangle-SDF continuous collision detection
      * Follows the implementation described by Pelletier-Guenette et al (2025): https://dl.acm.org/doi/full/10.1145/3747862
@@ -64,6 +84,8 @@ private:
     
 
 public:
+    CollisionDetector() = default;
+
     /** Reserves memory for caches */
     CollisionDetector(unsigned capacity);
 
@@ -76,6 +98,9 @@ public:
      * - Recreates the adjacency graph and coloring.
      */
     void detectCollisionsAndRecolor(Sim::SimulationContext& ctx);
+
+    /** Performs entire collision detection process in parallel */
+    void detectCollisionsAndRecolor_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx);
 };
 
 } // namespace Collision

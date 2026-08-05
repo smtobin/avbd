@@ -293,6 +293,15 @@ static Quaternion QuaternionFromXYZEulerAngles(const Vec3r& eul_xyz)
     return qz*qy*qx;
 }
 
+/** Given a unit normal vector, completes an orthonormal basis.
+ * Uses Eigen's unitOrthogonal().
+ */
+static void completeOrthonormalBasisGivenNormal(const Vec3r& n, Vec3r& t, Vec3r& b)
+{
+    t = n.unitOrthogonal();
+    b = n.cross(t);
+}
+
 /** Projects a point p onto the line segment defined by ab.
  * Returns the interpolation factor - i.e. if in [0,1] the projected point is between a and b.
  * To get the projected point: p_proj = a + projectPointOnLine(p, a, b) * (b-a);

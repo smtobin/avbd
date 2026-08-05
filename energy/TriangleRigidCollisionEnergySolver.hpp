@@ -1,7 +1,7 @@
 #pragma once
 
 #include "energy/TriangleRigidCollisionEnergyPool.hpp"
-#include "energy/HardConstraintEnergySolver.hpp"
+#include "energy/CollisionConstraintEnergySolver.hpp"
 
 namespace Energy
 {
@@ -11,13 +11,16 @@ struct TriangleRigidCollisionConstraintSolver
     /** Public typedefs */
     using PoolType = TriangleRigidCollisionEnergyPool;
 
-    static Real evaluateConstraint(
+    static void evaluateConstraint(
         unsigned c_idx,
         const TriangleRigidCollisionEnergyPool& energies,
-        ParticlePool& particles
+        ParticlePool& particles,
+        Real& C_n, Real& C_t, Real& C_b
     )
     {
         const Vec3r& n = energies.data[c_idx].normal;
+        const Vec3r& t = energies.data[c_idx].tangent;
+        const Vec3r& b = energies.data[c_idx].binormal;
         const Vec4u& indices = energies.data[c_idx].particle_indices;
 
         const Vec3r& t1 = particles.positions[indices[0]];
@@ -32,7 +35,10 @@ struct TriangleRigidCollisionConstraintSolver
         const Vec3r& cp_rb_local = energies.data[c_idx].cp_rb_local;
         const Vec3r cp_rb = rb_pos + rb_rot * cp_rb_local;
 
-        Real C = n.dot(cp_rb - cp_tri);
+        Vec3r diff = cp_rb - cp_tri;
+        C_n = n.dot(diff);
+        C_t = t.dot(diff);
+        C_b = b.dot(diff);
 
         // if (C > 0)
         // {
@@ -41,9 +47,6 @@ struct TriangleRigidCollisionConstraintSolver
         //     particles.in_collision[indices[2]] = true;
         //     particles.in_collision[indices[3]] = true;
         // }
-
-        // std::cout << "  C: " << C << std::endl;
-        return C;
     }
 
     static void constraintGradientHessian(
@@ -51,12 +54,14 @@ struct TriangleRigidCollisionConstraintSolver
         const TriangleRigidCollisionEnergyPool& energies,
         ParticlePool& particles,
         unsigned local_idx,
-        Real& C,
-        Vec3r& C_grad,
-        Mat3r& C_hess
+        Real& C_n, Real& C_t, Real& C_b,
+        Vec3r& C_grad_n, Vec3r& C_grad_t, Vec3r& C_grad_b,
+        Mat3r& C_hess_n, Mat3r& C_hess_t, Mat3r& C_hess_b
     )
     {
         const Vec3r& n = energies.data[c_idx].normal;
+        const Vec3r& t = energies.data[c_idx].tangent;
+        const Vec3r& b = energies.data[c_idx].binormal;
         const Vec4u& indices = energies.data[c_idx].particle_indices;
 
         const Vec3r& t1 = particles.positions[indices[0]];
@@ -71,7 +76,10 @@ struct TriangleRigidCollisionConstraintSolver
         const Vec3r& cp_rb_local = energies.data[c_idx].cp_rb_local;
         const Vec3r cp_rb = rb_pos + rb_rot * cp_rb_local;
 
-        C = n.dot(cp_rb - cp_tri);
+        Vec3r diff = cp_rb - cp_tri;
+        C_n = n.dot(diff);
+        C_t = t.dot(diff);
+        C_b = b.dot(diff);
 
         // if (C > 0)
         // {
@@ -84,22 +92,26 @@ struct TriangleRigidCollisionConstraintSolver
         if (local_idx < 3)
         {
             Real bary = energies.data[c_idx].barys[local_idx];
-            C_grad = -bary * n;
-            C_hess = Mat3r::Zero();
+            C_grad_n = -bary * n;
+            C_grad_t = -bary * t;
+            C_grad_b = -bary * b;
+            C_hess_n = Mat3r::Zero();
+            C_hess_t = Mat3r::Zero();
+            C_hess_b = Mat3r::Zero();
         }
         else
         {
             /** TODO: (07/21/26) gradient w.r.t oriented particle */
-            C_grad = Vec3r::Zero();
-            C_hess = Mat3r::Zero();
+            C_grad_n = C_grad_t = C_grad_b = Vec3r::Zero();
+            C_hess_n = C_hess_t = C_hess_b = Mat3r::Zero();
         }
     }
 };
 
 struct TriangleRigidCollisionEnergySolver
-    : HardConstraintEnergySolver<TriangleRigidCollisionEnergyPool, TriangleRigidCollisionConstraintSolver>
+    : CollisionConstraintEnergySolver<TriangleRigidCollisionEnergyPool, TriangleRigidCollisionConstraintSolver>
 {
-    using HardConstraintEnergySolver::HardConstraintEnergySolver;
+    using CollisionConstraintEnergySolver::CollisionConstraintEnergySolver;
 };
 
 } // namespace Energy

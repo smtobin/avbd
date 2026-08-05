@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/WorkerThreadContext.hpp"
 #include "common/ParticlePool.hpp"
 #include "collision/CollisionPrimitivePool.hpp"
 #include "collision/LBVH.hpp"
@@ -10,12 +11,25 @@ namespace Collision
 
 struct LBVHBuilder
 {
-    static void buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh, Real dt);
 
-    static void computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, Real dt);
-    static void constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh);
-    static void assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh);
+    /** Scratch memory for parallel radix sort.
+     * These will be resized appropriately within the function, they just need to exist outside the function.
+     */
+    std::vector<unsigned> _radix_sort_combined_offsets;
+    std::vector<unsigned> _radix_sort_temp;
 
+    void buildBVH(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, LBVH& lbvh, Real dt);
+
+    void computeAABB_MortonCode(const ParticlePool& particle_pool, CollisionPrimitivePool& col_pool, Real dt);
+    void constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh);
+    void assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh);
+
+    void buildBVH_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx);
+    void computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx);
+    void constructTree_Parallel(WorkerThreadContext& w_ctx, Sim::SimulationContext& ctx);
+    void assembleBVH_Parallel(WorkerThreadContext& w_ctx, Sim::SimulationContext& ctx);
+
+private:
     static inline int commonPrefixLen(uint64_t code_i, unsigned i, uint64_t code_j, unsigned j)
     {
         if (code_i == code_j)

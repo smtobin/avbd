@@ -2,7 +2,8 @@
 
 #include "common/common.hpp"
 #include "common/ParticlePool.hpp"
-#include "common/ParticleAdjacency.hpp"
+#include "common/StaticParticleAdjacency.hpp"
+#include "common/DynamicParticleAdjacency.hpp"
 #include "common/ColorList.hpp"
 #include "energy/EnergyRegistry.hpp"
 #include "collision/CollisionPrimitivePool.hpp"
@@ -21,13 +22,14 @@ struct SimulationContext
     Energy::EnergyRegistry energies;
 
     // adjacency information for particles
-    ParticleAdjacency adjacency;
+    StaticParticleAdjacency static_adjacency;
+    DynamicParticleAdjacency dynamic_adjacency;
     ColorList coloring;
 
     // collision detection
     Collision::CollisionPrimitivePool collision_pool;
     Collision::LBVH lbvh;
-    Collision::CollisionDetector collision_detector;
+    Collision::AABB scene_box;  // global bounds of the scene
 
     // simulation parameters
     SimulationParams params;
@@ -35,8 +37,8 @@ struct SimulationContext
     SimulationContext()
         : particles(1000, 1000)
         , energies(1000)
+        , coloring(1000)
         , collision_pool(1000, 1000)
-        , collision_detector(500)
     {
         
     }
@@ -50,8 +52,8 @@ struct SimulationContext
     )
      : particles(particles_capacity, oriented_particles_capacity)
      , energies(energies_capacity)
+     , coloring(particles_capacity)
      , collision_pool(collision_primitive_capacity, collision_sdf_capacity)
-     , collision_detector(collision_primitive_capacity/2)
     {
         
     }

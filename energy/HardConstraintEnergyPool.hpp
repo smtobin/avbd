@@ -5,7 +5,6 @@
 namespace Energy
 {
 
-/** TODO: switch to AoS */
 struct HardConstraintEnergyInfo
 {
     Real k;         // the finite stiffnesses of the quadratic energy

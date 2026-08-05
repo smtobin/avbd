@@ -1,9 +1,9 @@
 #include "collision/CollisionDetector.hpp"
 
 #include "simulation/SimulationContext.hpp"
+#include "common/WorkerThreadContext.hpp"
 
-#include "collision/LBVHBuilder.hpp"
-#include "collision/LBVHTraversal.hpp"
+#include "energy/TriangleRigidCollisionEnergySolver.hpp"
 
 #include "common/Math.hpp"
 #include "common/Algorithm.hpp"
@@ -33,10 +33,10 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 
 
     // build BVH
-    LBVHBuilder::buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
+    _lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, ctx.params.dt);
 
     // traverse BVH for potential collisions
-    LBVHTraversal::traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, _potential_collisions);
+    _lbvh_traversal.traverseSelfIterative(ctx.lbvh, ctx.lbvh.root, ctx.lbvh.root, _potential_collisions);
 
     // narrow-phase collision detection
     _narrowPhaseCollisionDetection(ctx);
@@ -48,9 +48,85 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
 
     // rebuild adjacency
     /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
-    ctx.adjacency.buildAdjacency(ctx.particles, ctx.energies);
-    ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
+    // ctx.static_adjacency.buildAdjacency(ctx.particles, ctx.energies);
+    ctx.dynamic_adjacency.buildAdjacency(ctx.particles, ctx.energies);
+    // ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
 }
+
+void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx)
+{
+    if (w_ctx.idx == 0)
+    {
+        // move the detected collision from last frame to the previous frame
+        _prev_detected_collisions.swap(_cur_detected_collisions);
+        _prev_sorted_order.swap(_cur_sorted_order);
+        // and clear the current detected collisions
+        _cur_detected_collisions.clear();
+        _cur_sorted_order.clear();
+        // clear the potential collisions
+        _potential_collisions.clear();
+    }
+    w_ctx.barrier->arrive_and_wait();
+
+    // build BVH
+    _lbvh_builder.buildBVH_Parallel(w_ctx, all_worker_contexts, ctx);
+
+    // traverse BVH for potential collisions
+    _lbvh_traversal.collisionBroadPhase(w_ctx, ctx.lbvh);
+    _lbvh_traversal.mergeLeafPairs(w_ctx, all_worker_contexts, _potential_collisions);
+
+    // narrow-phase collision detection
+    _narrowPhaseCollisionDetection_Parallel(w_ctx, ctx);
+    _mergeDetectedCollisions(w_ctx, all_worker_contexts, _cur_detected_collisions);
+
+    if (w_ctx.idx == 0)
+    {
+        // handle detected collisions
+        // sort the current detected collisions by key
+        // merge lists, and create/destroy collision constraints accordingly
+        _handleDetectedCollisions(ctx);
+
+        
+    }
+    w_ctx.barrier->arrive_and_wait();
+
+    // ctx.adjacency.buildAdjacency_Parallel(w_ctx, all_worker_contexts, ctx.particles, ctx.energies);
+    if (w_ctx.idx == 0)
+    {
+        // rebuild adjacency
+        // std::cout << "=== Adjacency parallel ===" << std::endl;
+        // for (unsigned v : ctx.particles)
+        // {
+        //     std::cout << "Particle " << v << ": " << std::endl;
+        //     unsigned start = ctx.adjacency.e_offsets[v][0];
+        //     unsigned end = ctx.adjacency.e_offsets[v+1][0];
+        //     for (unsigned i = start; i < end; i++)
+        //     {
+        //         std::cout << " Entry " << i << ": " << "e_idx=" << ctx.adjacency.e_entries[i].energy_idx << " type=" << static_cast<unsigned>(ctx.adjacency.e_entries[i].energy_type) << std::endl;
+        //     }
+        // }
+        /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
+        // ctx.static_adjacency.buildAdjacency(ctx.particles, ctx.energies);
+        ctx.dynamic_adjacency.buildAdjacency(ctx.particles, ctx.energies);
+        ctx.coloring.incrementalRecoloring(ctx.static_adjacency, ctx.dynamic_adjacency, ctx.particles.totalSize());
+
+        // std::cout << "=== Adjacency serial ===" << std::endl;
+        // for (unsigned v : ctx.particles)
+        // {
+        //     std::cout << "Particle " << v << ": " << std::endl;
+        //     unsigned start = ctx.adjacency.e_offsets[v][0];
+        //     unsigned end = ctx.adjacency.e_offsets[v+1][0];
+        //     for (unsigned i = start; i < end; i++)
+        //     {
+        //         std::cout << " Entry " << i << ": " << "e_idx=" << ctx.adjacency.e_entries[i].energy_idx << " type=" << static_cast<unsigned>(ctx.adjacency.e_entries[i].energy_type) << std::endl;
+        //     }
+        // }
+
+        // ctx.coloring.buildInitialColorList(ctx.static_adjacency, ctx.dynamic_adjacency, ctx.particles.totalSize());
+    }
+    w_ctx.barrier->arrive_and_wait();
+}
+
 
 bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigned pi, unsigned pj)
 {
@@ -86,18 +162,10 @@ bool CollisionDetector::_shouldSkip(const CollisionPrimitivePool& cpool, unsigne
     return false;
 }
 
-void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& ctx)
+void CollisionDetector::_processPotentialCollision(Sim::SimulationContext& ctx, unsigned a, unsigned b, std::vector<DetectedCollision>& detected_collisions)
 {
-    /** TODO: (07/19/26) Parallelize this? */
-    for (const auto& potential_collision : _potential_collisions)
-    {
-        // potential collisions are pairs of LBVH leaf node indices, which correspond to the collision pool's sorted order
-        // extract the primitive indices by indexing in the sorted order array
-        unsigned a = ctx.collision_pool.sorted_order[potential_collision.first];
-        unsigned b = ctx.collision_pool.sorted_order[potential_collision.second];
-
-        if (_shouldSkip(ctx.collision_pool, a, b))
-            continue;
+    if (_shouldSkip(ctx.collision_pool, a, b))
+            return;
 
         CollisionGeometryType type_a = ctx.collision_pool.getCollisionGeometryType(a);
         CollisionGeometryType type_b = ctx.collision_pool.getCollisionGeometryType(b);
@@ -113,17 +181,17 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
             
             case _makeCollisionKey(CollisionGeometryType::Triangle, CollisionGeometryType::Triangle):
             {
-                _triangleTriangle(ctx, a, b);
+                _triangleTriangle(ctx, a, b, detected_collisions);
                 break;
             }
             case _makeCollisionKey(CollisionGeometryType::Triangle, CollisionGeometryType::Sphere):
             {
-                _triangleSphere(ctx, a, b);
+                _triangleSphere(ctx, a, b, detected_collisions);
                 break;
             }
             case _makeCollisionKey(CollisionGeometryType::Sphere, CollisionGeometryType::Sphere):
             {
-                _sphereSphere(ctx, a, b);
+                _sphereSphere(ctx, a, b, detected_collisions);
                 break;
             }
 
@@ -133,7 +201,60 @@ void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& c
             }
             
         }
+}
+
+void CollisionDetector::_narrowPhaseCollisionDetection(Sim::SimulationContext& ctx)
+{
+    for (const auto& potential_collision : _potential_collisions)
+    {
+        // potential collisions are pairs of LBVH leaf node indices, which correspond to the collision pool's sorted order
+        // extract the primitive indices by indexing in the sorted order array
+        unsigned a = ctx.collision_pool.sorted_order[potential_collision.first];
+        unsigned b = ctx.collision_pool.sorted_order[potential_collision.second];
+
+        _processPotentialCollision(ctx, a, b, _cur_detected_collisions);
     }
+}
+
+void CollisionDetector::_narrowPhaseCollisionDetection_Parallel(WorkerThreadContext& w_ctx, Sim::SimulationContext& ctx)
+{
+    auto [start, end] = w_ctx.computeStartEnd(_potential_collisions.size());
+    w_ctx.detected_collisions.clear();
+
+    for (unsigned c_idx = start; c_idx < end; c_idx++)
+    {
+        auto& potential_collision = _potential_collisions[c_idx];
+        // potential collisions are pairs of LBVH leaf node indices, which correspond to the collision pool's sorted order
+        // extract the primitive indices by indexing in the sorted order array
+        unsigned a = ctx.collision_pool.sorted_order[potential_collision.first];
+        unsigned b = ctx.collision_pool.sorted_order[potential_collision.second];
+
+        _processPotentialCollision(ctx, a, b, w_ctx.detected_collisions);
+    }
+    w_ctx.barrier->arrive_and_wait();
+}
+
+void CollisionDetector::_mergeDetectedCollisions(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, std::vector<DetectedCollision>& merged_detected_collisions)
+{
+    // main thread compute per-thread offsets
+    if (w_ctx.idx == 0)
+    {
+        _merge_offsets.resize(WorkerThreadContext::NUM_THREADS + 1);
+        _merge_offsets[0] = 0;
+        for (unsigned t = 0; t < WorkerThreadContext::NUM_THREADS; t++)
+        {
+            _merge_offsets[t+1] = _merge_offsets[t] + all_worker_contexts[t].detected_collisions.size();
+        }
+        merged_detected_collisions.resize(_merge_offsets.back());
+    }
+    w_ctx.barrier->arrive_and_wait();
+
+    // each thread copies its own buffer into its assigned slice
+    std::copy(
+        w_ctx.detected_collisions.begin(), w_ctx.detected_collisions.end(),
+        merged_detected_collisions.begin() + _merge_offsets[w_ctx.idx]
+    );
+    w_ctx.barrier->arrive_and_wait();
 }
 
 
@@ -210,6 +331,9 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
         }
         case DetectedCollisionType::TriangleRigid:
         {
+            /** TODO: (08/05/26) set coefficients of friction based on material properties */
+            Vec3r t, b;
+            Math::completeOrthonormalBasisGivenNormal(collision.normal, t, b);
             unsigned slot = ctx.energies.triangle_rigid_collision.addEnergy(
                 collision.TriangleRigid.tri[0],
                 collision.TriangleRigid.tri[1],
@@ -217,10 +341,20 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
                 collision.TriangleRigid.rb,
                 nullptr,
                 collision.normal,
+                t,
+                b,
                 collision.TriangleRigid.barys,
-                collision.TriangleRigid.cp_rb_local
+                collision.TriangleRigid.cp_rb_local,
+                0.4, 
+                0.2
             );
             collision.e_idx = slot;
+
+            // add particles involved in this collision to the coloring dirty list for recoloring
+            ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[0]);
+            ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[1]);
+            ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[2]);
+            ctx.coloring.markParticleDirty(collision.TriangleRigid.rb);
             break;
         }
         default:
@@ -274,10 +408,13 @@ void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCo
         }
         case DetectedCollisionType::TriangleRigid:
         {
+            /** TODO: (08/04/26) Update tangent and binormal vectors so that they are coherent with last frame.
+             * Update Lagrange multipliers in tangent and binormal directions so that total force stays the same.
+             */
             Energy::TriangleRigidCollisionEnergyInfo& info = ctx.energies.triangle_rigid_collision.data[collision.e_idx];
-            info.normal = collision.normal;
             info.cp_rb_local = collision.TriangleRigid.cp_rb_local;
             info.barys = collision.TriangleRigid.barys;
+            Energy::TriangleRigidCollisionEnergySolver::updateCollisionFrame(collision.e_idx, ctx.energies.triangle_rigid_collision, collision.normal);
             break;
         }
         default:
@@ -289,7 +426,7 @@ void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCo
 }
 
 
-void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere)
+void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere, std::vector<DetectedCollision>& detected_collisions)
 {
     // std::cout << "Testing sphere-triangle collision..." << std::endl;
     const auto& triangle_idx = ctx.collision_pool.particle_indices[triangle];
@@ -312,11 +449,11 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     Vec3r normal, cp_barys, cp_rb_local;
     if (_triangleSDF_CCD(ctx, triangle, sphere, ctx.params.dt, normal, cp_barys, cp_rb_local))
     {
-        std::cout << "Sphere-triangle collision detected!" << std::endl;
-        std::cout << "  Barys: " << cp_barys.transpose() << std::endl;
-        std::cout << "  CP on triangle: " << (v1*cp_barys[0] + v2*cp_barys[1] + v3*cp_barys[2]).transpose() << std::endl;
-        std::cout << "  CP on rigid body: " << cp_rb_local.transpose() << std::endl;
-        std::cout << "  Normal: " << normal.transpose() << std::endl;
+        // std::cout << "Sphere-triangle collision detected!" << std::endl;
+        // std::cout << "  Barys: " << cp_barys.transpose() << std::endl;
+        // std::cout << "  CP on triangle: " << (v1*cp_barys[0] + v2*cp_barys[1] + v3*cp_barys[2]).transpose() << std::endl;
+        // std::cout << "  CP on rigid body: " << cp_rb_local.transpose() << std::endl;
+        // std::cout << "  Normal: " << normal.transpose() << std::endl;
         DetectedCollision collision{};
         collision.type = DetectedCollisionType::TriangleRigid;
         collision.key = DetectedCollision::generateKey(
@@ -333,7 +470,7 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
         collision.TriangleRigid.rb = sphere_idx;
         collision.TriangleRigid.cp_rb_local = cp_rb_local;
 
-        _cur_detected_collisions.push_back(std::move(collision));
+        detected_collisions.push_back(std::move(collision));
     }
 
     // for now, expand sphere radius by relative velocity
@@ -387,14 +524,14 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
 
 }
 
-void CollisionDetector::_triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2)
+void CollisionDetector::_triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2, std::vector<DetectedCollision>& detected_collisions)
 {
     /** TODO: (07/20/26) triangle-triangle collision detection */
     // std::cout << "Testing triangle-triangle collision..." << std::endl;
     // throw std::runtime_error("Triangle-triangle collision detection not implemented.");
 }
 
-void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2)
+void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2, std::vector<DetectedCollision>& detected_collisions)
 {
     /** TODO: (07/20/26) sphere-sphere collision detection */
     throw std::runtime_error("Sphere-sphere collision detetction not implemented.");

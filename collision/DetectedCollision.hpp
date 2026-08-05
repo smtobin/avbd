@@ -59,4 +59,63 @@ struct DetectedCollision
         return key;
     }
 
+    /** Default constructor */
+    DetectedCollision() = default;
+
+    /** Implement copy constructor and assignment */
+private:
+    void copyPayload(const DetectedCollision& other)
+    {
+        switch (other.type)
+        {
+        case DetectedCollisionType::TriangleTriangle_VertexFace:
+            new (&TriangleTriangle_VertexFace)
+                decltype(TriangleTriangle_VertexFace)(other.TriangleTriangle_VertexFace);
+            break;
+
+        case DetectedCollisionType::TriangleTriangle_EdgeEdge:
+            new (&TriangleTriangle_EdgeEdge)
+                decltype(TriangleTriangle_EdgeEdge)(other.TriangleTriangle_EdgeEdge);
+            break;
+
+        case DetectedCollisionType::TriangleRigid:
+            new (&TriangleRigid)
+                decltype(TriangleRigid)(other.TriangleRigid);
+            break;
+
+        case DetectedCollisionType::RigidRigid:
+            new (&RigidRigid)
+                decltype(RigidRigid)(other.RigidRigid);
+            break;
+        }
+    }
+public:
+    DetectedCollision(const DetectedCollision& other)
+        : type(other.type),
+        e_idx(other.e_idx),
+        key(other.key),
+        gen1(other.gen1),
+        gen2(other.gen2),
+        normal(other.normal)
+    {
+        copyPayload(other);
+    }
+
+    DetectedCollision& operator=(const DetectedCollision& other)
+    {
+        if (this == &other)
+            return *this;
+
+        type   = other.type;
+        e_idx  = other.e_idx;
+        key    = other.key;
+        gen1   = other.gen1;
+        gen2   = other.gen2;
+        normal = other.normal;
+
+        copyPayload(other);
+
+        return *this;
+    }
+
 };

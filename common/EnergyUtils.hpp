@@ -21,7 +21,49 @@ template<typename F>
 constexpr void ForEachEnergy(F&& f)
 {
     ForEachEnergy_Impl(
-        std::make_index_sequence<static_cast<std::size_t>(EnergyType::size)>{}, 
+        std::make_index_sequence<static_cast<std::size_t>(EnergyType::count)>{}, 
+        std::forward<F>(f)    
+    );
+}
+
+/** Helper for iterating over different static energies.
+ */
+// Usage:
+//    ForEachStaticEnergy([&]<StaticEnergyType E>() {
+//              // some work
+//      });
+template<std::size_t... Is, typename F>
+constexpr void ForEachStaticEnergy_Impl(std::index_sequence<Is...>, F&& f)
+{
+    (std::forward<F>(f).template operator()<static_cast<StaticEnergyType>(Is)>(), ...);
+}
+
+template<typename F>
+constexpr void ForEachStaticEnergy(F&& f)
+{
+    ForEachStaticEnergy_Impl(
+        std::make_index_sequence<static_cast<std::size_t>(StaticEnergyType::count)>{}, 
+        std::forward<F>(f)    
+    );
+}
+
+/** Helper for iterating over different dynamic energies.
+ */
+// Usage:
+//    ForEachStaticEnergy([&]<StaticEnergyType E>() {
+//              // some work
+//      });
+template<std::size_t... Is, typename F>
+constexpr void ForEachDynamicEnergy_Impl(std::index_sequence<Is...>, F&& f)
+{
+    (std::forward<F>(f).template operator()<static_cast<DynamicEnergyType>(Is)>(), ...);
+}
+
+template<typename F>
+constexpr void ForEachDynamicEnergy(F&& f)
+{
+    ForEachDynamicEnergy_Impl(
+        std::make_index_sequence<static_cast<std::size_t>(DynamicEnergyType::count)>{}, 
         std::forward<F>(f)    
     );
 }

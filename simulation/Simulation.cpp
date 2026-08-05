@@ -26,8 +26,8 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     // , _end_time(sim_config.endTime())
     // , _g_accel(sim_config.gAccel())
     // , _viewer_refresh_time_ms(1000.0/30.0)
-    , _ctx(10000, 1000, 20000, 10000, 1000)
-    , _solver(
+    , _ctx(10000, 1000, 100000, 20000, 1000)
+    , _executor(
         &_ctx,
         sim_config.solverIters(),
         sim_config.iterAcceleration(),
@@ -84,8 +84,9 @@ void Simulation::setup()
     });
 
     // after creating the objects, build the adjacency structure
-    _ctx.adjacency.buildAdjacency(_ctx.particles, _ctx.energies);
-    _ctx.coloring.buildColorList(_ctx.adjacency, _ctx.particles.totalSize());
+    _ctx.static_adjacency.buildAdjacency(_ctx.particles, _ctx.energies);
+    _ctx.dynamic_adjacency.buildAdjacency(_ctx.particles, _ctx.energies);
+    _ctx.coloring.buildInitialColorList(_ctx.static_adjacency, _ctx.dynamic_adjacency, _ctx.particles.totalSize());
     
     
 }
@@ -198,11 +199,11 @@ void Simulation::notifyLeftMouseButtonReleased()
 
 void Simulation::_timeStep()
 {
-    _ctx.collision_detector.detectCollisionsAndRecolor(_ctx);
+    // _ctx.collision_detector.detectCollisionsAndRecolor(_ctx);
     // std::cout << "t=" << _time << std::endl;
 
     // let the solver do the iterations
-    _solver.solve(_ctx.params.dt);
+    // _solver.solve(_ctx.params.dt);
 
     // log quantities
     // if (_logger)
@@ -210,7 +211,10 @@ void Simulation::_timeStep()
     //     _logger->logToFile(_time);
     // }
 
+    _executor.timeStep();
     _time += _ctx.params.dt;
+
+
 }
 
 void Simulation::_updateGraphics()

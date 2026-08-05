@@ -27,6 +27,8 @@ struct LBVH
     std::vector<unsigned> subtree_size;     // total leaves under this node (leaves included)
     unsigned root;
 
+    std::vector<std::atomic<uint8_t>> visited;  // helps track which nodes are visited during refit pass
+
     void resize(unsigned num_primitives)
     {
         unsigned num_nodes = 2 * num_primitives - 1;
@@ -37,6 +39,8 @@ struct LBVH
         leaf_start.resize(num_nodes, 0);
         leaf_count.resize(num_nodes, 0);
         subtree_size.resize(num_nodes, 0);
+        if (visited.size() != num_nodes)
+            visited = std::vector<std::atomic<uint8_t>>(num_nodes); // use assignment since atomics cannot be relocated if vector resizes
     }
 
     unsigned numPrimitives() const { return (parent.size() + 1)/2; }

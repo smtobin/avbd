@@ -1,7 +1,7 @@
 #pragma once
 
 #include "energy/GroundCollisionEnergyPool.hpp"
-#include "energy/HardConstraintEnergySolver.hpp"
+#include "energy/CollisionConstraintEnergySolver.hpp"
 
 namespace Energy
 {
@@ -11,14 +11,17 @@ struct GroundCollisionConstraintSolver
     /** Public typedefs */
     using PoolType = GroundCollisionEnergyPool;
     
-    static Real evaluateConstraint(
+    static void evaluateConstraint(
         unsigned c_idx,
         const GroundCollisionEnergyPool& energies,
-        ParticlePool& particles
+        ParticlePool& particles,
+        Real& C_n, Real& C_t, Real& C_b
     )
     {
-        unsigned particle_idx = energies.data[c_idx].particle_indices[0];
-        return -particles.positions[particle_idx][1];
+        unsigned p_idx = energies.data[c_idx].particle_indices[0];
+        C_n = -particles.positions[p_idx][1];
+        C_t = particles.positions[p_idx][0] - energies.data[c_idx].cp_x;
+        C_b = particles.positions[p_idx][2] - energies.data[c_idx].cp_z;
     }
 
     static void constraintGradientHessian(
@@ -26,20 +29,24 @@ struct GroundCollisionConstraintSolver
         const GroundCollisionEnergyPool& energies,
         ParticlePool& particles,
         unsigned local_idx,
-        Real& C,
-        Vec3r& C_grad,
-        Mat3r& C_hess
+        Real& C_n, Real& C_t, Real& C_b,
+        Vec3r& C_grad_n, Vec3r& C_grad_t, Vec3r& C_grad_b,
+        Mat3r& C_hess_n, Mat3r& C_hess_t, Mat3r& C_hess_b
     )
     {
         unsigned p_idx = energies.data[c_idx].particle_indices[0];
-        C = -particles.positions[p_idx][1];
+        C_n = -particles.positions[p_idx][1];
+        C_t = particles.positions[p_idx][0] - energies.data[c_idx].cp_x;
+        C_b = particles.positions[p_idx][2] - energies.data[c_idx].cp_z;
 
         // if (C > 0)
         //     particles.in_collision[p_idx] = true;
 
 
-        C_grad = Vec3r(0,-1,0);
-        C_hess = Mat3r::Zero();
+        C_grad_n = Vec3r(0,-1,0);
+        C_grad_t = Vec3r(1,0,0);
+        C_grad_b = Vec3r(0,0,1);
+        C_hess_n = C_hess_t = C_hess_b = Mat3r::Zero();
     }
 };
 
@@ -47,9 +54,28 @@ struct GroundCollisionConstraintSolver
 //     HardConstraintEnergySolver<GroundCollisionEnergyPool, GroundCollisionConstraintSolver>;
 
 struct GroundCollisionEnergySolver
-    : HardConstraintEnergySolver<GroundCollisionEnergyPool, GroundCollisionConstraintSolver>
+    : CollisionConstraintEnergySolver<GroundCollisionEnergyPool, GroundCollisionConstraintSolver>
 {
-    using HardConstraintEnergySolver::HardConstraintEnergySolver;
+    using CollisionConstraintEnergySolver::CollisionConstraintEnergySolver;
+
+    /** Updates the stiffness and Lagrange multiplier after a full time step.
+     * Implements equation (19) from the AVBD paper.
+     * @param c_idx : the constraint index
+     * @param energies : the memory pool for the energy
+     */
+    static void updateAfterTimeStep(
+        unsigned c_idx,
+        GroundCollisionEnergyPool& energies,
+        ParticlePool& particles
+    )
+    {
+        // update the contact point
+        unsigned p_idx = energies.data[c_idx].particle_indices[0];
+        energies.data[c_idx].cp_x = particles.positions[p_idx][0];
+        energies.data[c_idx].cp_z = particles.positions[p_idx][2];
+
+        CollisionConstraintEnergySolver::updateAfterTimeStep(c_idx, energies, particles);
+    }
 };
 
 } // namespace Energy
