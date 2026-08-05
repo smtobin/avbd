@@ -156,7 +156,10 @@ public:
         for (unsigned c_idx = color_start + start; c_idx < color_start + end; c_idx++)
         {
             unsigned p_idx = _ctx->coloring.work_list[c_idx];
-            _solveParticle(p_idx, dt);
+            if (_ctx->particles.isOriented(p_idx))
+                _solveParticle<6>(p_idx, dt);
+            else
+                _solveParticle<3>(p_idx, dt);
         }
     }
 
@@ -233,14 +236,13 @@ private:
         _ctx->particles.last_last_iter_positions[p_idx] = _ctx->particles.positions[p_idx];
     }
 
+    template <int DOF>
     void _solveParticle(unsigned p_idx, Real dt)
     {
-        if (_ctx->particles.isOriented(p_idx))
-            return;
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
-        Vec3r grad = Vec3r::Zero();
-        Mat3r hess = Mat3r::Zero();
+        Vec3r_or_Vec6r<DOF> grad = Vec3r_or_Vec6r<DOF>::Zero();
+        Mat3r_or_Mat6r<DOF> hess = Mat3r_or_Mat6r<DOF>::Zero();
 
         /** Process "static" energies */
         {
@@ -261,7 +263,8 @@ private:
                 const auto& energy_pool = _ctx->energies.template get<E>();
 
                 // if solver has AVX accumulate4 implemented, use that
-                if constexpr (Energy::HasAccumulate4<Solver>)
+                // note: currently this is only implemented for homogenous 3-DOF energies (such as the Neo-Hookean tet energy)
+                if constexpr (DOF == 3 && Energy::HasAccumulate4<Solver>)
                 {
                     // process in chunks of 4 using AVX
                     for (; e_adj+3 < final_e_adj; e_adj+=4)
@@ -310,15 +313,34 @@ private:
                     for (; e_adj < final_e_adj; e_adj++)
                     {
                         const StaticParticleAdjacency::Entry& entry = _ctx->static_adjacency.e_entries[e_adj];
-                        Solver::accumulate(
-                            entry.energy_idx,
-                            energy_pool,
-                            _ctx->particles,
-                            entry.local_vertex_idx,
-                            hess,
-                            grad,
-                            dt
-                        );
+
+                        // if the solver supports both positional and oriented particles (e.g. Triangle-Rigid collision, Ground collision)
+                        // then we must template accumulate based on the DOF of the current particle
+                        if constexpr (Solver::SupportsPositional && Solver::SupportsOriented)
+                        {
+                            Solver::template accumulate<DOF>(
+                                entry.energy_idx,
+                                energy_pool,
+                                _ctx->particles,
+                                entry.local_vertex_idx,
+                                hess,
+                                grad,
+                                dt
+                            );
+                        }
+                        // otherwise use plain accumulate()
+                        else if constexpr ( (DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional) )
+                        {
+                            Solver::accumulate(
+                                entry.energy_idx,
+                                energy_pool,
+                                _ctx->particles,
+                                entry.local_vertex_idx,
+                                hess,
+                                grad,
+                                dt
+                            );
+                        }
                     }
                 }
             }
@@ -346,39 +368,61 @@ private:
                 for (; e_adj < final_e_adj; e_adj++)
                 {
                     const DynamicParticleAdjacency::Entry& entry = _ctx->dynamic_adjacency.e_entries[e_adj];
-                    Solver::accumulate(
-                        entry.energy_idx,
-                        energy_pool,
-                        _ctx->particles,
-                        entry.local_vertex_idx,
-                        hess,
-                        grad,
-                        dt
-                    );
+                    if constexpr (Solver::SupportsPositional && Solver::SupportsOriented)
+                    {
+                        Solver::template accumulate<DOF>(
+                            entry.energy_idx,
+                            energy_pool,
+                            _ctx->particles,
+                            entry.local_vertex_idx,
+                            hess,
+                            grad,
+                            dt
+                        );
+                    }
+                    else if constexpr ( (DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional) )
+                    {
+                        Solver::accumulate(
+                            entry.energy_idx,
+                            energy_pool,
+                            _ctx->particles,
+                            entry.local_vertex_idx,
+                            hess,
+                            grad,
+                            dt
+                        );
+                    }
                 }
             }
             );
         }
 
         // assemble LHS and RHS of single-particle system
-        Real mass = _ctx->particles.masses[p_idx];
-        const Vec3r& p = _ctx->particles.positions[p_idx];
-        const Vec3r& y = _ctx->particles.inertial_positions[p_idx];
-
-        Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
-        Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
-
-        // Vec3r dx = LHS.partialPivLu().solve(RHS);
-        Vec3r dx = LHS.inverse() * RHS;
-
-        // std::cout << "dx: " << dx.transpose() << std::endl;
-
-        // if this particle has an intra-color conflict, buffer its update
-        if (_ctx->coloring.is_conflicted[p_idx])
-            _ctx->particles.buffered_positions[p_idx] = _ctx->particles.positions[p_idx] + dx;
-        // otherwise handle it normally
+        if constexpr (DOF == 6)
+        {
+            /** TODO: (08/05/26) for oriented particles */
+        }
         else
-            _ctx->particles.positions[p_idx] += dx;
+        {
+            Real mass = _ctx->particles.masses[p_idx];
+            const Vec3r& p = _ctx->particles.positions[p_idx];
+            const Vec3r& y = _ctx->particles.inertial_positions[p_idx];
+
+            Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
+            Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
+
+            // Vec3r dx = LHS.partialPivLu().solve(RHS);
+            Vec3r dx = LHS.inverse() * RHS;
+
+            // std::cout << "dx: " << dx.transpose() << std::endl;
+
+            // if this particle has an intra-color conflict, buffer its update
+            if (_ctx->coloring.is_conflicted[p_idx])
+                _ctx->particles.buffered_positions[p_idx] = _ctx->particles.positions[p_idx] + dx;
+            // otherwise handle it normally
+            else
+                _ctx->particles.positions[p_idx] += dx;
+        }
     }
 
     void _particleChebyshevAcceleration(unsigned p_idx, Real omega)

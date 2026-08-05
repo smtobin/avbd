@@ -98,6 +98,12 @@ using MatXr = Eigen::Matrix<Real,-1,-1>;
 
 using Quaternion = Eigen::Quaternion<Real>;
 
+// template for switching between Vec3r and Vec6r depending on some template parameter
+template <int DOF>
+using Vec3r_or_Vec6r = std::conditional_t<DOF == 6, Vec6r, Vec3r>;
+template <int DOF>
+using Mat3r_or_Mat6r = std::conditional_t<DOF == 6, Mat6r, Mat3r>;
+
 /** Enum of energy types */
 // enum class EnergyType
 // {

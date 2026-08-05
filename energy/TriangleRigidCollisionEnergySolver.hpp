@@ -49,14 +49,15 @@ struct TriangleRigidCollisionConstraintSolver
         // }
     }
 
+    template <int DOF>
     static void constraintGradientHessian(
         unsigned c_idx,
         const TriangleRigidCollisionEnergyPool& energies,
         ParticlePool& particles,
         unsigned local_idx,
         Real& C_n, Real& C_t, Real& C_b,
-        Vec3r& C_grad_n, Vec3r& C_grad_t, Vec3r& C_grad_b,
-        Mat3r& C_hess_n, Mat3r& C_hess_t, Mat3r& C_hess_b
+        Vec3r_or_Vec6r<DOF>& C_grad_n, Vec3r_or_Vec6r<DOF>& C_grad_t, Vec3r_or_Vec6r<DOF>& C_grad_b,
+        Mat3r_or_Mat6r<DOF>& C_hess_n, Mat3r_or_Mat6r<DOF>& C_hess_t, Mat3r_or_Mat6r<DOF>& C_hess_b
     )
     {
         const Vec3r& n = energies.data[c_idx].normal;
@@ -89,8 +90,17 @@ struct TriangleRigidCollisionConstraintSolver
         //     particles.in_collision[indices[3]] = true;
         // }
 
-        if (local_idx < 3)
+        if constexpr (DOF == 6)
         {
+            /** TODO: (07/21/26) gradient w.r.t oriented particle */
+            C_grad_n = C_grad_t = C_grad_b = Vec6r::Zero();
+            C_hess_n = C_hess_t = C_hess_b = Mat6r::Zero();
+        }
+        else
+        {
+            if (local_idx >= 3)
+                throw std::runtime_error("TriangleRigidCollisionEnergySolver::constraintGradientHessian local_idx out of bounds!");
+
             Real bary = energies.data[c_idx].barys[local_idx];
             C_grad_n = -bary * n;
             C_grad_t = -bary * t;
@@ -99,12 +109,6 @@ struct TriangleRigidCollisionConstraintSolver
             C_hess_t = Mat3r::Zero();
             C_hess_b = Mat3r::Zero();
         }
-        else
-        {
-            /** TODO: (07/21/26) gradient w.r.t oriented particle */
-            C_grad_n = C_grad_t = C_grad_b = Vec3r::Zero();
-            C_hess_n = C_hess_t = C_hess_b = Mat3r::Zero();
-        }
     }
 };
 
@@ -112,6 +116,8 @@ struct TriangleRigidCollisionEnergySolver
     : CollisionConstraintEnergySolver<TriangleRigidCollisionEnergyPool, TriangleRigidCollisionConstraintSolver>
 {
     using CollisionConstraintEnergySolver::CollisionConstraintEnergySolver;
+    static constexpr bool SupportsPositional = true;
+    static constexpr bool SupportsOriented = true;
 };
 
 } // namespace Energy

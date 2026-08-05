@@ -169,21 +169,22 @@ struct CollisionConstraintEnergySolver
      * @param particle_G : the current accumulated particle gradient - this is updated by this function
      * @param dt : the time step
      */
+    template <int DOF>
     static void accumulate(
         unsigned e_idx,
         const CollisionEnergyPool& energies,
         ParticlePool& particles,
         unsigned local_idx,
-        Mat3r& particle_H,
-        Vec3r& particle_G,
+        Mat3r_or_Mat6r<DOF>& particle_H,
+        Vec3r_or_Vec6r<DOF>& particle_G,
         Real dt
     )
     {
         // evaluate the constraint, gradients, and Hessians for the constraint for each particle involved
         Real C_n, C_t, C_b;
-        Vec3r C_grad_n, C_grad_t, C_grad_b;
-        Mat3r C_hess_n, C_hess_t, C_hess_b;
-        CollisionConstraintSolver::constraintGradientHessian(
+        Vec3r_or_Vec6r<DOF> C_grad_n, C_grad_t, C_grad_b;
+        Mat3r_or_Mat6r<DOF> C_hess_n, C_hess_t, C_hess_b;
+        CollisionConstraintSolver::template constraintGradientHessian<DOF>(
             e_idx, energies, particles, local_idx, // inputs
             C_n, C_t, C_b, 
             C_grad_n, C_grad_t, C_grad_b,
@@ -234,9 +235,9 @@ struct CollisionConstraintEnergySolver
             k_scaled_tb = k_scaled_tb / k_scaled_tb.norm() * (lambda_tb_max - lambda_tb_plus.norm()) / C_tb.norm();
         }
         // gradient
-        Vec3r grad_n = lambda_n_plus * C_grad_n;
-        Vec3r grad_t = lambda_tb_plus[0] * C_grad_t;
-        Vec3r grad_b = lambda_tb_plus[1] * C_grad_b;
+        Vec3r_or_Vec6r<DOF> grad_n = lambda_n_plus * C_grad_n;
+        Vec3r_or_Vec6r<DOF> grad_t = lambda_tb_plus[0] * C_grad_t;
+        Vec3r_or_Vec6r<DOF> grad_b = lambda_tb_plus[1] * C_grad_b;
 
             // Hessian
             /** TODO: do diagonalization of Hessian component
@@ -247,11 +248,11 @@ struct CollisionConstraintEnergySolver
              */
             
 
-        Mat3r hess_n = (k_scaled_n * C_corr_n + lambda_n) * C_hess_n +
+        Mat3r_or_Mat6r<DOF> hess_n = (k_scaled_n * C_corr_n + lambda_n) * C_hess_n +
             k_scaled_n * C_grad_n* C_grad_n.transpose();
-        Mat3r hess_t = (k_scaled_tb[0] * C_t + lambda_t) * C_hess_t +
+        Mat3r_or_Mat6r<DOF> hess_t = (k_scaled_tb[0] * C_t + lambda_t) * C_hess_t +
             k_scaled_tb[0] * C_grad_t * C_grad_t.transpose();
-        Mat3r hess_b = (k_scaled_tb[1] * C_b + lambda_b) * C_hess_b +
+        Mat3r_or_Mat6r<DOF> hess_b = (k_scaled_tb[1] * C_b + lambda_b) * C_hess_b +
             k_scaled_tb[1] * C_grad_b * C_grad_b.transpose();
 
         particle_H += hess_n + hess_t + hess_b;

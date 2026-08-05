@@ -13,6 +13,8 @@ struct NeoHookeanEnergySolver
 {
     /** Public typedefs */
     using PoolType = NeoHookeanEnergyPool;
+    static constexpr bool SupportsPositional = true;
+    static constexpr bool SupportsOriented = false;
 
     /** Energy functional */
     static Real energy(
