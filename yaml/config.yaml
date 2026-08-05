@@ -1,5 +1,5 @@
 name: "MeshSim"
-sim-mode: "Frame-by-frame"
+# sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
 time-step: 1e-3 # s
 end-time: 3
@@ -9,7 +9,7 @@ iter-acceleration: 0.95
 num-threads: 12
 collision-margin: 1e-3
 
-camera-position: [25, 250, 25]
+camera-position: [50, 50, 50]
 
 # logging: True
 # logging-output-folder: "../output/convergence"
@@ -28,7 +28,7 @@ objects:
     type: "TetMeshObject"
     name: "test"
     filename: "../resource/tumor.msh"
-    position: [0, 20, 0]
+    position: [0, 25, 0]
     scaling: [1, 1, 1]
     velocity: [0, 0, 0]
     position-by-com: true
@@ -36,7 +36,7 @@ objects:
     E: 0.35 # MPa (0.35 = roughly chicken breast: https://academic.oup.com/mt/article/31/2/21/7116012)
     nu: 0.45
     density: 1e-6 # kg / mm^3
-    damping-coeff: 1e-6 # ?
+    damping-coeff: 1e-5 # ?
 
     # render settings
     smooth-normals: False

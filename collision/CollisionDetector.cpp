@@ -331,6 +331,7 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
         }
         case DetectedCollisionType::TriangleRigid:
         {
+            /** TODO: (08/05/26) set coefficients of friction based on material properties */
             Vec3r t, b;
             Math::completeOrthonormalBasisGivenNormal(collision.normal, t, b);
             unsigned slot = ctx.energies.triangle_rigid_collision.addEnergy(
@@ -343,7 +344,9 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
                 t,
                 b,
                 collision.TriangleRigid.barys,
-                collision.TriangleRigid.cp_rb_local
+                collision.TriangleRigid.cp_rb_local,
+                0.4, 
+                0.2
             );
             collision.e_idx = slot;
 

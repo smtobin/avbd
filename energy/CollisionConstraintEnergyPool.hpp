@@ -17,6 +17,14 @@ struct CollisionConstraintEnergyInfo
     Vec3r normal;   // collision normal vector
     Vec3r tangent;  // collision tangent vector
     Vec3r binormal; // collision binormal vector
+
+    /** Friction properties */
+    bool use_static; // whether or not static friction is active
+    // tracks whether the friction Lagrange multiplier was unclamped during the last iteration 
+    // if, at the end of the time step, this is true and we were using kinetic friction, we switch to static
+    bool unclamped_lambda_tb;   
+    Real mu_s;  // static friction coefficient
+    Real mu_k;  // kinetic friction coefficient
     
 };
 
@@ -39,18 +47,24 @@ struct CollisionConstraintEnergyPool : TombstonePool
     /** Add an energy
      * @returns the index of the new energy in the pool
      */
-    unsigned addEnergy()
+    unsigned addEnergy(Real mu_s, Real mu_k)
     {
         unsigned slot = allocSlot();
 
-        // initialize lambda and k
+        // initialize lambdas and ks
         data[slot].lambda_n = 0;
         data[slot].lambda_t = 0;
         data[slot].lambda_b = 0;
-        data[slot].k_n = 0;
-        data[slot].k_t = 0;
-        data[slot].k_b = 0;
+        data[slot].k_n = k_start;
+        data[slot].k_t = k_start;
+        data[slot].k_b = k_start;
+        // initialize C_prev
         data[slot].C_n_prev = 0;
+        // initialize friciton coeffs
+        data[slot].mu_s = mu_s;
+        data[slot].mu_k = mu_k;
+        data[slot].use_static = false;  // default to kinetic friction initially
+        data[slot].unclamped_lambda_tb = false;
 
         return slot;
     }

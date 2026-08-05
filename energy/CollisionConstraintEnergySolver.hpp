@@ -67,8 +67,6 @@ struct CollisionConstraintEnergySolver
 
         // subtract off previous constraint violation
         Real C_corr_n = C_n - CONSTRAINT_ALPHA * energies.data[c_idx].C_n_prev;
-        Real C_corr_t = C_t;
-        Real C_corr_b = C_b;
         
         // extract the current stiffnesses and Lagrange multipliers
         Real& k_n = energies.data[c_idx].k_n;
@@ -77,6 +75,10 @@ struct CollisionConstraintEnergySolver
         Real& lambda_n = energies.data[c_idx].lambda_n;
         Real& lambda_t = energies.data[c_idx].lambda_t;
         Real& lambda_b = energies.data[c_idx].lambda_b;
+        bool& use_static = energies.data[c_idx].use_static;
+
+        Real mu_s = energies.data[c_idx].mu_s;
+        Real mu_k = energies.data[c_idx].mu_k;
 
         Real lambda_n_plus = k_n * C_corr_n + lambda_n;
         Real lambda_t_plus = k_t * C_t + lambda_t;
@@ -96,14 +98,11 @@ struct CollisionConstraintEnergySolver
         // update normal lambda - equation (11)
         lambda_n = std::max(Real(0), lambda_n_plus);
 
-        // update tangent and binromal stiffness - equation (12)
+        // update tangent and binormal stiffness - equation (12)
         Vec2r lambda_tb_plus(lambda_t_plus, lambda_b_plus);
         Real lambda_tb_plus_mag = lambda_tb_plus.norm();
-        Real mu = 0.4;
-        /** TODO: (08/04/26) make coeff of friction a part of data.
-         * TODO: (08/04/26) static + dynamic friction?
-         */
-        Real lambda_tb_max = mu*lambda_n_plus;
+        Real mu = use_static ? mu_s : mu_k;
+        Real lambda_tb_max = mu*lambda_n;
         if (lambda_tb_plus_mag < lambda_tb_max)
         {
             k_t += STIFFNESS_BETA * C_t;
@@ -111,12 +110,25 @@ struct CollisionConstraintEnergySolver
 
             lambda_t = lambda_t_plus;
             lambda_b = lambda_b_plus;
+
+            energies.data[c_idx].unclamped_lambda_tb = true;
         }
         else
         {
+            // if we must clamp the force and static friction was used, we have overcome the static friction boundary
+            // so set use_static to false, and immediatedly update the max lambda_tb allowed to use kinetic friction coefficient
+            if (use_static)
+            {
+                use_static = false;
+                lambda_tb_max = mu_k * lambda_n_plus;
+            }
+
             Vec2r lambda_tb_clamped = lambda_tb_plus / (lambda_tb_plus_mag + 1e-8) * lambda_tb_max;
             lambda_t = lambda_tb_clamped[0];
             lambda_b = lambda_tb_clamped[1];
+
+            
+            energies.data[c_idx].unclamped_lambda_tb = false;
         }
 
         
@@ -133,6 +145,12 @@ struct CollisionConstraintEnergySolver
         ParticlePool& /* particles */
     )
     {
+        // if, at the final iteration of the time step, the frictional Lagrange multiplier magnitude was unclamped
+        // (i.e. friction erased all tangential movement for this particle)
+        // then if we were using kinetic friction, switch to static
+        if (energies.data[c_idx].unclamped_lambda_tb && !energies.data[c_idx].use_static)
+            energies.data[c_idx].use_static = true;
+
         energies.data[c_idx].lambda_n *= CONSTRAINT_ALPHA * STIFFNESS_GAMMA;
         energies.data[c_idx].lambda_t *= STIFFNESS_GAMMA;
         energies.data[c_idx].lambda_b *= STIFFNESS_GAMMA;
@@ -182,6 +200,10 @@ struct CollisionConstraintEnergySolver
         Real lambda_t = energies.data[e_idx].lambda_t;
         Real lambda_b = energies.data[e_idx].lambda_b;
 
+        bool use_static = energies.data[e_idx].use_static;
+        Real mu_s = energies.data[e_idx].mu_s;
+        Real mu_k = energies.data[e_idx].mu_k;
+
 
         // Lagrange multiplier for normal
         Real lambda_n_plus = std::max(Real(0), k_n * C_corr_n + lambda_n);
@@ -190,7 +212,7 @@ struct CollisionConstraintEnergySolver
         Vec2r lambda_tb_plus(k_t*C_t + lambda_t, k_b*C_b + lambda_b);
         // clamp magnitude
         Real lambda_tb_plus_mag = lambda_tb_plus.norm();
-        Real mu = 0.4;
+        Real mu = use_static ? mu_s : mu_k;
         Real lambda_tb_max = mu*lambda_n_plus;
         if (lambda_tb_plus_mag > lambda_tb_max)
         {

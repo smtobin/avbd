@@ -29,10 +29,10 @@ struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollision
      * @param particle_index : the index of the particle in the particle pool
      * @returns the index of the new energy in the pool
      */
-    unsigned addEnergy(unsigned particle_index)
+    unsigned addEnergy(unsigned particle_index, Real mu_s, Real mu_k)
     {
         // parent will call allocSlot()
-        unsigned slot = CollisionConstraintEnergyPool::addEnergy();
+        unsigned slot = CollisionConstraintEnergyPool::addEnergy(mu_s, mu_k);
 
         // particle_indices[slot][0] = particle_index;
         data[slot].particle_indices[0] = particle_index;
