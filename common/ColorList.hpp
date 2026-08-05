@@ -5,6 +5,9 @@
 
 #include <vector>
 
+/** Generic bitset for tracking which colors have been used
+ * N = the number of 64 bit "words" used, such that 64*N colors are supported
+ */
 template <unsigned N>
 struct ColorBitset
 {
@@ -33,6 +36,28 @@ struct ColorBitset
         throw std::runtime_error("Ran out of colors!");
     }
 };
+
+/** Helper for iterating over both static adjacency and dynamic adjacency */
+template<typename F>
+inline void ForEachNeighbor(const StaticParticleAdjacency& static_adj, const DynamicParticleAdjacency& dynamic_adj, unsigned p_idx, F&& f)
+{
+    unsigned static_p_start = static_adj.p_offsets[p_idx];
+    unsigned static_p_end = static_adj.p_offsets[p_idx+1];
+    unsigned dyn_p_start = dynamic_adj.p_offsets[p_idx];
+    unsigned dyn_p_end = dynamic_adj.p_offsets[p_idx+1];
+
+    for (unsigned n_idx = static_p_start; n_idx < static_p_end; n_idx++)
+    {
+        unsigned neighbor = static_adj.p_neighbors[n_idx];
+        f(neighbor);
+    }
+
+    for (unsigned n_idx = dyn_p_start; n_idx < dyn_p_end; n_idx++)
+    {
+        unsigned neighbor = dynamic_adj.p_neighbors[n_idx];
+        f(neighbor);
+    }
+}
 
 struct ColorList
 {
@@ -373,29 +398,13 @@ struct ColorList
             {
                 // gather colors used by static and dynamic neighbors
                 ColorBitset<NUM_WORDS_IN_BITSET> bitset;
-                unsigned static_p_start = static_adj.p_offsets[p_idx];
-                unsigned static_p_end = static_adj.p_offsets[p_idx+1];
-                unsigned dyn_p_start = dynamic_adj.p_offsets[p_idx];
-                unsigned dyn_p_end = dynamic_adj.p_offsets[p_idx+1];
-
                 bool must_recolor = false;
-                for (unsigned n_idx = static_p_start; n_idx < static_p_end; n_idx++)
-                {
-                    unsigned neighbor = static_adj.p_neighbors[n_idx];
+                ForEachNeighbor(static_adj, dynamic_adj, p_idx, [&](unsigned neighbor) {
                     unsigned c_neighbor = color[neighbor];
                     bitset.addColor(c_neighbor);
                     if (c_neighbor == color[p_idx] && neighbor < p_idx)
                         must_recolor = true;
-                }
-
-                for (unsigned n_idx = dyn_p_start; n_idx < dyn_p_end; n_idx++)
-                {
-                    unsigned neighbor = dynamic_adj.p_neighbors[n_idx];
-                    unsigned c_neighbor = color[neighbor];
-                    bitset.addColor(c_neighbor);
-                    if (c_neighbor == color[p_idx] && neighbor < p_idx)
-                        must_recolor = true;
-                }
+                });
 
                 // if there is a conflict and it is determined that this particle must recolor,
                 // get the first unused color and use it as the candidate color
@@ -418,34 +427,14 @@ struct ColorList
                 if (candidate_color[p_idx] != color[p_idx])
                 {
                     color[p_idx] = candidate_color[p_idx];
-
-                    unsigned static_p_start = static_adj.p_offsets[p_idx];
-                    unsigned static_p_end = static_adj.p_offsets[p_idx+1];
-                    unsigned dyn_p_start = dynamic_adj.p_offsets[p_idx];
-                    unsigned dyn_p_end = dynamic_adj.p_offsets[p_idx+1];
-
-                    for (unsigned n_idx = static_p_start; n_idx < static_p_end; n_idx++)
-                    {
-                        unsigned neighbor = static_adj.p_neighbors[n_idx];
+                    ForEachNeighbor(static_adj, dynamic_adj, p_idx, [&](unsigned neighbor) {
                         if (last_dirty_round[neighbor] != iter + 1)
                         {
                             last_dirty_round[neighbor] = iter + 1;
                             touched_this_frame.push_back(neighbor);
                             next_dirty.push_back(neighbor);
                         }
-                        
-                    }
-
-                    for (unsigned n_idx = dyn_p_start; n_idx < dyn_p_end; n_idx++)
-                    {
-                        unsigned neighbor = dynamic_adj.p_neighbors[n_idx];
-                        if (last_dirty_round[neighbor] != iter + 1)
-                        {
-                            last_dirty_round[neighbor] = iter + 1;
-                            touched_this_frame.push_back(neighbor);
-                            next_dirty.push_back(neighbor);
-                        }
-                    }
+                    });
                 }
             }
 
@@ -489,14 +478,7 @@ struct ColorList
         for (unsigned p_idx : residual_dirty)
         {
             /** TODO: (08/02/26) Replace with "forEachNeighbor" or some nice way to iterate over adjacency structure */
-            unsigned static_p_start = static_adj.p_offsets[p_idx];
-            unsigned static_p_end = static_adj.p_offsets[p_idx+1];
-            unsigned dyn_p_start = dynamic_adj.p_offsets[p_idx];
-            unsigned dyn_p_end = dynamic_adj.p_offsets[p_idx+1];
-
-            for (unsigned n_idx = static_p_start; n_idx < static_p_end; n_idx++)
-            {
-                unsigned neighbor = static_adj.p_neighbors[n_idx];
+            ForEachNeighbor(static_adj, dynamic_adj, p_idx, [&](unsigned neighbor) {
                 if (color[neighbor] == color[p_idx])
                 {
                     if (!is_conflicted[p_idx])
@@ -510,26 +492,7 @@ struct ColorList
                         touched_conflicted.push_back(neighbor);
                     }
                 }
-                
-            }
-
-            for (unsigned n_idx = dyn_p_start; n_idx < dyn_p_end; n_idx++)
-            {
-                unsigned neighbor = dynamic_adj.p_neighbors[n_idx];
-                if (color[neighbor] == color[p_idx])
-                {
-                    if (!is_conflicted[p_idx])
-                    {
-                        is_conflicted[p_idx] = 1;
-                        touched_conflicted.push_back(p_idx);
-                    }
-                    if (!is_conflicted[neighbor])
-                    {
-                        is_conflicted[neighbor] = 1;
-                        touched_conflicted.push_back(neighbor);
-                    }
-                }
-            }
+            });
         }
 
         /** Build CSR structure per color for in-conflict particles */
