@@ -8,6 +8,8 @@ namespace Energy
 struct GroundCollisionEnergyInfo : CollisionConstraintEnergyInfo
 {
     Vec1u particle_indices;     // particle indices for each constraint
+    Real cp_x;
+    Real cp_z;
 };
 
 struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollisionEnergyInfo>
@@ -34,6 +36,8 @@ struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollision
 
         // particle_indices[slot][0] = particle_index;
         data[slot].particle_indices[0] = particle_index;
+        data[slot].cp_x = 0;
+        data[slot].cp_z = 0;
 
         return slot;
     }

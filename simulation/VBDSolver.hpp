@@ -46,10 +46,6 @@ public:
         Vec3r a_grav(0, -_ctx->params.g_accel, 0);
         Real dt = _ctx->params.dt;
 
-        // compute inertial update and initialization for each particle
-        _particleRangeInertialUpdate(w_ctx, a_grav, dt);
-        w_ctx.barrier->arrive_and_wait();
-
         // update all energies after time step
         _ctx->energies.forEachEnergyType([&] (auto& pool) {
             using Pool = base_type_t<decltype(pool)>;
@@ -57,6 +53,10 @@ public:
             _updateRangeAfterTimeStep(w_ctx, pool, _ctx->particles);
             w_ctx.barrier->arrive_and_wait();
         });
+
+        // compute inertial update and initialization for each particle
+        _particleRangeInertialUpdate(w_ctx, a_grav, dt);
+        w_ctx.barrier->arrive_and_wait();
 
         // solve each individual vertex block
         Real omega = 1;

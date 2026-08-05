@@ -20,8 +20,8 @@ struct GroundCollisionConstraintSolver
     {
         unsigned p_idx = energies.data[c_idx].particle_indices[0];
         C_n = -particles.positions[p_idx][1];
-        C_t = particles.positions[p_idx][0];
-        C_b = particles.positions[p_idx][2];
+        C_t = particles.positions[p_idx][0] - energies.data[c_idx].cp_x;
+        C_b = particles.positions[p_idx][2] - energies.data[c_idx].cp_z;
     }
 
     static void constraintGradientHessian(
@@ -36,8 +36,8 @@ struct GroundCollisionConstraintSolver
     {
         unsigned p_idx = energies.data[c_idx].particle_indices[0];
         C_n = -particles.positions[p_idx][1];
-        C_t = particles.positions[p_idx][0];
-        C_b = particles.positions[p_idx][2];
+        C_t = particles.positions[p_idx][0] - energies.data[c_idx].cp_x;
+        C_b = particles.positions[p_idx][2] - energies.data[c_idx].cp_z;
 
         // if (C > 0)
         //     particles.in_collision[p_idx] = true;
@@ -57,6 +57,25 @@ struct GroundCollisionEnergySolver
     : CollisionConstraintEnergySolver<GroundCollisionEnergyPool, GroundCollisionConstraintSolver>
 {
     using CollisionConstraintEnergySolver::CollisionConstraintEnergySolver;
+
+    /** Updates the stiffness and Lagrange multiplier after a full time step.
+     * Implements equation (19) from the AVBD paper.
+     * @param c_idx : the constraint index
+     * @param energies : the memory pool for the energy
+     */
+    static void updateAfterTimeStep(
+        unsigned c_idx,
+        GroundCollisionEnergyPool& energies,
+        ParticlePool& particles
+    )
+    {
+        // update the contact point
+        unsigned p_idx = energies.data[c_idx].particle_indices[0];
+        energies.data[c_idx].cp_x = particles.positions[p_idx][0];
+        energies.data[c_idx].cp_z = particles.positions[p_idx][2];
+
+        CollisionConstraintEnergySolver::updateAfterTimeStep(c_idx, energies, particles);
+    }
 };
 
 } // namespace Energy

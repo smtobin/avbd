@@ -453,7 +453,7 @@ struct ColorList
             iter++;
         }
 
-        std::cout << "Remaining 'dirty' particles: " << dirty.size() << std::endl;
+        // std::cout << "Remaining 'dirty' particles: " << dirty.size() << std::endl;
 
         // if there are leftover dirty particles, finalize the list of conflicts by checking the dirties against their neighbors
         if (!dirty.empty())

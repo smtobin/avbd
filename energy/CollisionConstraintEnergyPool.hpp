@@ -10,7 +10,8 @@ struct CollisionConstraintEnergyInfo
 {
     Real k_n; Real k_t; Real k_b;        // the finite stiffnesses of the quadratic energy (one for each direction of the collision basis)
     Real lambda_n; Real lambda_t; Real lambda_b;   // the Lagrange multipliers enforcing the constraints (normal, tangent, binormal)
-    Real C_n_prev; Real C_t_prev; Real C_b_prev;   // the constraint violation at the end of the previous time step
+    Real C_n_prev;   // the constraint violation at the end of the previous time step (just for the normal direction)
+    // (we do not use the constraint error smoothing for the tangent or binormal directions because the forces are naturally capped by the friction cone)
 
     /** The collision orthonormal frame */
     Vec3r normal;   // collision normal vector
@@ -50,8 +51,6 @@ struct CollisionConstraintEnergyPool : TombstonePool
         data[slot].k_t = 0;
         data[slot].k_b = 0;
         data[slot].C_n_prev = 0;
-        data[slot].C_t_prev = 0;
-        data[slot].C_b_prev = 0;
 
         return slot;
     }

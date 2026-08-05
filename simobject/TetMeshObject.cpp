@@ -46,10 +46,16 @@ void TetMeshObject::setup()
     Real mu = _E / (2 * (1 + _nu));
     Real lambda = (_E*_nu) / ( (1 + _nu) * (1 - 2*_nu) );
 
+    std::cout << "Initial velocity: " << _config.initialVelocity() << std::endl;
+
     for (const auto& v_idx : _mesh.vertices())
     {
         // initialize masses to 0
         _ctx->particles.masses[v_idx] = 0;
+
+        // initialize particle velocities to initial velocity
+        _ctx->particles.velocities[v_idx] = _config.initialVelocity();
+        _ctx->particles.previous_velocities[v_idx] = _config.initialVelocity();
     }
 
     // create Neo-Hookean energies for each element

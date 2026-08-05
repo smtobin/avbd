@@ -67,8 +67,8 @@ struct CollisionConstraintEnergySolver
 
         // subtract off previous constraint violation
         Real C_corr_n = C_n - CONSTRAINT_ALPHA * energies.data[c_idx].C_n_prev;
-        Real C_corr_t = C_t - CONSTRAINT_ALPHA * energies.data[c_idx].C_t_prev;
-        Real C_corr_b = C_b - CONSTRAINT_ALPHA * energies.data[c_idx].C_b_prev;
+        Real C_corr_t = C_t;
+        Real C_corr_b = C_b;
         
         // extract the current stiffnesses and Lagrange multipliers
         Real& k_n = energies.data[c_idx].k_n;
@@ -79,8 +79,8 @@ struct CollisionConstraintEnergySolver
         Real& lambda_b = energies.data[c_idx].lambda_b;
 
         Real lambda_n_plus = k_n * C_corr_n + lambda_n;
-        Real lambda_t_plus = k_t * C_corr_t + lambda_t;
-        Real lambda_b_plus = k_b * C_corr_b + lambda_b;
+        Real lambda_t_plus = k_t * C_t + lambda_t;
+        Real lambda_b_plus = k_b * C_b + lambda_b;
 
         // update normal stiffness - equation (12)
         // for collision constraints, lambda min = 0
@@ -106,11 +106,11 @@ struct CollisionConstraintEnergySolver
         Real lambda_tb_max = mu*lambda_n_plus;
         if (lambda_tb_plus_mag < lambda_tb_max)
         {
-            k_t += STIFFNESS_BETA * C_corr_t;
-            k_b += STIFFNESS_BETA * C_corr_b;
+            k_t += STIFFNESS_BETA * C_t;
+            k_b += STIFFNESS_BETA * C_b;
 
-            energies.data[c_idx].C_t_prev = C_t;
-            energies.data[c_idx].C_b_prev = C_b;
+            lambda_t = lambda_t_plus;
+            lambda_b = lambda_b_plus;
         }
         else
         {
@@ -134,8 +134,8 @@ struct CollisionConstraintEnergySolver
     )
     {
         energies.data[c_idx].lambda_n *= CONSTRAINT_ALPHA * STIFFNESS_GAMMA;
-        energies.data[c_idx].lambda_t *= CONSTRAINT_ALPHA * STIFFNESS_GAMMA;
-        energies.data[c_idx].lambda_b *= CONSTRAINT_ALPHA * STIFFNESS_GAMMA;
+        energies.data[c_idx].lambda_t *= STIFFNESS_GAMMA;
+        energies.data[c_idx].lambda_b *= STIFFNESS_GAMMA;
         energies.data[c_idx].k_n = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_n, energies.k_start);
         energies.data[c_idx].k_t = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_t, energies.k_start);
         energies.data[c_idx].k_b = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_b, energies.k_start);
@@ -173,8 +173,6 @@ struct CollisionConstraintEnergySolver
         );
         // subtract off previous constraint violation
         Real C_corr_n = C_n - CONSTRAINT_ALPHA * energies.data[e_idx].C_n_prev;
-        Real C_corr_t = C_t - CONSTRAINT_ALPHA * energies.data[e_idx].C_t_prev;
-        Real C_corr_b = C_b - CONSTRAINT_ALPHA * energies.data[e_idx].C_b_prev;
 
         // extract the current stiffnesses and Lagrange multipliers
         Real k_n = energies.data[e_idx].k_n;
@@ -189,7 +187,7 @@ struct CollisionConstraintEnergySolver
         Real lambda_n_plus = std::max(Real(0), k_n * C_corr_n + lambda_n);
 
         // Lagrange multipliers for tangent and binormal
-        Vec2r lambda_tb_plus(k_t*C_corr_t + lambda_t, k_b*C_corr_b + lambda_b);
+        Vec2r lambda_tb_plus(k_t*C_t + lambda_t, k_b*C_b + lambda_b);
         // clamp magnitude
         Real lambda_tb_plus_mag = lambda_tb_plus.norm();
         Real mu = 0.4;
@@ -208,7 +206,7 @@ struct CollisionConstraintEnergySolver
         
         // stiffness rescling for tangent and binormal - equation (14)
         Vec2r k_scaled_tb(k_t, k_b);
-        Vec2r C_tb(C_corr_t, C_corr_b);
+        Vec2r C_tb(C_t, C_b);
         if (lambda_tb_plus.norm() > lambda_tb_max && C_tb.norm() > 1e-12)
         {
             k_scaled_tb = k_scaled_tb / k_scaled_tb.norm() * (lambda_tb_max - lambda_tb_plus.norm()) / C_tb.norm();
@@ -227,7 +225,7 @@ struct CollisionConstraintEnergySolver
              */
             
 
-        Mat3r hess_n = (k_scaled_n * C_n + lambda_n) * C_hess_n +
+        Mat3r hess_n = (k_scaled_n * C_corr_n + lambda_n) * C_hess_n +
             k_scaled_n * C_grad_n* C_grad_n.transpose();
         Mat3r hess_t = (k_scaled_tb[0] * C_t + lambda_t) * C_hess_t +
             k_scaled_tb[0] * C_grad_t * C_grad_t.transpose();
