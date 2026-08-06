@@ -558,7 +558,7 @@ bool CollisionDetector::_triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned t
     // evolves rigid body rotation forward by t
     auto rigid_body_rot = [&](Real t)
     {
-        return rb_rot * Math::QuaternionExp_so3(rb_ang_vel*t);
+        return rb_rot * Math::Exp_s3(rb_ang_vel*t);
     };
 
     // computes the linear velocity of a point in space if it were attached to the rigid body

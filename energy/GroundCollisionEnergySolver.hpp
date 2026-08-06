@@ -29,7 +29,7 @@ struct GroundCollisionConstraintSolver
         unsigned c_idx,
         const GroundCollisionEnergyPool& energies,
         ParticlePool& particles,
-        unsigned local_idx,
+        unsigned /* local_idx */,
         Real& C_n, Real& C_t, Real& C_b,
         Vec3r_or_Vec6r<DOF>& C_grad_n, Vec3r_or_Vec6r<DOF>& C_grad_t, Vec3r_or_Vec6r<DOF>& C_grad_b,
         Mat3r_or_Mat6r<DOF>& C_hess_n, Mat3r_or_Mat6r<DOF>& C_hess_t, Mat3r_or_Mat6r<DOF>& C_hess_b

@@ -227,7 +227,7 @@ static Vec3r Log_S3(const Quaternion& q)
     Real v_mag = v.norm();
     if (v_mag < 1e-6)
     {
-        return 2*v_mag;
+        return 2*v;
     }
 
     Real theta = 2*std::atan2(v_mag, q.w());
@@ -240,7 +240,7 @@ static Vec3r Minus_S3(const Quaternion& q1, const Quaternion& q2)
     return Log_S3(q2.conjugate() * q1);
 }
 
-static Mat3r Plus_S3(const Quaternion& q, const Vec3r& rot_vec)
+static Quaternion Plus_S3(const Quaternion& q, const Vec3r& rot_vec)
 {
     return q * Exp_s3(rot_vec);
 }

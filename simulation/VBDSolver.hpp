@@ -48,8 +48,6 @@ public:
 
         // update all energies after time step
         _ctx->energies.forEachEnergyType([&] (auto& pool) {
-            using Pool = base_type_t<decltype(pool)>;
-
             _updateRangeAfterTimeStep(w_ctx, pool, _ctx->particles);
             w_ctx.barrier->arrive_and_wait();
         });
@@ -90,8 +88,6 @@ public:
 
             // update Lagrange multipliers
             _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
-                using Pool = base_type_t<decltype(pool)>;
-
                 _updateRangeAfterIteration(w_ctx, pool, _ctx->particles);
                 w_ctx.barrier->arrive_and_wait();
             });
@@ -242,8 +238,8 @@ private:
     void _particleRotationInertialUpdate(unsigned p_idx, Real dt)
     {
         
-        Vec3r& q = _ctx->particles.rotation(p_idx);
-        Vec3r& q_inertial = _ctx->particles.inertialRotation(p_idx);
+        Quaternion& q = _ctx->particles.rotation(p_idx);
+        Quaternion& q_inertial = _ctx->particles.inertialRotation(p_idx);
         const Vec3r& w = _ctx->particles.angularVelocity(p_idx);
         const Vec3r& I = _ctx->particles.rotationalInertia(p_idx);
         Vec3r I_inv = 1/I.array();
@@ -439,7 +435,7 @@ private:
             Vec3r& p = _ctx->particles.positions[p_idx];
             const Vec3r& p_inertial = _ctx->particles.inertial_positions[p_idx];
             Quaternion& q = _ctx->particles.rotation(p_idx);
-            const Quaternion& q_inertial = _ctx->particles.inertialRotation[p_idx];
+            const Quaternion& q_inertial = _ctx->particles.inertialRotation(p_idx);
 
             // form RHS
             Vec6r RHS;

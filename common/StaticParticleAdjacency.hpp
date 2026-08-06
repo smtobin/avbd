@@ -145,7 +145,7 @@ struct StaticParticleAdjacency {
 
     void buildAdjacency_Parallel(
         WorkerThreadContext& w_ctx,
-        const std::vector<WorkerThreadContext>& all_worker_contexts,
+        const std::vector<WorkerThreadContext>& /*all_worker_contexts*/,
         const ParticlePool& particle_pool,
         const Energy::EnergyRegistry& energy_registry
     )

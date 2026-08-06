@@ -316,7 +316,7 @@ struct ColorList
     }
 
     /** Builds an initial color list based on the static adjacency */
-    void buildInitialColorList(const StaticParticleAdjacency& static_adjacency, const DynamicParticleAdjacency& dynamic_adjacency, unsigned num_particles)
+    void buildInitialColorList(const StaticParticleAdjacency& static_adjacency, const DynamicParticleAdjacency& /* dynamic_adjacency */, unsigned num_particles)
     {
         // first, perform greedy coloring on the particle adjacency structure
         greedyColor2(static_adjacency, num_particles);
