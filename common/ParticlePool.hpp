@@ -7,6 +7,7 @@
 struct RotationPool : TombstonePool
 {
     std::vector<Quaternion> rotations;              // particle rotations
+    std::vector<Quaternion> buffered_rotations;     // particle buffered rotations
     std::vector<Quaternion> inertial_rotations;     // particle inertial rotations
     std::vector<Quaternion> previous_rotations;     // particle previous rotations
     std::vector<Quaternion> last_iter_rotations;    // particle positions at the end of the previous iteration (useful for Chebyshev acceleration)
@@ -21,6 +22,7 @@ struct RotationPool : TombstonePool
     explicit RotationPool(unsigned capacity)
         : TombstonePool(capacity)
         , rotations(capacity)
+        , buffered_rotations(capacity)
         , inertial_rotations(capacity)
         , previous_rotations(capacity)
         , last_iter_rotations(capacity)
@@ -126,11 +128,87 @@ struct ParticlePool : TombstonePool
     {
         return rotation_pool.rotations[rotation_idx[p_idx]];
     }
+    Quaternion& rotation(unsigned p_idx)
+    {
+        return rotation_pool.rotations[rotation_idx[p_idx]];
+    }
+
+    /** Convenience function to get the buffered rotation of an oriented particle */
+    const Quaternion& bufferedRotation(unsigned p_idx) const
+    {
+        return rotation_pool.buffered_rotations[rotation_idx[p_idx]];
+    }
+    Quaternion& bufferedRotation(unsigned p_idx)
+    {
+        return rotation_pool.buffered_rotations[rotation_idx[p_idx]];
+    }
+
+    /** Convenience function to get the previous rotation of an oriented particle */
+    const Quaternion& previousRotation(unsigned p_idx) const
+    {
+        return rotation_pool.previous_rotations[rotation_idx[p_idx]];
+    }
+    Quaternion& previousRotation(unsigned p_idx)
+    {
+        return rotation_pool.previous_rotations[rotation_idx[p_idx]];
+    }
 
     /** Convenience function to get the angular velocity of an oriented particle */
     const Vec3r& angularVelocity(unsigned p_idx) const
     {
         return rotation_pool.angular_velocities[rotation_idx[p_idx]];
+    }
+    Vec3r& angularVelocity(unsigned p_idx)
+    {
+        return rotation_pool.angular_velocities[rotation_idx[p_idx]];
+    }
+
+    /** Convenience function to get the previous angular velocity of an oriented particle */
+    const Vec3r& previousAngularVelocity(unsigned p_idx) const
+    {
+        return rotation_pool.previous_angular_velocities[rotation_idx[p_idx]];
+    }
+    Vec3r& previousAngularVelocity(unsigned p_idx)
+    {
+        return rotation_pool.previous_angular_velocities[rotation_idx[p_idx]];
+    }
+
+    /** Convenience function to get the rotational inertia of an oriented particle */
+    const Vec3r& rotationalInertia(unsigned p_idx) const
+    {
+        return rotation_pool.rotational_inertias[rotation_idx[p_idx]];
+    }
+    Vec3r& rotationalInertia(unsigned p_idx)
+    {
+        return rotation_pool.rotational_inertias[rotation_idx[p_idx]];
+    }
+
+    /** Convenience function to get inertial rotation of an oriented particle */
+    const Quaternion& inertialRotation(unsigned p_idx) const
+    {
+        return rotation_pool.inertial_rotations[rotation_idx[p_idx]];
+    }
+    Quaternion& inertialRotation(unsigned p_idx)
+    {
+        return rotation_pool.inertial_rotations[rotation_idx[p_idx]];
+    }
+
+    /** Convenience function to get previous iteration rotations of an oriented particle */
+    const Quaternion& lastIterRotation(unsigned p_idx) const
+    {
+        return rotation_pool.last_iter_rotations[rotation_idx[p_idx]];
+    }
+    Quaternion& lastIterRotation(unsigned p_idx)
+    {
+        return rotation_pool.last_iter_rotations[rotation_idx[p_idx]];
+    }
+    const Quaternion& lastLastIterRotation(unsigned p_idx) const
+    {
+        return rotation_pool.last_last_iter_rotations[rotation_idx[p_idx]];
+    }
+    Quaternion& lastLastIterRotation(unsigned p_idx)
+    {
+        return rotation_pool.last_last_iter_rotations[rotation_idx[p_idx]];
     }
 
     /** Adds a new particle to the pool, given an initial position and mass.

@@ -236,6 +236,39 @@ private:
         _ctx->particles.last_last_iter_positions[p_idx] = _ctx->particles.positions[p_idx];
     }
 
+    /** Inertial update for rotational DOF
+     * For now, assumes external angular acceleration is 0
+     */
+    void _particleRotationInertialUpdate(unsigned p_idx, Real dt)
+    {
+        
+        Vec3r& q = _ctx->particles.rotation(p_idx);
+        Vec3r& q_inertial = _ctx->particles.inertialRotation(p_idx);
+        const Vec3r& w = _ctx->particles.angularVelocity(p_idx);
+        const Vec3r& I = _ctx->particles.rotationalInertia(p_idx);
+        Vec3r I_inv = 1/I.array();
+
+
+        /** no need to do adaptive acceleration since assuming no external angular acceleration */
+        // const Vec3r& w = _ctx->particles.angularVelocity(p_idx);
+        // const Vec3r& w_prev = _ctx->particles.previousAngularVelocity(p_idx);
+
+        // Vec3r a = (w - w_prev) / dt;
+
+        // compute inertially predicted rotation
+        Vec3r alpha_ext = Vec3r::Zero();
+        Vec3r dq_inertial = dt*w + dt*dt*(alpha_ext - I_inv.asDiagonal() * (w.cross(I.asDiagonal()*w))); 
+        q_inertial = Math::Plus_S3(q, dq_inertial);
+
+        // move particle to its initialized position
+        Vec3r dq = dt*w;
+        q = Math::Plus_S3(q, dq);
+
+        // initialize previous iteration rotations
+        _ctx->particles.lastIterRotation(p_idx) = q;
+        _ctx->particles.lastLastIterRotation(p_idx) = q;
+    }
+
     template <int DOF>
     void _solveParticle(unsigned p_idx, Real dt)
     {
@@ -400,7 +433,40 @@ private:
         // assemble LHS and RHS of single-particle system
         if constexpr (DOF == 6)
         {
-            /** TODO: (08/05/26) for oriented particles */
+            // extract quantities from pool
+            Real mass = _ctx->particles.masses[p_idx];
+            const Vec3r& I = _ctx->particles.rotationalInertia(p_idx);
+            Vec3r& p = _ctx->particles.positions[p_idx];
+            const Vec3r& p_inertial = _ctx->particles.inertial_positions[p_idx];
+            Quaternion& q = _ctx->particles.rotation(p_idx);
+            const Quaternion& q_inertial = _ctx->particles.inertialRotation[p_idx];
+
+            // form RHS
+            Vec6r RHS;
+            RHS.block<3,1>(0,0) = -1/(dt*dt) * mass * (p - p_inertial);
+            RHS.block<3,1>(3,0) = -1/(dt*dt) * I.asDiagonal() * Math::Minus_S3(q, q_inertial);
+            RHS -= grad;
+
+            // form LHS
+            Mat6r LHS = Mat6r::Zero();
+            LHS.diagonal().block<3,1>(0,0) = Vec3r::Constant(mass / (dt*dt));
+            LHS.diagonal().block<3,1>(3,0) = I;
+            LHS += hess;
+
+            Vec6r dx = LHS.partialPivLu().solve(RHS);
+            
+            // if this particle has an intra-color conflict, buffer its update
+            if (_ctx->coloring.is_conflicted[p_idx])
+            {
+                _ctx->particles.buffered_positions[p_idx] = p + dx.block<3,1>(0,0);
+                _ctx->particles.bufferedRotation(p_idx) = Math::Plus_S3(q, dx.block<3,1>(3,0));
+            }
+            // otherwise update normally
+            else
+            {
+                p += dx.block<3,1>(0,0);
+                q = Math::Plus_S3(q, dx.block<3,1>(3,0));
+            }
         }
         else
         {
@@ -432,11 +498,25 @@ private:
         {
             _ctx->particles.positions[p_idx] =
                 omega * (_ctx->particles.positions[p_idx] - _ctx->particles.last_last_iter_positions[p_idx]) + _ctx->particles.last_last_iter_positions[p_idx];
+
+            if (_ctx->particles.isOriented(p_idx))
+            {
+                Quaternion& q = _ctx->particles.rotation(p_idx);
+                const Quaternion& last_last_q = _ctx->particles.lastLastIterRotation(p_idx);
+
+                q = Math::Plus_S3(last_last_q, omega * Math::Minus_S3(q, last_last_q));
+            }
         }
 
         // update the previous iteration positions
         _ctx->particles.last_last_iter_positions[p_idx] = _ctx->particles.last_iter_positions[p_idx];
         _ctx->particles.last_iter_positions[p_idx] = _ctx->particles.positions[p_idx];
+
+        if (_ctx->particles.isOriented(p_idx))
+        {
+            _ctx->particles.lastLastIterRotation(p_idx) = _ctx->particles.lastIterRotation(p_idx);
+            _ctx->particles.lastIterRotation(p_idx) = _ctx->particles.rotation(p_idx);
+        }
     }
 
     void _particleVelocityUpdate(unsigned p_idx, Real dt)
@@ -446,6 +526,20 @@ private:
             (_ctx->particles.positions[p_idx] - _ctx->particles.previous_positions[p_idx]) / dt;
 
         _ctx->particles.previous_positions[p_idx] = _ctx->particles.positions[p_idx];
+
+        if (_ctx->particles.isOriented(p_idx))
+        {
+            Vec3r& prev_w = _ctx->particles.previousAngularVelocity(p_idx);
+            Vec3r& w = _ctx->particles.angularVelocity(p_idx);
+
+            const Quaternion& q = _ctx->particles.rotation(p_idx);
+            Quaternion& prev_q = _ctx->particles.previousRotation(p_idx);
+
+            prev_w = w;
+            w = Math::Minus_S3(q, prev_q) / dt;
+
+            prev_q = q;
+        }
     }
 };
 
