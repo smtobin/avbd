@@ -49,3 +49,4 @@ objects:
     fixed: true
     position: [0, 20, 0]
     radius: 3
+    density: 10e-6 # kg / mm^3

@@ -103,14 +103,19 @@ struct TriangleRigidCollisionConstraintSolver
             C_grad_t.template block<3,1>(3,0) = -t.transpose() * R_rloc;
             C_grad_b.template block<3,1>(0,0) = b;
             C_grad_b.template block<3,1>(3,0) = -b.transpose() * R_rloc;
+            C_grad_t = C_grad_b = Vec6r::Zero();
 
             // Hessians
             // grad = (Skew(cp_rb_local) * R^T * n)^T
             // ==> (Skew(cp_rb_local) * -R^T * skew(n) * -R)^T = R^T * skew(n) * R * skew(cp_rb_local)
             C_hess_n = C_hess_t = C_hess_b = Mat6r::Zero();
             C_hess_n.template block<3,3>(3,3) = R.transpose() * Math::Skew3(n) * R * skew_cp;
+            C_hess_n.template block<3,3>(3,3) = 0.5*(C_hess_n.template block<3,3>(3,3) + C_hess_n.template block<3,3>(3,3).transpose());
             C_hess_t.template block<3,3>(3,3) = R.transpose() * Math::Skew3(t) * R * skew_cp;
+            C_hess_t.template block<3,3>(3,3) = 0.5*(C_hess_t.template block<3,3>(3,3) + C_hess_t.template block<3,3>(3,3).transpose());
             C_hess_b.template block<3,3>(3,3) = R.transpose() * Math::Skew3(b) * R * skew_cp;
+            C_hess_b.template block<3,3>(3,3) = 0.5*(C_hess_b.template block<3,3>(3,3) + C_hess_b.template block<3,3>(3,3).transpose());
+
         }
         else
         {

@@ -446,7 +446,7 @@ private:
             // form LHS
             Mat6r LHS = Mat6r::Zero();
             LHS.diagonal().block<3,1>(0,0) = Vec3r::Constant(mass / (dt*dt));
-            LHS.diagonal().block<3,1>(3,0) = I;
+            LHS.diagonal().block<3,1>(3,0) = I / (dt*dt);
             LHS += hess;
 
             Vec6r dx = LHS.partialPivLu().solve(RHS);
