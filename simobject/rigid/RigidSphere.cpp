@@ -17,6 +17,8 @@ RigidSphere::RigidSphere(Sim::SimulationContext* ctx, const Config::RigidSphereC
     _ctx->particles.masses[_com] = mass;
     _ctx->particles.rotation_pool.rotational_inertias[_ctx->particles.rotation_idx[_com]] = rot_inertia;
 
+
+    // _ctx->energies.rigid_body_ground_collision.addEnergy()
 }
 
 

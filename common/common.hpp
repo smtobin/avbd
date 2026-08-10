@@ -120,11 +120,13 @@ namespace Energy
     /** Pools */
     struct NeoHookeanEnergyPool;
     struct GroundCollisionEnergyPool;
+    struct RigidBodyGroundCollisionEnergyPool;
     struct TriangleRigidCollisionEnergyPool;
 
     /** Solvers */
     struct NeoHookeanEnergySolver;
     struct GroundCollisionEnergySolver;
+    struct RigidBodyGroundCollisionEnergySolver;
     struct TriangleRigidCollisionEnergySolver;
 }
 
@@ -134,13 +136,15 @@ namespace Energy
 #define ENERGY_LIST(X) \
     X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
     X(GROUND_COLLISION, GroundCollisionEnergySolver) \
+    X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver) \
     X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver)
 
 // "Static" energies are those that are generally not added or removed throughout the course of the simulation
 // (unless topology changes)
 #define STATIC_ENERGY_LIST(X) \
     X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
-    X(GROUND_COLLISION, GroundCollisionEnergySolver)
+    X(GROUND_COLLISION, GroundCollisionEnergySolver) \
+    X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver)
 
 // "Dynamic" energies are those that are added often throughout the course of the simulation - e.g. most collision constraints
 #define DYNAMIC_ENERGY_LIST(X) \
