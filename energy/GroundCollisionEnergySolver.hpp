@@ -73,23 +73,25 @@ struct GroundCollisionEnergySolver
     static constexpr bool SupportsPositional = true;
     static constexpr bool SupportsOriented = true;
 
-    /** Updates the stiffness and Lagrange multiplier after a full time step.
-     * Implements equation (19) from the AVBD paper.
+    /** Updates the contact point for this energy.
+     * Since this energy is static (created upon simulation initialization), it is not updated by collision detection.
+     * So, we must update the contact point here - this is called at the start of each time step.
      * @param c_idx : the constraint index
      * @param energies : the memory pool for the energy
+     * @param particles : the particle pool
+     * @param sdf_pool : the SDF primitive pool
      */
-    static void updateAfterTimeStep(
+    static void updateContactPoints(
         unsigned c_idx,
         GroundCollisionEnergyPool& energies,
-        ParticlePool& particles
+        ParticlePool& particles,
+        Collision::SDFPrimitivePool& /* sdf_pool */
     )
     {
         // update the contact point
         unsigned p_idx = energies.data[c_idx].particle_indices[0];
         energies.data[c_idx].cp_x = particles.positions[p_idx][0];
         energies.data[c_idx].cp_z = particles.positions[p_idx][2];
-
-        CollisionConstraintEnergySolver::updateAfterTimeStep(c_idx, energies, particles);
     }
 };
 

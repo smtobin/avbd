@@ -258,6 +258,19 @@ struct CollisionConstraintEnergySolver
         particle_H += hess_n + hess_t + hess_b;
         particle_G += grad_n + grad_t + grad_b;
     }
+
+    static void accumulate(
+        unsigned e_idx,
+        const CollisionEnergyPool& energies,
+        ParticlePool& particles,
+        unsigned local_idx,
+        Mat6r& particle_H,
+        Vec6r& particle_G,
+        Real dt
+    )
+    {
+        accumulate<6>(e_idx, energies, particles, local_idx, particle_H, particle_G, dt);
+    }
 };
 
 } // namespace Energy

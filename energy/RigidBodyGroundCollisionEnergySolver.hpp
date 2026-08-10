@@ -18,8 +18,13 @@ struct RigidBodyGroundCollisionConstraintSolver
         Real& C_n, Real& C_t, Real& C_b
     )
     {
+        const Vec3r& n = energies.data[c_idx].normal;
+        const Vec3r& t = energies.data[c_idx].tangent;
+        const Vec3r& b = energies.data[c_idx].binormal;
+        unsigned p_idx = energies.data[c_idx].particle_indices[0];
+        
         const Vec3r& cp_rb_local = energies.data[c_idx].cp_rb_local;
-        const Vec3R& cp_ground = energies.data[c_idx].cp_ground;
+        const Vec3r& cp_ground = energies.data[c_idx].cp_ground;
         Vec3r cp_rb = particles.positions[p_idx] + particles.rotation(p_idx) * cp_rb_local;
         Vec3r diff = cp_rb - cp_ground;
         C_n = n.dot(diff);
@@ -27,16 +32,22 @@ struct RigidBodyGroundCollisionConstraintSolver
         C_b = b.dot(diff);
     }
 
+    template <int>
     static void constraintGradientHessian(
         unsigned c_idx,
         const PoolType& energies,
         ParticlePool& particles,
         unsigned /* local_idx */,
         Real& C_n, Real& C_t, Real& C_b,
-        Vec6r<DOF>& C_grad_n, Vec3r_or_Vec6r<DOF>& C_grad_t, Vec3r_or_Vec6r<DOF>& C_grad_b,
-        Mat6r<DOF>& C_hess_n, Mat3r_or_Mat6r<DOF>& C_hess_t, Mat3r_or_Mat6r<DOF>& C_hess_b
+        Vec6r& C_grad_n, Vec6r& C_grad_t, Vec6r& C_grad_b,
+        Mat6r& C_hess_n, Mat6r& C_hess_t, Mat6r& C_hess_b
     )
     {
+        const Vec3r& n = energies.data[c_idx].normal;
+        const Vec3r& t = energies.data[c_idx].tangent;
+        const Vec3r& b = energies.data[c_idx].binormal;
+        unsigned p_idx = energies.data[c_idx].particle_indices[0];
+
         const Vec3r& cp_rb_local = energies.data[c_idx].cp_rb_local;
         const Vec3r& cp_ground = energies.data[c_idx].cp_ground;
         const Quaternion& rb_rot = particles.rotation(p_idx);
@@ -81,15 +92,19 @@ struct RigidBodyGroundCollisionEnergySolver
     static constexpr bool SupportsPositional = false;
     static constexpr bool SupportsOriented = true;
 
-    /** Updates the stiffness and Lagrange multiplier after a full time step.
-     * Implements equation (19) from the AVBD paper.
+    /** Updates the contact point for this energy.
+     * Since this energy is static (created upon simulation initialization), it is not updated by collision detection.
+     * So, we must update the contact point here - this is called at the start of each time step.
      * @param c_idx : the constraint index
      * @param energies : the memory pool for the energy
+     * @param particles : the particle pool
+     * @param sdf_pool : the SDF primitive pool
      */
-    static void updateAfterTimeStep(
+    static void updateContactPoints(
         unsigned c_idx,
         RigidBodyGroundCollisionEnergyPool& energies,
-        ParticlePool& particles
+        ParticlePool& particles,
+        Collision::SDFPrimitivePool& sdf_pool
     )
     {
         // update the contact point
@@ -98,13 +113,12 @@ struct RigidBodyGroundCollisionEnergySolver
 
         // update the local contact point, when necessary
         // (for spheres and capsules)
-        Collision::SDFShapeParams* sdf_params = energies.data[c_idx].sdf_params;
-        if (sdf_params->type == Collision::SDFType::Sphere)
+        unsigned sdf_idx = energies.data[c_idx].sdf_index;
+        const Collision::SDFShapeParams& sdf_params = sdf_pool.params[sdf_idx];
+        if (sdf_params.type == Collision::SDFType::Sphere)
         {
-            energies.data[c_idx].cp_rb_local = particles.rotation(p_idx).conjugate() * Vec3r(0, -sdf_params->sphere.radius, 0);
+            energies.data[c_idx].cp_rb_local = particles.rotation(p_idx).conjugate() * Vec3r(0, -sdf_params.sphere.radius, 0);
         }
-
-        CollisionConstraintEnergySolver::updateAfterTimeStep(c_idx, energies, particles);
     }
 };
 

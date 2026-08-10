@@ -7,6 +7,7 @@
 
 #include "energy/NeoHookeanEnergySolver.hpp"
 #include "energy/GroundCollisionEnergySolver.hpp"
+#include "energy/RigidBodyGroundCollisionEnergySolver.hpp"
 #include "energy/TriangleRigidCollisionEnergySolver.hpp"
 
 #include <chrono>
@@ -130,7 +131,13 @@ public:
         for (unsigned e_idx = start; e_idx < end; e_idx++)
         {
             if (pool.active[e_idx])
+            {
+                if constexpr (Energy::HasUpdateContactPoints<typename EnergyPool::SolverType>)
+                    EnergyPool::SolverType::updateContactPoints(e_idx, pool, particles, _ctx->collision_pool.sdf_pool);
+                    
                 EnergyPool::SolverType::updateAfterTimeStep(e_idx, pool, particles);
+                
+            }
         }
     }
 
