@@ -26,7 +26,7 @@ struct RigidBodyGroundCollisionConstraintSolver
         const Vec3r& cp_rb_local = energies.data[c_idx].cp_rb_local;
         const Vec3r& cp_ground = energies.data[c_idx].cp_ground;
         Vec3r cp_rb = particles.positions[p_idx] + particles.rotation(p_idx) * cp_rb_local;
-        Vec3r diff = cp_rb - cp_ground;
+        Vec3r diff = cp_ground - cp_rb;
         C_n = n.dot(diff);
         C_t = t.dot(diff);
         C_b = b.dot(diff);
@@ -52,7 +52,7 @@ struct RigidBodyGroundCollisionConstraintSolver
         const Vec3r& cp_ground = energies.data[c_idx].cp_ground;
         const Quaternion& rb_rot = particles.rotation(p_idx);
         Vec3r cp_rb = particles.positions[p_idx] + particles.rotation(p_idx) * cp_rb_local;
-        Vec3r diff = cp_rb - cp_ground;
+        Vec3r diff = cp_ground - cp_rb;
         C_n = n.dot(diff);
         C_t = t.dot(diff);
         C_b = b.dot(diff);
@@ -61,23 +61,23 @@ struct RigidBodyGroundCollisionConstraintSolver
         Mat3r skew_cp = Math::Skew3(cp_rb_local);
         Mat3r R_rloc = R * skew_cp;
         // gradients
-        C_grad_n.template block<3,1>(0,0) = n;
-        C_grad_n.template block<3,1>(3,0) = -n.transpose() * R_rloc;
-        C_grad_t.template block<3,1>(0,0) = t;
-        C_grad_t.template block<3,1>(3,0) = -t.transpose() * R_rloc;
-        C_grad_b.template block<3,1>(0,0) = b;
-        C_grad_b.template block<3,1>(3,0) = -b.transpose() * R_rloc;
+        C_grad_n.template block<3,1>(0,0) = -n;
+        C_grad_n.template block<3,1>(3,0) = n.transpose() * R_rloc;
+        C_grad_t.template block<3,1>(0,0) = -t;
+        C_grad_t.template block<3,1>(3,0) = t.transpose() * R_rloc;
+        C_grad_b.template block<3,1>(0,0) = -b;
+        C_grad_b.template block<3,1>(3,0) = b.transpose() * R_rloc;
         C_grad_t = C_grad_b = Vec6r::Zero();
 
         // Hessians
         // grad = (Skew(cp_rb_local) * R^T * n)^T
         // ==> (Skew(cp_rb_local) * -R^T * skew(n) * -R)^T = R^T * skew(n) * R * skew(cp_rb_local)
         C_hess_n = C_hess_t = C_hess_b = Mat6r::Zero();
-        C_hess_n.template block<3,3>(3,3) = R.transpose() * Math::Skew3(n) * R * skew_cp;
+        C_hess_n.template block<3,3>(3,3) = -R.transpose() * Math::Skew3(n) * R * skew_cp;
         C_hess_n.template block<3,3>(3,3) = 0.5*(C_hess_n.template block<3,3>(3,3) + C_hess_n.template block<3,3>(3,3).transpose());
-        C_hess_t.template block<3,3>(3,3) = R.transpose() * Math::Skew3(t) * R * skew_cp;
+        C_hess_t.template block<3,3>(3,3) = -R.transpose() * Math::Skew3(t) * R * skew_cp;
         C_hess_t.template block<3,3>(3,3) = 0.5*(C_hess_t.template block<3,3>(3,3) + C_hess_t.template block<3,3>(3,3).transpose());
-        C_hess_b.template block<3,3>(3,3) = R.transpose() * Math::Skew3(b) * R * skew_cp;
+        C_hess_b.template block<3,3>(3,3) = -R.transpose() * Math::Skew3(b) * R * skew_cp;
         C_hess_b.template block<3,3>(3,3) = 0.5*(C_hess_b.template block<3,3>(3,3) + C_hess_b.template block<3,3>(3,3).transpose());
     }
 };
@@ -109,7 +109,8 @@ struct RigidBodyGroundCollisionEnergySolver
     {
         // update the contact point
         unsigned p_idx = energies.data[c_idx].particle_indices[0];
-        energies.data[c_idx].cp_ground = particles.positions[p_idx];
+        energies.data[c_idx].cp_ground[0] = particles.positions[p_idx][0];
+        energies.data[c_idx].cp_ground[2] = particles.positions[p_idx][2];
 
         // update the local contact point, when necessary
         // (for spheres and capsules)

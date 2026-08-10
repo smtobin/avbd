@@ -43,6 +43,9 @@ struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidB
         data[slot].sdf_index = sdf_index;
         data[slot].cp_rb_local = cp_rb_local;
         data[slot].cp_ground = Vec3r::Zero();
+        data[slot].normal = Vec3r(0,1,0);
+        data[slot].tangent = Vec3r(1,0,0);
+        data[slot].binormal = Vec3r(0,0,1);
 
         return slot;
     }

@@ -9,6 +9,8 @@ namespace Energy
 template <typename CollisionEnergyPool, typename CollisionConstraintSolver>
 struct CollisionConstraintEnergySolver
 {
+    using PoolType = CollisionEnergyPool;
+    
     /** Updates the collision normal, which causes an update to the collision tangent and binormal.
      * The Lagrange multipliers associated with the tangent and binormal are updated so that the total force remains the same.
      */
@@ -41,7 +43,7 @@ struct CollisionConstraintEnergySolver
         }
         else
         {
-            Math::completeOrthonormalBasisGivenNormal(n, t, b);
+            Math::completeOrthonormalBasisGivenNormal(new_normal, t, b);
         }
         n = new_normal;
 
@@ -89,7 +91,7 @@ struct CollisionConstraintEnergySolver
         if (lambda_n_plus > 0)
         {
             // additive stiffness update
-            k_n += STIFFNESS_BETA * C_corr_n;
+            k_n += STIFFNESS_BETA * std::abs(C_corr_n);
 
             // store the current constraint violation
             energies.data[c_idx].C_n_prev = C_n;
@@ -105,8 +107,8 @@ struct CollisionConstraintEnergySolver
         Real lambda_tb_max = mu*lambda_n;
         if (lambda_tb_plus_mag < lambda_tb_max)
         {
-            k_t += STIFFNESS_BETA * C_t;
-            k_b += STIFFNESS_BETA * C_b;
+            k_t += STIFFNESS_BETA * std::abs(C_t);
+            k_b += STIFFNESS_BETA * std::abs(C_b);
 
             lambda_t = lambda_t_plus;
             lambda_b = lambda_b_plus;

@@ -88,7 +88,7 @@ concept HasAccumulate4 = requires(
 template<typename Solver>
 concept HasUpdateContactPoints = requires(
     unsigned c_idx,
-    GroundCollisionEnergyPool& energies,
+    typename Solver::PoolType& energies,
     ParticlePool& particles,
     Collision::SDFPrimitivePool& sdf_pool
 )
