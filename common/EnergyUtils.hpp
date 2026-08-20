@@ -85,4 +85,15 @@ concept HasAccumulate4 = requires(
     Solver::accumulate4(e_idx, energies, particles, local_idx, particle_H, particle_G, dt);
 };
 
+template<typename Solver>
+concept HasUpdateContactPoints = requires(
+    unsigned c_idx,
+    typename Solver::PoolType& energies,
+    ParticlePool& particles,
+    Collision::SDFPrimitivePool& sdf_pool
+)
+{
+    Solver::updateContactPoints(c_idx, energies, particles, sdf_pool);
+};
+
 }

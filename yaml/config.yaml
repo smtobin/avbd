@@ -1,5 +1,5 @@
 name: "MeshSim"
-# sim-mode: "Frame-by-frame"
+sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
 time-step: 1e-3 # s
 end-time: 3
@@ -28,7 +28,7 @@ objects:
     type: "TetMeshObject"
     name: "test"
     filename: "../resource/tumor.msh"
-    position: [0, 25, 0]
+    position: [0, 10, 0]
     scaling: [1, 1, 1]
     velocity: [0, 0, 0]
     position-by-com: true
@@ -47,5 +47,6 @@ objects:
   - 
     type: "RigidSphere"
     fixed: true
-    position: [0, 0, 0]
-    radius: 10
+    position: [0, 20, 0]
+    radius: 3
+    density: 10e-6 # kg / mm^3

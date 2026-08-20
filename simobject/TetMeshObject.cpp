@@ -97,13 +97,6 @@ void TetMeshObject::setup()
         }
     }
 
-    // add ground collision constraints for each particle
-    /** TODO: (08/05/26) set coefficients of friction based on material properties */
-    for (auto& v_idx : _mesh.vertices())
-    {
-        _ctx->energies.ground_collision.addEnergy(v_idx, 0.4, 0.2);
-    }
-
 
     // int fix_vertex = _mesh.face(0)[0];
     // auto& new_constraint = _attachment_constraints.emplace_back(&_mesh.particle(fix_vertex), _mesh.particle(fix_vertex).position);

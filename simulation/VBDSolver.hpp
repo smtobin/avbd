@@ -7,6 +7,7 @@
 
 #include "energy/NeoHookeanEnergySolver.hpp"
 #include "energy/GroundCollisionEnergySolver.hpp"
+#include "energy/RigidBodyGroundCollisionEnergySolver.hpp"
 #include "energy/TriangleRigidCollisionEnergySolver.hpp"
 
 #include <chrono>
@@ -48,8 +49,6 @@ public:
 
         // update all energies after time step
         _ctx->energies.forEachEnergyType([&] (auto& pool) {
-            using Pool = base_type_t<decltype(pool)>;
-
             _updateRangeAfterTimeStep(w_ctx, pool, _ctx->particles);
             w_ctx.barrier->arrive_and_wait();
         });
@@ -90,8 +89,6 @@ public:
 
             // update Lagrange multipliers
             _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
-                using Pool = base_type_t<decltype(pool)>;
-
                 _updateRangeAfterIteration(w_ctx, pool, _ctx->particles);
                 w_ctx.barrier->arrive_and_wait();
             });
@@ -134,7 +131,15 @@ public:
         for (unsigned e_idx = start; e_idx < end; e_idx++)
         {
             if (pool.active[e_idx])
+            {
+                if constexpr (Energy::HasUpdateContactPoints<typename EnergyPool::SolverType>)
+                {
+                    EnergyPool::SolverType::updateContactPoints(e_idx, pool, particles, _ctx->collision_pool.sdf_pool);
+                }
+                    
                 EnergyPool::SolverType::updateAfterTimeStep(e_idx, pool, particles);
+                
+            }
         }
     }
 
@@ -156,7 +161,10 @@ public:
         for (unsigned c_idx = color_start + start; c_idx < color_start + end; c_idx++)
         {
             unsigned p_idx = _ctx->coloring.work_list[c_idx];
-            _solveParticle(p_idx, dt);
+            if (_ctx->particles.isOriented(p_idx))
+                _solveParticle<6>(p_idx, dt);
+            else
+                _solveParticle<3>(p_idx, dt);
         }
     }
 
@@ -233,14 +241,46 @@ private:
         _ctx->particles.last_last_iter_positions[p_idx] = _ctx->particles.positions[p_idx];
     }
 
+    /** Inertial update for rotational DOF
+     * For now, assumes external angular acceleration is 0
+     */
+    void _particleRotationInertialUpdate(unsigned p_idx, Real dt)
+    {
+        
+        Quaternion& q = _ctx->particles.rotation(p_idx);
+        Quaternion& q_inertial = _ctx->particles.inertialRotation(p_idx);
+        const Vec3r& w = _ctx->particles.angularVelocity(p_idx);
+        const Vec3r& I = _ctx->particles.rotationalInertia(p_idx);
+        Vec3r I_inv = 1/I.array();
+
+
+        /** no need to do adaptive acceleration since assuming no external angular acceleration */
+        // const Vec3r& w = _ctx->particles.angularVelocity(p_idx);
+        // const Vec3r& w_prev = _ctx->particles.previousAngularVelocity(p_idx);
+
+        // Vec3r a = (w - w_prev) / dt;
+
+        // compute inertially predicted rotation
+        Vec3r alpha_ext = Vec3r::Zero();
+        Vec3r dq_inertial = dt*w + dt*dt*(alpha_ext - I_inv.asDiagonal() * (w.cross(I.asDiagonal()*w))); 
+        q_inertial = Math::Plus_S3(q, dq_inertial);
+
+        // move particle to its initialized position
+        Vec3r dq = dt*w;
+        q = Math::Plus_S3(q, dq);
+
+        // initialize previous iteration rotations
+        _ctx->particles.lastIterRotation(p_idx) = q;
+        _ctx->particles.lastLastIterRotation(p_idx) = q;
+    }
+
+    template <int DOF>
     void _solveParticle(unsigned p_idx, Real dt)
     {
-        if (_ctx->particles.isOriented(p_idx))
-            return;
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
-        Vec3r grad = Vec3r::Zero();
-        Mat3r hess = Mat3r::Zero();
+        Vec3r_or_Vec6r<DOF> grad = Vec3r_or_Vec6r<DOF>::Zero();
+        Mat3r_or_Mat6r<DOF> hess = Mat3r_or_Mat6r<DOF>::Zero();
 
         /** Process "static" energies */
         {
@@ -261,7 +301,8 @@ private:
                 const auto& energy_pool = _ctx->energies.template get<E>();
 
                 // if solver has AVX accumulate4 implemented, use that
-                if constexpr (Energy::HasAccumulate4<Solver>)
+                // note: currently this is only implemented for homogenous 3-DOF energies (such as the Neo-Hookean tet energy)
+                if constexpr (DOF == 3 && Energy::HasAccumulate4<Solver>)
                 {
                     // process in chunks of 4 using AVX
                     for (; e_adj+3 < final_e_adj; e_adj+=4)
@@ -310,15 +351,34 @@ private:
                     for (; e_adj < final_e_adj; e_adj++)
                     {
                         const StaticParticleAdjacency::Entry& entry = _ctx->static_adjacency.e_entries[e_adj];
-                        Solver::accumulate(
-                            entry.energy_idx,
-                            energy_pool,
-                            _ctx->particles,
-                            entry.local_vertex_idx,
-                            hess,
-                            grad,
-                            dt
-                        );
+
+                        // if the solver supports both positional and oriented particles (e.g. Triangle-Rigid collision, Ground collision)
+                        // then we must template accumulate based on the DOF of the current particle
+                        if constexpr (Solver::SupportsPositional && Solver::SupportsOriented)
+                        {
+                            Solver::template accumulate<DOF>(
+                                entry.energy_idx,
+                                energy_pool,
+                                _ctx->particles,
+                                entry.local_vertex_idx,
+                                hess,
+                                grad,
+                                dt
+                            );
+                        }
+                        // otherwise use plain accumulate()
+                        else if constexpr ( (DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional) )
+                        {
+                            Solver::accumulate(
+                                entry.energy_idx,
+                                energy_pool,
+                                _ctx->particles,
+                                entry.local_vertex_idx,
+                                hess,
+                                grad,
+                                dt
+                            );
+                        }
                     }
                 }
             }
@@ -346,39 +406,94 @@ private:
                 for (; e_adj < final_e_adj; e_adj++)
                 {
                     const DynamicParticleAdjacency::Entry& entry = _ctx->dynamic_adjacency.e_entries[e_adj];
-                    Solver::accumulate(
-                        entry.energy_idx,
-                        energy_pool,
-                        _ctx->particles,
-                        entry.local_vertex_idx,
-                        hess,
-                        grad,
-                        dt
-                    );
+                    if constexpr (Solver::SupportsPositional && Solver::SupportsOriented)
+                    {
+                        Solver::template accumulate<DOF>(
+                            entry.energy_idx,
+                            energy_pool,
+                            _ctx->particles,
+                            entry.local_vertex_idx,
+                            hess,
+                            grad,
+                            dt
+                        );
+                    }
+                    else if constexpr ( (DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional) )
+                    {
+                        Solver::accumulate(
+                            entry.energy_idx,
+                            energy_pool,
+                            _ctx->particles,
+                            entry.local_vertex_idx,
+                            hess,
+                            grad,
+                            dt
+                        );
+                    }
                 }
             }
             );
         }
 
         // assemble LHS and RHS of single-particle system
-        Real mass = _ctx->particles.masses[p_idx];
-        const Vec3r& p = _ctx->particles.positions[p_idx];
-        const Vec3r& y = _ctx->particles.inertial_positions[p_idx];
+        if constexpr (DOF == 6)
+        {
+            // extract quantities from pool
+            Real mass = _ctx->particles.masses[p_idx];
+            const Vec3r& I = _ctx->particles.rotationalInertia(p_idx);
+            Vec3r& p = _ctx->particles.positions[p_idx];
+            const Vec3r& p_inertial = _ctx->particles.inertial_positions[p_idx];
+            Quaternion& q = _ctx->particles.rotation(p_idx);
+            const Quaternion& q_inertial = _ctx->particles.inertialRotation(p_idx);
 
-        Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
-        Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
+            // form RHS
+            Vec6r RHS;
+            RHS.block<3,1>(0,0) = -1/(dt*dt) * mass * (p - p_inertial);
+            RHS.block<3,1>(3,0) = -1/(dt*dt) * I.asDiagonal() * Math::Minus_S3(q, q_inertial);
+            RHS -= grad;
 
-        // Vec3r dx = LHS.partialPivLu().solve(RHS);
-        Vec3r dx = LHS.inverse() * RHS;
+            // form LHS
+            Mat6r LHS = Mat6r::Zero();
+            LHS.diagonal().block<3,1>(0,0) = Vec3r::Constant(mass / (dt*dt));
+            LHS.diagonal().block<3,1>(3,0) = I / (dt*dt);
+            LHS += hess;
 
-        // std::cout << "dx: " << dx.transpose() << std::endl;
-
-        // if this particle has an intra-color conflict, buffer its update
-        if (_ctx->coloring.is_conflicted[p_idx])
-            _ctx->particles.buffered_positions[p_idx] = _ctx->particles.positions[p_idx] + dx;
-        // otherwise handle it normally
+            Vec6r dx = LHS.partialPivLu().solve(RHS);
+            
+            // if this particle has an intra-color conflict, buffer its update
+            if (_ctx->coloring.is_conflicted[p_idx])
+            {
+                _ctx->particles.buffered_positions[p_idx] = p + dx.block<3,1>(0,0);
+                _ctx->particles.bufferedRotation(p_idx) = Math::Plus_S3(q, dx.block<3,1>(3,0));
+            }
+            // otherwise update normally
+            else
+            {
+                p += dx.block<3,1>(0,0);
+                q = Math::Plus_S3(q, dx.block<3,1>(3,0));
+            }
+        }
         else
-            _ctx->particles.positions[p_idx] += dx;
+        {
+            Real mass = _ctx->particles.masses[p_idx];
+            const Vec3r& p = _ctx->particles.positions[p_idx];
+            const Vec3r& y = _ctx->particles.inertial_positions[p_idx];
+
+            Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
+            Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
+
+            // Vec3r dx = LHS.partialPivLu().solve(RHS);
+            Vec3r dx = LHS.inverse() * RHS;
+
+            // std::cout << "dx: " << dx.transpose() << std::endl;
+
+            // if this particle has an intra-color conflict, buffer its update
+            if (_ctx->coloring.is_conflicted[p_idx])
+                _ctx->particles.buffered_positions[p_idx] = _ctx->particles.positions[p_idx] + dx;
+            // otherwise handle it normally
+            else
+                _ctx->particles.positions[p_idx] += dx;
+        }
     }
 
     void _particleChebyshevAcceleration(unsigned p_idx, Real omega)
@@ -388,11 +503,25 @@ private:
         {
             _ctx->particles.positions[p_idx] =
                 omega * (_ctx->particles.positions[p_idx] - _ctx->particles.last_last_iter_positions[p_idx]) + _ctx->particles.last_last_iter_positions[p_idx];
+
+            if (_ctx->particles.isOriented(p_idx))
+            {
+                Quaternion& q = _ctx->particles.rotation(p_idx);
+                const Quaternion& last_last_q = _ctx->particles.lastLastIterRotation(p_idx);
+
+                q = Math::Plus_S3(last_last_q, omega * Math::Minus_S3(q, last_last_q));
+            }
         }
 
         // update the previous iteration positions
         _ctx->particles.last_last_iter_positions[p_idx] = _ctx->particles.last_iter_positions[p_idx];
         _ctx->particles.last_iter_positions[p_idx] = _ctx->particles.positions[p_idx];
+
+        if (_ctx->particles.isOriented(p_idx))
+        {
+            _ctx->particles.lastLastIterRotation(p_idx) = _ctx->particles.lastIterRotation(p_idx);
+            _ctx->particles.lastIterRotation(p_idx) = _ctx->particles.rotation(p_idx);
+        }
     }
 
     void _particleVelocityUpdate(unsigned p_idx, Real dt)
@@ -402,6 +531,20 @@ private:
             (_ctx->particles.positions[p_idx] - _ctx->particles.previous_positions[p_idx]) / dt;
 
         _ctx->particles.previous_positions[p_idx] = _ctx->particles.positions[p_idx];
+
+        if (_ctx->particles.isOriented(p_idx))
+        {
+            Vec3r& prev_w = _ctx->particles.previousAngularVelocity(p_idx);
+            Vec3r& w = _ctx->particles.angularVelocity(p_idx);
+
+            const Quaternion& q = _ctx->particles.rotation(p_idx);
+            Quaternion& prev_q = _ctx->particles.previousRotation(p_idx);
+
+            prev_w = w;
+            w = Math::Minus_S3(q, prev_q) / dt;
+
+            prev_q = q;
+        }
     }
 };
 

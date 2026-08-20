@@ -194,13 +194,13 @@ static Mat3r Plus_SO3(const Mat3r& SO3_mat, const Vec3r& so3_vec)
 
 
 /** === Quaternions === */
-static Quaternion QuaternionExp_so3(const Vec3r& vec)
+static Quaternion Exp_s3(const Vec3r& vec)
 {
     Real theta = vec.norm();
     Quaternion q;
 
     // small angle approximation
-    if (theta < 1e-8)
+    if (theta < 1e-6)
     {
         q.w() = 1.0;
         q.x() = 0.5 * vec.x();
@@ -219,6 +219,30 @@ static Quaternion QuaternionExp_so3(const Vec3r& vec)
     q.z() = scale * vec.z();
 
     return q;
+}
+
+static Vec3r Log_S3(const Quaternion& q)
+{
+    Vec3r v(q.x(), q.y(), q.z());
+    Real v_mag = v.norm();
+    if (v_mag < 1e-6)
+    {
+        return 2*v;
+    }
+
+    Real theta = 2*std::atan2(v_mag, q.w());
+    return theta/v_mag * v;
+    
+}
+
+static Vec3r Minus_S3(const Quaternion& q1, const Quaternion& q2)
+{
+    return Log_S3(q2.conjugate() * q1);
+}
+
+static Quaternion Plus_S3(const Quaternion& q, const Vec3r& rot_vec)
+{
+    return q * Exp_s3(rot_vec);
 }
 
 static Mat3r RotMatFromXYZEulerAngles(const Vec3r& euler_xyz)

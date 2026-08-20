@@ -59,7 +59,13 @@ class Simulation
         ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
         new_obj_ptr->setup();
 
-        _ctx.collision_pool.addObject(*new_obj_ptr);
+        unsigned prim_idx = _ctx.collision_pool.addObject(*new_obj_ptr);
+        new_obj_ptr->setCollisionPrimitiveIndex(prim_idx);
+
+        // add static ground-object collision constraints
+        _addGroundCollisionConstraintsForObject(*new_obj_ptr);
+
+
         _graphics_scene.addObject(new_obj_ptr.get(), obj_config.renderConfig());
 
         _objects.push_back(std::move(new_obj_ptr));
@@ -70,41 +76,33 @@ class Simulation
         // using ObjPtrType = std::unique_ptr<typename ConfigType::SimObjectType>;
         using ObjType = SimObject::TetMeshObject;
         using ObjPtrType = std::unique_ptr<ObjType>;
-        // ObjType* new_obj_ptr = nullptr;
-        // if constexpr (std::is_base_of_v<SimObject::ObjectGroup_Base, ObjType>)
-        // {
-        //     _object_groups.template push_back<ObjPtrType>(std::make_unique<ObjType>(obj_config));
-        //     new_obj_ptr = _object_groups.template get<ObjPtrType>().back().get();
-        //     new_obj_ptr->setup();
-
-            
-
-        //     // add the ObjectGroup's constraints to the solver
-        //     _addConstraintsFromObject(new_obj_ptr, obj_config.projectorType());
-        // }
-        // else
-        // {
-            ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
-            new_obj_ptr->setup();
-            // _objects.template emplace_back<ObjPtrType>(std::make_unique<ObjType>(obj_config));
-            // new_obj_ptr = _objects.template get<ObjPtrType>().back().get();
-            // new_obj_ptr->setup();
-        // }
+        ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
+        new_obj_ptr->setup();
 
         _ctx.collision_pool.addObject(*new_obj_ptr);
+        _addGroundCollisionConstraintsForObject(*new_obj_ptr);
+
         _graphics_scene.addObject(new_obj_ptr.get(), obj_config.meshRenderConfig());
 
-        // if the particles of this object should be logged, create logging outputs for them
-        // if (obj_config.logParticles() && _logger)
-        // {
-        //     int particle_index = 0;
-        //     new_obj_ptr->for_each_particle([&] (const Particle* particle) {
-        //         const std::string var_name = new_obj_ptr->name() + "_particle" + std::to_string(particle_index++);
-        //         _logger->addOutput(var_name, particle);
-        //     });
-        // }
-
         _objects.push_back(std::move(new_obj_ptr));
+    }
+
+    /** Helpers for adding ground collision constraints for each type of object */
+    void _addGroundCollisionConstraintsForObject(const SimObject::RigidSphere& sphere)
+    {
+        /** TODO: (08/10/26) set coefficients of friction based on material properties */
+        unsigned sdf_index = _ctx.collision_pool.particle_indices[sphere.collisionPrimitiveIndex()][0];
+        _ctx.energies.rigid_body_ground_collision.addEnergy(sphere.com(), sdf_index, Vec3r(0, -sphere.radius(), 0), 0.5, 0.2);
+    }
+
+    void _addGroundCollisionConstraintsForObject(const SimObject::TetMeshObject& tet_mesh_obj)
+    {
+        // add ground collision constraints for each particle in the mesh
+        /** TODO: (08/05/26) set coefficients of friction based on material properties */
+        for (auto& v_idx : tet_mesh_obj.mesh().vertices())
+        {
+            _ctx.energies.ground_collision.addEnergy(v_idx, 0.4, 0.2);
+        }
     }
 
     void _timeStep();

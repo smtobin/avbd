@@ -22,7 +22,7 @@ void CollisionPrimitivePool::addObject(const SimObject::TetMeshObject& mesh_obj)
     }
 }
 
-void CollisionPrimitivePool::addObject(const SimObject::RigidSphere& sphere)
+unsigned CollisionPrimitivePool::addObject(const SimObject::RigidSphere& sphere)
 {
     unsigned slot = allocSlot();
     type[slot] = PrimitiveType::RigidSDF;
@@ -30,6 +30,8 @@ void CollisionPrimitivePool::addObject(const SimObject::RigidSphere& sphere)
     particle_indices[slot] = {sdf_slot};
     num_particles[slot] = 1;
     object_id[slot] = sphere.id();
+
+    return slot;
 }
 
 } // namespace Collision

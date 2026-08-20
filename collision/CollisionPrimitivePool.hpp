@@ -209,7 +209,7 @@ struct CollisionPrimitivePool : TombstonePool
      * Not really necessary right now
      */
     void addObject(const SimObject::TetMeshObject& mesh_obj);
-    void addObject(const SimObject::RigidSphere& sphere);
+    unsigned addObject(const SimObject::RigidSphere& sphere);
 };
 
 } // namespace Collision
