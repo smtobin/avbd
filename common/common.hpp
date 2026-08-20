@@ -223,6 +223,7 @@ namespace SimObject
 {
     class Object_Base;
     class TetMeshObject;
+    class Rod;
     class RigidSphere;
 }
 
@@ -231,6 +232,7 @@ namespace Config
     class Config;
     class ObjectConfig;
     class TetMeshObjectConfig;
+    class RodConfig;
     class RigidSphereConfig;
 }
 
@@ -247,7 +249,8 @@ namespace Sim
 
 using ObjectConfigs_TypeList = TypeList<
     Config::RigidSphereConfig,
-    Config::TetMeshObjectConfig
+    Config::TetMeshObjectConfig,
+    Config::RodConfig
 >;
 
 using ObjectConfigs_Container = VariadicVectorContainerFromTypeList<ObjectConfigs_TypeList>::type;

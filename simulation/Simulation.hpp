@@ -14,6 +14,7 @@
 #include "collision/CollisionDetector.hpp"
 
 #include "simobject/TetMeshObject.hpp"
+#include "simobject/Rod.hpp"
 #include "simobject/rigid/RigidSphere.hpp"
 
 #include <vector>

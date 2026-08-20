@@ -18,18 +18,6 @@ public:
 
     virtual void setup() override;
 
-    /** Provides a way to iterate through the particles owned by the object. */
-    // virtual void for_each_particle(std::function<void(Particle*)> func) override;
-    // virtual void for_each_particle(std::function<void(const Particle*)> func) const override;
-
-    /** Provides a way to iterate through all energies owned by the object. */
-    // virtual void for_each_energy(std::function<void(Energy::Energy_Base*)> func) override;
-    // virtual void for_each_energy(std::function<void(const Energy::Energy_Base*)> func) const override;
-
-    /** Provides a way to iterate through all QUADRATIC energies owned by the object. */
-    // virtual void for_each_quadratic_energy(std::function<void(QuadraticEnergy*)> func) override;
-    // virtual void for_each_quadratic_energy(std::function<void(QuadraticEnergy*)> func) const override;
-
 protected:
     std::string _filename;
 
