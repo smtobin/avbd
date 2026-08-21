@@ -119,12 +119,14 @@ namespace Energy
     
     /** Pools */
     struct NeoHookeanEnergyPool;
+    struct CosseratRodEnergyPool;
     struct GroundCollisionEnergyPool;
     struct RigidBodyGroundCollisionEnergyPool;
     struct TriangleRigidCollisionEnergyPool;
 
     /** Solvers */
     struct NeoHookeanEnergySolver;
+    struct CosseratRodEnergySolver;
     struct GroundCollisionEnergySolver;
     struct RigidBodyGroundCollisionEnergySolver;
     struct TriangleRigidCollisionEnergySolver;
@@ -135,6 +137,7 @@ namespace Energy
 // when a new energy is added, we must update the list below
 #define ENERGY_LIST(X) \
     X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
+    X(COSSERAT_ROD, CosseratRodEnergySolver) \
     X(GROUND_COLLISION, GroundCollisionEnergySolver) \
     X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver) \
     X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver)
@@ -143,6 +146,7 @@ namespace Energy
 // (unless topology changes)
 #define STATIC_ENERGY_LIST(X) \
     X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
+    X(COSSERAT_ROD, CosseratRodEnergySolver) \
     X(GROUND_COLLISION, GroundCollisionEnergySolver) \
     X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver)
 
