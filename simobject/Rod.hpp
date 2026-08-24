@@ -13,6 +13,9 @@ public:
 
     virtual void setup() override;
 
+    Real radius() const { return _radius; }
+    const std::vector<unsigned>& nodes() const { return _nodes; }
+
 protected:
     std::vector<unsigned> _nodes;
     unsigned _num_elements;

@@ -15,7 +15,8 @@ namespace Collision
 enum class SDFType : uint8_t {
     Sphere,
     Box,
-    Capsule
+    Capsule,
+    Rod
 };
 
 struct SDFShapeParams
@@ -25,6 +26,7 @@ struct SDFShapeParams
         struct { Real radius; } sphere;
         struct { Real half_extents[3]; } box;
         struct { Real radius, half_height; } capsule;
+        struct { Real radius; } rod;
     };
 };
 
@@ -53,6 +55,10 @@ struct SDF
                     Vec3r( s.capsule.radius,  s.capsule.half_height + s.capsule.radius, s.capsule.radius) 
                 };
             }
+            default:
+            {
+                throw std::runtime_error("localBounds not implemented for SDF type");
+            }
         }
     }
 
@@ -79,6 +85,11 @@ struct SDF
             {
                 throw std::runtime_error("Capsule SDF evaluate not implemented yet.");  
                 return 0.0;
+            }
+
+            default:
+            {
+                throw std::runtime_error("evaluate not implemented for SDF type.");
             }
         }
     }
@@ -109,6 +120,11 @@ struct SDF
             case SDFType::Capsule:
             {
                 throw std::runtime_error("Capsule SDF gradient not implemented yet.");  
+            }
+
+            default:
+            {
+                throw std::runtime_error("gradient not implemented for SDF type.");
             }
         }
     }

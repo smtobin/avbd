@@ -88,6 +88,21 @@ class Simulation
         _objects.push_back(std::move(new_obj_ptr));
     }
 
+    void _addObjectFromConfig(const Config::RodConfig& obj_config)
+    {
+        using ObjType = SimObject::Rod;
+        using ObjPtrType = std::unique_ptr<ObjType>;
+        ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
+        new_obj_ptr->setup();
+
+        _ctx.collision_pool.addObject(*new_obj_ptr);
+        _addGroundCollisionConstraintsForObject(*new_obj_ptr);
+
+        // _graphics_scene.addObject(new_obj_ptr.get(), obj_config.renderConfig());
+
+        _objects.push_back(std::move(new_obj_ptr));
+    }
+
     /** Helpers for adding ground collision constraints for each type of object */
     void _addGroundCollisionConstraintsForObject(const SimObject::RigidSphere& sphere)
     {
@@ -104,6 +119,11 @@ class Simulation
         {
             _ctx.energies.ground_collision.addEnergy(v_idx, 0.4, 0.2);
         }
+    }
+
+    void _addGroundCollisionConstraintsForObject(const SimObject::Rod& rod)
+    {
+        /** TODO: (08/24/26) Add ground collision constraints for rods. */
     }
 
     void _timeStep();

@@ -51,10 +51,15 @@ struct CollisionPrimitivePool : TombstonePool
     std::vector<PrimitiveType> type;
     // storage of up to 3 particle indices
     // if the PrimitveType == RigidSDF, then particle_indices[0] is the index in the SDFPrimitivePool
+    // if the PrimitiveType == Rod, then particle_indices[2] is the the index in the SDFPrimitivePool
     std::vector<std::array<unsigned, 3>> particle_indices;
     std::vector<uint8_t> num_particles;     // number of particles for each primitive (not sure if this is really necessary)
     std::vector<unsigned> object_id;
 
+    /** TODO: (08/24/26)
+     * Rename SDFPrimitivePool to reflect general storage of auxiliary data for collision primitives
+     * e.g. "PrimitiveAuxData"
+     */
     SDFPrimitivePool sdf_pool;  // storage of extra data for SDFs
 
     /** Collision geometry, recomputed every frame */
@@ -102,6 +107,8 @@ struct CollisionPrimitivePool : TombstonePool
                         return CollisionGeometryType::Box;
                     case SDFType::Capsule:
                         return CollisionGeometryType::Capsule;
+                    default:
+                        throw std::runtime_error("Unrecognized SDF type");
                 }
         }
     }
@@ -143,7 +150,13 @@ struct CollisionPrimitivePool : TombstonePool
             }
             case PrimitiveType::RodSegment:
             {
-                throw std::runtime_error("globalBounds not implemented for RodSegment!");
+                const Vec3r& p1 = particle_pool.positions[particle_indices[p_idx][0]];
+                const Vec3r& p2 = particle_pool.positions[particle_indices[p_idx][1]];
+                Real radius = sdf_pool.params[particle_indices[p_idx][2]].rod.radius;
+                Vec3r bbox_min = p1.cwiseMin(p2) - Vec3r::Constant(radius);
+                Vec3r bbox_max = p1.cwiseMax(p2) + Vec3r::Constant(radius);
+                
+                return { bbox_min, bbox_max };
             }
         }
     }
@@ -198,7 +211,22 @@ struct CollisionPrimitivePool : TombstonePool
             }
             case PrimitiveType::RodSegment:
             {
-                throw std::runtime_error("globalBounds not implemented for RodSegment!");
+                const Vec3r& p1 = particle_pool.positions[particle_indices[p_idx][0]];
+                const Vec3r& p2 = particle_pool.positions[particle_indices[p_idx][1]];
+                Real radius = sdf_pool.params[particle_indices[p_idx][2]].rod.radius;
+                Vec3r bbox_min = p1.cwiseMin(p2) - Vec3r::Constant(radius);
+                Vec3r bbox_max = p1.cwiseMax(p2) + Vec3r::Constant(radius);
+                AABB bbox = { bbox_min, bbox_max };
+
+                Vec3r next_p1 = p1 + dt * particle_pool.velocities[particle_indices[p_idx][0]];
+                Vec3r next_p2 = p2 + dt * particle_pool.velocities[particle_indices[p_idx][1]];
+                Vec3r next_bbox_min = next_p1.cwiseMin(next_p2) - Vec3r::Constant(radius);
+                Vec3r next_bbox_max = next_p1.cwiseMax(next_p2) + Vec3r::Constant(radius);
+                AABB next_bbox = { next_bbox_min, next_bbox_max };
+
+                // merge the boxes
+                bbox.expand(next_bbox);
+                return bbox;
             }
         }
     }
@@ -210,6 +238,7 @@ struct CollisionPrimitivePool : TombstonePool
      */
     void addObject(const SimObject::TetMeshObject& mesh_obj);
     unsigned addObject(const SimObject::RigidSphere& sphere);
+    void addObject(const SimObject::Rod& rod);
 };
 
 } // namespace Collision

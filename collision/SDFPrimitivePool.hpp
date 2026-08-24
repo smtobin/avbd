@@ -24,6 +24,7 @@ struct SDFPrimitivePool : TombstonePool
     }
 
     unsigned addObject(const SimObject::RigidSphere& sphere);
+    unsigned addObject(const SimObject::Rod& rod);
 };
 
 } // namespace Collision

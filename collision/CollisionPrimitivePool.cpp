@@ -1,6 +1,7 @@
 #include "collision/CollisionPrimitivePool.hpp"
 
 #include "simobject/TetMeshObject.hpp"
+#include "simobject/Rod.hpp"
 #include "simobject/rigid/RigidSphere.hpp"
 
 namespace Collision
@@ -19,6 +20,26 @@ void CollisionPrimitivePool::addObject(const SimObject::TetMeshObject& mesh_obj)
         particle_indices[slot][2] = vertices.at(f[2]);
         num_particles[slot] = 3;
         object_id[slot] = mesh_obj.id();
+    }
+}
+
+void CollisionPrimitivePool::addObject(const SimObject::Rod& rod)
+{
+    // create an entry in the SDFPrimitivePool to store the rod parameters required for collision
+    unsigned sdf_slot = sdf_pool.addObject(rod);
+
+    // add a rod segment primitive for each element in the rod
+    // (assuming the rod is linear for now)
+    const std::vector<unsigned>& nodes = rod.nodes();
+    for (unsigned n_idx = 0; n_idx < nodes.size()-1; n_idx++)
+    {
+        unsigned slot = allocSlot();
+        type[slot] = PrimitiveType::RodSegment;
+        particle_indices[slot][0] = nodes[n_idx];
+        particle_indices[slot][1] = nodes[n_idx+1];
+        particle_indices[slot][2] = sdf_slot;   // index 2 = slot in the SDFPrimitivePool for auxiliary info
+        num_particles[slot] = 2;
+        object_id[slot] = rod.id();
     }
 }
 

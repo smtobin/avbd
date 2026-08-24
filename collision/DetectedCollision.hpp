@@ -8,6 +8,9 @@ enum class DetectedCollisionType : uint8_t
     TriangleTriangle_VertexFace,
     TriangleTriangle_EdgeEdge,
     TriangleRigid,
+    TriangleRod,
+    RodRod,
+    RodRigid,
     RigidRigid
 };
 
@@ -25,6 +28,9 @@ struct DetectedCollision
         struct { unsigned tri_vertex; Vec3u tri; Vec3r barys;  } TriangleTriangle_VertexFace;
         struct { Vec2u edge1; Real s1; Vec2u edge2; Real s2; } TriangleTriangle_EdgeEdge;
         struct { Vec3u tri; Vec3r barys; unsigned rb; Vec3r cp_rb_local; } TriangleRigid;
+        struct { Vec3u tri; Vec3r barys; Vec2u rod; Real s; } TriangleRod;
+        struct { Vec2u rod1; Real s1; Vec2u rod2; Real s2; } RodRod;
+        struct { Vec2u rod; Real s; unsigned rb; Vec3r cp_rb_local; } RodRigid;
         struct { unsigned rb1; Vec3r cp_rb_local1; unsigned rb2; Vec3r cp_rb_local2; } RigidRigid;
     };
 
@@ -81,6 +87,21 @@ private:
         case DetectedCollisionType::TriangleRigid:
             new (&TriangleRigid)
                 decltype(TriangleRigid)(other.TriangleRigid);
+            break;
+
+        case DetectedCollisionType::TriangleRod:
+            new (&TriangleRod)
+                decltype(TriangleRod)(other.TriangleRod);
+            break;
+
+        case DetectedCollisionType::RodRod:
+            new (&RodRod)
+                decltype(RodRod)(other.RodRod);
+            break;
+        
+        case DetectedCollisionType::RodRigid:
+            new (&RodRigid)
+                decltype(RodRigid)(other.RodRigid);
             break;
 
         case DetectedCollisionType::RigidRigid:

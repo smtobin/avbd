@@ -62,6 +62,7 @@ private:
     /** Specific subroutines for primitive-primitive narrow-phase collision checks */
     inline void _triangleSphere(Sim::SimulationContext& ctx, unsigned triangle, unsigned sphere, std::vector<DetectedCollision>& detected_collisions);
     inline void _triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2, std::vector<DetectedCollision>& detected_collisions);
+    inline void _rodRod(Sim::SimulationContext& ctx, unsigned rod1, unsigned rod2, std::vector<DetectedCollision>& detected_collisions);
     inline void _sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2, std::vector<DetectedCollision>& detected_collisions);
 
     /** General triangle-SDF continuous collision detection

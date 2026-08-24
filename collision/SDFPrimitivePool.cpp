@@ -1,5 +1,6 @@
 #include "collision/SDFPrimitivePool.hpp"
 
+#include "simobject/Rod.hpp"
 #include "simobject/rigid/RigidSphere.hpp"
 
 namespace Collision
@@ -13,6 +14,17 @@ unsigned SDFPrimitivePool::addObject(const SimObject::RigidSphere& sphere)
         { sphere.radius() }
     };
     particles[slot] = sphere.com();
+
+    return slot;
+}
+
+unsigned SDFPrimitivePool::addObject(const SimObject::Rod& rod)
+{
+    unsigned slot = allocSlot();
+    params[slot] = {
+        SDFType::Rod,
+        { rod.radius() }
+    };
 
     return slot;
 }

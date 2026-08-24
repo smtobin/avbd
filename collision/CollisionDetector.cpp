@@ -189,6 +189,11 @@ void CollisionDetector::_processPotentialCollision(Sim::SimulationContext& ctx, 
                 _triangleSphere(ctx, a, b, detected_collisions);
                 break;
             }
+            case _makeCollisionKey(CollisionGeometryType::RodSegment, CollisionGeometryType::RodSegment):
+            {
+                _rodRod(ctx, a, b, detected_collisions);
+                break;
+            }
             case _makeCollisionKey(CollisionGeometryType::Sphere, CollisionGeometryType::Sphere):
             {
                 _sphereSphere(ctx, a, b, detected_collisions);
@@ -529,6 +534,11 @@ void CollisionDetector::_triangleTriangle(Sim::SimulationContext& ctx, unsigned 
     /** TODO: (07/20/26) triangle-triangle collision detection */
     // std::cout << "Testing triangle-triangle collision..." << std::endl;
     // throw std::runtime_error("Triangle-triangle collision detection not implemented.");
+}
+
+void CollisionDetector::_rodRod(Sim::SimulationContext& ctx, unsigned rod1, unsigned rod2, std::vector<DetectedCollision>& detected_collisions)
+{
+    /** TODO: (08/24/26) rod-rod collision detection */
 }
 
 void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2, std::vector<DetectedCollision>& detected_collisions)
