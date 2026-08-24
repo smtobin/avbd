@@ -16,8 +16,8 @@ struct CosseratRodEnergyInfo
 /** Pool of memory for the Cosserat rod elastic energies. */
 struct CosseratRodEnergyPool : TombstonePool
 {
-    static constexpr int NumParticlePerEnergy = 2;
-    static constepxr EnergyType = EnergyType::COSSERAT_ROD;
+    static constexpr int NumParticlesPerEnergy = 2;
+    static constexpr EnergyType Type = EnergyType::COSSERAT_ROD;
     static constexpr StaticEnergyType StaticType = StaticEnergyType::COSSERAT_ROD;
     using SolverType = CosseratRodEnergySolver;
 

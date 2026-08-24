@@ -1,6 +1,7 @@
 #pragma once
 
 #include "energy/NeoHookeanEnergyPool.hpp"
+#include "energy/CosseratRodEnergyPool.hpp"
 #include "energy/GroundCollisionEnergyPool.hpp"
 #include "energy/RigidBodyGroundCollisionEnergyPool.hpp"
 #include "energy/TriangleRigidCollisionEnergyPool.hpp"
@@ -14,12 +15,14 @@ namespace Energy
 struct EnergyRegistry
 {
     NeoHookeanEnergyPool neo_hookean;
+    CosseratRodEnergyPool cosserat_rod;
     GroundCollisionEnergyPool ground_collision;
     RigidBodyGroundCollisionEnergyPool rigid_body_ground_collision;
     TriangleRigidCollisionEnergyPool triangle_rigid_collision;
 
     EnergyRegistry(unsigned capacity)
         : neo_hookean(capacity)
+        , cosserat_rod(capacity)
         , ground_collision(capacity)
         , rigid_body_ground_collision(capacity)
         , triangle_rigid_collision(capacity)
@@ -31,6 +34,8 @@ struct EnergyRegistry
     {
         if constexpr (E == EnergyType::NEO_HOOKEAN)
             return neo_hookean;
+        else if constexpr (E == EnergyType::COSSERAT_ROD)
+            return cosserat_rod;
         else if constexpr (E == EnergyType::GROUND_COLLISION)
             return ground_collision;
         else if constexpr (E == EnergyType::RIGID_BODY_GROUND_COLLISION)
@@ -44,6 +49,8 @@ struct EnergyRegistry
     {
         if constexpr (E == StaticEnergyType::NEO_HOOKEAN)
             return neo_hookean;
+        else if constexpr (E == StaticEnergyType::COSSERAT_ROD)
+            return cosserat_rod;
         else if constexpr (E == StaticEnergyType::GROUND_COLLISION)
             return ground_collision;
         else if constexpr (E == StaticEnergyType::RIGID_BODY_GROUND_COLLISION)
@@ -62,6 +69,7 @@ struct EnergyRegistry
     void forEachEnergyType(Func&& f)
     {
         f(neo_hookean);
+        f(cosserat_rod);
         f(ground_collision);
         f(rigid_body_ground_collision);
         f(triangle_rigid_collision);
@@ -70,6 +78,7 @@ struct EnergyRegistry
     void forEachEnergyType(Func&& f) const
     {
         f(neo_hookean);
+        f(cosserat_rod);
         f(ground_collision);
         f(rigid_body_ground_collision);
         f(triangle_rigid_collision);
@@ -101,6 +110,7 @@ struct EnergyRegistry
     void forEachStaticEnergyType(Func&& f) 
     {
         f(neo_hookean);
+        f(cosserat_rod);
         f(ground_collision);
         f(rigid_body_ground_collision);
     }
@@ -108,6 +118,7 @@ struct EnergyRegistry
     void forEachStaticEnergyType(Func&& f) const
     {
         f(neo_hookean);
+        f(cosserat_rod);
         f(ground_collision);
         f(rigid_body_ground_collision);
     }

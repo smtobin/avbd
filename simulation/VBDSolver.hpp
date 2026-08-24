@@ -6,6 +6,7 @@
 #include "simulation/SimulationContext.hpp"
 
 #include "energy/NeoHookeanEnergySolver.hpp"
+#include "energy/CosseratRodEnergySolver.hpp"
 #include "energy/GroundCollisionEnergySolver.hpp"
 #include "energy/RigidBodyGroundCollisionEnergySolver.hpp"
 #include "energy/TriangleRigidCollisionEnergySolver.hpp"

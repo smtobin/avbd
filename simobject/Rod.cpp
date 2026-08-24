@@ -25,16 +25,18 @@ Rod::Rod(Sim::SimulationContext* ctx, const Config::RodConfig& config)
     _nodes.resize(num_nodes);
 
     Vec3r cur_position = config.initialPosition();
-    Mat3r cur_rotation = Math::RotMatFromXYZEulerAngles(config.initialRotation()); 
+    Quaternion cur_rotation = Math::QuaternionFromXYZEulerAngles(config.initialRotation()); 
 
     Real ds = _length / (num_nodes - 1);
     Vec3r dR = _curvature * ds;
     for (int i = 0; i < num_nodes; i++)
     {
-        _nodes[i] = _ctx->particles.addOrientedParticle(cur_position, cur_rotation, config.initialVelocity(), 0);
+        _nodes[i] = _ctx->particles.addOrientedParticle(cur_position, cur_rotation, 0, Vec3r::Zero());
+        _ctx->particles.velocities[_nodes[i]] = config.initialVelocity();
+
         
         cur_position += cur_rotation * Vec3r(0, 0, ds);
-        cur_rotation = cur_rotation * Math::Exp_so3(dR);
+        cur_rotation = cur_rotation * Math::Exp_s3(dR);
     }
 
     // compute cross section properties

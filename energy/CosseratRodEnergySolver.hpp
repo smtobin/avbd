@@ -40,7 +40,7 @@ struct CosseratRodEnergySolver
 
         // shear strain
         Quaternion q_mid = Math::Plus_S3(q1, s_hat * q_diff);
-        strain.block<3,1>(0,0) = 1/rest_length * q_mid.conjugate() * (p2 - p1) - Vec3r(0,0,1);
+        strain.block<3,1>(0,0) = 1/rest_length * (q_mid.conjugate() * (p2 - p1)) - Vec3r(0,0,1);
 
         // bending strain
         strain.block<3,1>(3,0) = 1.0/rest_length * q_diff - precurvature;
@@ -64,6 +64,7 @@ struct CosseratRodEnergySolver
         CosseratRodEnergyPool& energies,
         ParticlePool& particles
     )
+    {}
 
     /** Computes the Hessian and gradient for a specified particle affected by this energy.
      * Updates the accumulated vertex Hessian and gradients.
@@ -81,7 +82,7 @@ struct CosseratRodEnergySolver
         ParticlePool& particles,
         unsigned local_idx,
         Mat6r& particle_H,
-        Mat3r& particle_G,
+        Vec6r& particle_G,
         Real /* dt */
     )
     {
@@ -101,17 +102,12 @@ struct CosseratRodEnergySolver
 
         // shear strain
         Quaternion q_mid = Math::Plus_S3(q1, s_hat * q_diff);
-        strain.block<3,1>(0,0) = 1/rest_length * q_mid.conjugate() * (p2 - p1) - Vec3r(0,0,1);
+        strain.block<3,1>(0,0) = 1/rest_length * (q_mid.conjugate() * (p2 - p1)) - Vec3r(0,0,1);
 
         // bending strain
         strain.block<3,1>(3,0) = 1.0/rest_length * q_diff - precurvature;
 
-        Real inv_length = 1.0/_rest_length;
-
-        // stores d theta(s) / d Ri for i = 1,...,Order+1
-        std::array<Mat3r, 2> dtheta_dRi;
-        // stores d/d Ri ( d theta(s) / ds) for i = 1,...Order+1
-        std::array<Mat3r, 2> dtheta_ds_dRi;
+        Real inv_length = 1.0/rest_length;
 
         Mat3r gam_inv = Math::ExpMap_InvRightJacobian(q_diff);
 
@@ -124,7 +120,7 @@ struct CosseratRodEnergySolver
         Mat3r R = q_mid.toRotationMatrix();
 
 
-        Vec3r dp_ds = 1/_rest_length * (p2 - p1);
+        Vec3r dp_ds = inv_length * (p2 - p1);
         Mat3r RT_dp_ds_R = Math::Skew3(R.transpose() * dp_ds);
 
         Mat3r dtheta_dRi, dtheta_ds_dRi;
@@ -149,7 +145,7 @@ struct CosseratRodEnergySolver
             strain_grad.block<3,3>(3,3) = dtheta_ds_dRi;
         }
 
-        particle_G += strain.transpose() * stiffness.asDiagonal() * strain_grad;
+        particle_G += strain.transpose() * (stiffness.asDiagonal() * strain_grad);
         /** TODO: (08/23/26) Is Gauss-Newton approximation good enough? */
         particle_H += strain_grad.transpose() * stiffness.asDiagonal() * strain_grad; // Gauss-Newton approximation - ignoring constraint Hessian term
     }
