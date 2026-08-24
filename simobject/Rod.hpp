@@ -15,6 +15,8 @@ public:
 
     Real radius() const { return _radius; }
     const std::vector<unsigned>& nodes() const { return _nodes; }
+    const Vec3r& nodePosition(unsigned idx) const;
+    const Quaternion& nodeRotation(unsigned idx) const;
 
 protected:
     std::vector<unsigned> _nodes;

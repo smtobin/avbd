@@ -63,4 +63,14 @@ void Rod::setup()
 
 }
 
+const Vec3r& Rod::nodePosition(unsigned idx) const
+{
+    return _ctx->particles.positions[_nodes[idx]];
+}
+
+const Quaternion& Rod::nodeRotation(unsigned idx) const
+{
+    return _ctx->particles.rotation(_nodes[idx]);
+}
+
 } // namespace SimObject

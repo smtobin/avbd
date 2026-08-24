@@ -98,7 +98,7 @@ class Simulation
         _ctx.collision_pool.addObject(*new_obj_ptr);
         _addGroundCollisionConstraintsForObject(*new_obj_ptr);
 
-        // _graphics_scene.addObject(new_obj_ptr.get(), obj_config.renderConfig());
+        _graphics_scene.addObject(new_obj_ptr.get(), obj_config.renderConfig());
 
         _objects.push_back(std::move(new_obj_ptr));
     }
