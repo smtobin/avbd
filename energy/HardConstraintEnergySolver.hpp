@@ -9,6 +9,8 @@ namespace Energy
 template <typename EnergyPool, typename ConstraintSolver>
 struct HardConstraintEnergySolver
 {
+    using Vec = VecNr<EnergyPool::Dim>;
+
     /** Updates the stiffness and Lagrange multiplier after the iteration
      * @param c_idx : the constraint index
      * @param energies : the memory pool for the energy
@@ -21,16 +23,16 @@ struct HardConstraintEnergySolver
     )
     {
         // evaluate the constraint
-        Real C = ConstraintSolver::evaluateConstraint(c_idx, energies, particles);
+        Vec C = ConstraintSolver::evaluateConstraint(c_idx, energies, particles);
 
         // subtract off previous constraint violation
-        Real C_corr = C - CONSTRAINT_ALPHA * energies.data[c_idx].C_prev;
+        Vec C_corr = C - CONSTRAINT_ALPHA * energies.data[c_idx].C_prev;
         
         // extract the current stiffness and Lagrange multiplier
-        Real k = energies.data[c_idx].k;
-        Real lambda = energies.data[c_idx].lambda;
+        Vec k = energies.data[c_idx].k;
+        Vec lambda = energies.data[c_idx].lambda;
 
-        Real lambda_p = k * C_corr + lambda;
+        Vec lambda_p = k.cwiseMult(C_corr) + lambda;
 
         // update stiffness - equation (12)
         if (lambda_p > energies.lambda_min && lambda_p < energies.lambda_max)

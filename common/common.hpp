@@ -76,6 +76,9 @@ using base_type_t = typename base_type<T>::type;
 /** Universal typedefs used by the simulation */
 using Real = double;
 
+template <int N>
+using VecNr = Eigen::Vector<Real, N>;
+
 using Vec2r = Eigen::Vector<Real, 2>;
 using Vec3r = Eigen::Vector<Real, 3>;
 using Vec4r = Eigen::Vector<Real, 4>;

@@ -54,7 +54,16 @@ Rod::Rod(Sim::SimulationContext* ctx, const Config::RodConfig& config)
         _ctx->particles.rotationalInertia(_nodes[e+1]) += 0.5 * total_element_rot_inertia;
     }
 
-    /** TODO: (08/20/26) create Cosserat energies */
+    // create Cosserat energies
+    for (unsigned e = 0; e < _num_elements; e++)
+    {
+        _ctx->energies.cosserat_rod.addEnergy(
+            {_nodes[e], _nodes[e+1]},
+            Vec6r(_G*_area, _G*_area, _E*_area, _E*_Ix, _E*_Iy, _G*_Iz),
+            ds,
+            _curvature
+        );
+    }
     
 }
 

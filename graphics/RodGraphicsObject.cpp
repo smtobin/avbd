@@ -425,7 +425,7 @@ void RodGraphicsObject::_updatePolyData()
                     z);
 
                 Vec3r transformed = R_end * p + p_end;
-                points->SetPoint((_cap_resolution+_num_samples)*_tubular_resolution + i*_tubular_resolution + j, transformed.data());
+                points->SetPoint((_cap_resolution+num_nodes)*_tubular_resolution + i*_tubular_resolution + j, transformed.data());
             }
         }
     }
@@ -434,13 +434,13 @@ void RodGraphicsObject::_updatePolyData()
     {
         Vec3r base_pt = R_beg * Vec3r(0, 0, -_rod->radius()) + p_beg;
         Vec3r end_pt = R_end * Vec3r(0, 0, _rod->radius()) + p_end;
-        points->SetPoint((2*_cap_resolution + _num_samples)*_tubular_resolution, base_pt.data());
-        points->SetPoint((2*_cap_resolution + _num_samples)*_tubular_resolution+1, end_pt.data());
+        points->SetPoint((2*_cap_resolution + num_nodes)*_tubular_resolution, base_pt.data());
+        points->SetPoint((2*_cap_resolution + num_nodes)*_tubular_resolution+1, end_pt.data());
     }
     else
     {
-        points->SetPoint(_num_samples*_tubular_resolution, p_beg[0], p_beg[1], p_beg[2]);
-        points->SetPoint(_num_samples*_tubular_resolution+1, p_end[0], p_end[1], p_end[2]);
+        points->SetPoint(num_nodes*_tubular_resolution, p_beg[0], p_beg[1], p_beg[2]);
+        points->SetPoint(num_nodes*_tubular_resolution+1, p_end[0], p_end[1], p_end[2]);
     }
 
     points->Modified();

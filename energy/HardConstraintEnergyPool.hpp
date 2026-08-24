@@ -5,30 +5,33 @@
 namespace Energy
 {
 
+template <int N>
 struct HardConstraintEnergyInfo
 {
-    Real k;         // the finite stiffnesses of the quadratic energy
-    Real lambda;    // the Lagrange multipliers enforcing the constraints
-    Real C_prev;    // the constraint violation at the end of the previous time step
+    VecNr<N> k;         // the finite stiffnesses of the quadratic energy
+    VecNr<N> lambda;    // the Lagrange multipliers enforcing the constraints
+    VecNr<N> C_prev;    // the constraint violation at the end of the previous time step
 };
 
 /** Pool of memory for HardConstraintEnergies.
  * Base class for all energies associated with hard constraints.
  * Really just has k (finite stiffness) and lambda (lagrange multipliers)
  */
-template <typename EnergyInfo>
+template <typename EnergyInfo, int N>
 struct HardConstraintEnergyPool : TombstonePool
 {
-    Real k_start;           // the initial stiffness
-    Real lambda_min;        // lower lambda bound for this constraint (if applicable)
-    Real lambda_max;         // upper lambda bound for this constraint (if applicable)
+    static constexpr int Dim = N;
+    
+    VecNr<N> k_start;           // the initial stiffness
+    VecNr<N> lambda_min;        // lower lambda bound for this constraint (if applicable)
+    VecNr<N> lambda_max;         // upper lambda bound for this constraint (if applicable)
     std::vector<EnergyInfo> data;
 
     explicit HardConstraintEnergyPool(
         unsigned capacity,
-        Real k_start_,
-        Real lambda_min_=std::numeric_limits<Real>::lowest(),
-        Real lambda_max_=std::numeric_limits<Real>::max()
+        VecNr<N> k_start_,
+        VecNr<N> lambda_min_= VecNr<N>::Constant(std::numeric_limits<Real>::lowest()),
+        VecNr<N> lambda_max_= VecNr<N>::Constant(std::numeric_limits<Real>::max())
     )
         : TombstonePool(capacity)
         , k_start(k_start_)
@@ -45,9 +48,9 @@ struct HardConstraintEnergyPool : TombstonePool
         unsigned slot = allocSlot();
 
         // initialize lambda and k
-        data[slot].lambda = 0;
+        data[slot].lambda = VecNr<N>::Zero();
         data[slot].k = k_start;
-        data[slot].C_prev = 0;
+        data[slot].C_prev = VecNr<N>::Zero();
 
         return slot;
     }
