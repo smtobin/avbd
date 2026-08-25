@@ -5,6 +5,7 @@
 #include "energy/GroundCollisionEnergyPool.hpp"
 #include "energy/RigidBodyGroundCollisionEnergyPool.hpp"
 #include "energy/TriangleRigidCollisionEnergyPool.hpp"
+#include "energy/OneSidedFixedJointEnergyPool.hpp"
 
 namespace Energy
 {
@@ -14,11 +15,17 @@ namespace Energy
  */
 struct EnergyRegistry
 {
+    // elastic
     NeoHookeanEnergyPool neo_hookean;
     CosseratRodEnergyPool cosserat_rod;
+
+    // collision
     GroundCollisionEnergyPool ground_collision;
     RigidBodyGroundCollisionEnergyPool rigid_body_ground_collision;
     TriangleRigidCollisionEnergyPool triangle_rigid_collision;
+
+    // joints
+    OneSidedFixedJointEnergyPool one_sided_fixed_joint;
 
     EnergyRegistry(unsigned capacity)
         : neo_hookean(capacity)
@@ -26,6 +33,7 @@ struct EnergyRegistry
         , ground_collision(capacity)
         , rigid_body_ground_collision(capacity)
         , triangle_rigid_collision(capacity)
+        , one_sided_fixed_joint(capacity)
     {}
 
     /** Statically-typed getter for a specific energy type */
@@ -42,6 +50,8 @@ struct EnergyRegistry
             return rigid_body_ground_collision;
         else if constexpr (E == EnergyType::TRIANGLE_RIGID_COLLISION)
             return triangle_rigid_collision;
+        else if constexpr (E == EnergyType::ONE_SIDED_FIXED_JOINT)
+            return one_sided_fixed_joint;
     }
 
     template<StaticEnergyType E>
@@ -55,6 +65,8 @@ struct EnergyRegistry
             return ground_collision;
         else if constexpr (E == StaticEnergyType::RIGID_BODY_GROUND_COLLISION)
             return rigid_body_ground_collision;
+        else if constexpr (E == StaticEnergyType::ONE_SIDED_FIXED_JOINT)
+            return one_sided_fixed_joint;
     }
 
     template<DynamicEnergyType E>
@@ -73,6 +85,7 @@ struct EnergyRegistry
         f(ground_collision);
         f(rigid_body_ground_collision);
         f(triangle_rigid_collision);
+        f(one_sided_fixed_joint);
     }
     template <typename Func>
     void forEachEnergyType(Func&& f) const
@@ -82,6 +95,7 @@ struct EnergyRegistry
         f(ground_collision);
         f(rigid_body_ground_collision);
         f(triangle_rigid_collision);
+        f(one_sided_fixed_joint);
     }
 
     /** Apply a function only to energies derived from a hard constraint */
@@ -91,6 +105,7 @@ struct EnergyRegistry
         f(ground_collision);
         f(rigid_body_ground_collision);
         f(triangle_rigid_collision);
+        f(one_sided_fixed_joint);
     }
     template <typename Func>
     void forEachHardConstraintEnergyType(Func&& f) const
@@ -98,6 +113,7 @@ struct EnergyRegistry
         f(ground_collision);
         f(rigid_body_ground_collision);
         f(triangle_rigid_collision);
+        f(one_sided_fixed_joint);
     }
 
     /** Apply a function only to "static" energies which are generally constant throughout the simulation.
@@ -113,6 +129,7 @@ struct EnergyRegistry
         f(cosserat_rod);
         f(ground_collision);
         f(rigid_body_ground_collision);
+        f(one_sided_fixed_joint);
     }
     template <typename Func>
     void forEachStaticEnergyType(Func&& f) const
@@ -121,6 +138,7 @@ struct EnergyRegistry
         f(cosserat_rod);
         f(ground_collision);
         f(rigid_body_ground_collision);
+        f(one_sided_fixed_joint);
     }
 
     /** Apply a function only to "dynamic" energies which are transient during the simulation.

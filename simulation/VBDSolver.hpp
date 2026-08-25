@@ -10,6 +10,7 @@
 #include "energy/GroundCollisionEnergySolver.hpp"
 #include "energy/RigidBodyGroundCollisionEnergySolver.hpp"
 #include "energy/TriangleRigidCollisionEnergySolver.hpp"
+#include "energy/OneSidedFixedJointEnergySolver.hpp"
 
 #include <chrono>
 #include <thread>
@@ -278,6 +279,9 @@ private:
     template <int DOF>
     void _solveParticle(unsigned p_idx, Real dt)
     {
+        if (_ctx->particles.fixed[p_idx])
+            return;
+            
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
         Vec3r_or_Vec6r<DOF> grad = Vec3r_or_Vec6r<DOF>::Zero();

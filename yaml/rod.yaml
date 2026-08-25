@@ -9,7 +9,7 @@ iter-acceleration: 0.95
 num-threads: 12
 collision-margin: 1e-3
 
-camera-position: [50, 50, 50]
+camera-position: [5, 5, 5]
 
 # logging: True
 # logging-output-folder: "../output/convergence"
@@ -21,9 +21,16 @@ create-skybox: True
 hdr-scaling: 0.3
 fancy-graphics: false
 
-ground-plane: True
+ground-plane: False
 
 objects:
   - 
     type: "Rod"
     name: "rod"
+    base-fixed: true
+    E: 5e4
+    nu: 0.4
+    diameter: 0.1
+    length: 1
+    density: 1000
+    elements: 10

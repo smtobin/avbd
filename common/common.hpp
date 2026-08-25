@@ -121,18 +121,30 @@ namespace Energy
     class Energy_Base;
     
     /** Pools */
+    // elastic
     struct NeoHookeanEnergyPool;
     struct CosseratRodEnergyPool;
+
+    // collision
     struct GroundCollisionEnergyPool;
     struct RigidBodyGroundCollisionEnergyPool;
     struct TriangleRigidCollisionEnergyPool;
 
+    // joints
+    struct OneSidedFixedJointEnergyPool;
+
     /** Solvers */
+    // elastic
     struct NeoHookeanEnergySolver;
     struct CosseratRodEnergySolver;
+
+    // collision
     struct GroundCollisionEnergySolver;
     struct RigidBodyGroundCollisionEnergySolver;
     struct TriangleRigidCollisionEnergySolver;
+
+    // joints
+    struct OneSidedFixedJointEnergySolver;
 }
 
 
@@ -143,7 +155,8 @@ namespace Energy
     X(COSSERAT_ROD, CosseratRodEnergySolver) \
     X(GROUND_COLLISION, GroundCollisionEnergySolver) \
     X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver) \
-    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver)
+    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver) \
+    X(ONE_SIDED_FIXED_JOINT, OneSidedFixedJointEnergySolver)
 
 // "Static" energies are those that are generally not added or removed throughout the course of the simulation
 // (unless topology changes)
@@ -151,7 +164,8 @@ namespace Energy
     X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
     X(COSSERAT_ROD, CosseratRodEnergySolver) \
     X(GROUND_COLLISION, GroundCollisionEnergySolver) \
-    X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver)
+    X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver) \
+    X(ONE_SIDED_FIXED_JOINT, OneSidedFixedJointEnergySolver)
 
 // "Dynamic" energies are those that are added often throughout the course of the simulation - e.g. most collision constraints
 #define DYNAMIC_ENERGY_LIST(X) \

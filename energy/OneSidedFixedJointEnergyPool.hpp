@@ -5,7 +5,7 @@
 namespace Energy
 {
 
-struct OneSidedFixedJointEnergyInfo : HardConstraintEnergyInfo
+struct OneSidedFixedJointEnergyInfo : HardConstraintEnergyInfo<6>
 {
     Vec1u particle_indices;     // particle indices for each constraint
 
@@ -24,7 +24,7 @@ struct OneSidedFixedJointEnergyPool : HardConstraintEnergyPool<OneSidedFixedJoin
     using SolverType = OneSidedFixedJointEnergySolver;     // solver class type
 
     explicit OneSidedFixedJointEnergyPool(unsigned capacity)
-        : TombstonePool(capacity, 1)
+        : HardConstraintEnergyPool<OneSidedFixedJointEnergyInfo, 6>(capacity, Vec6r::Constant(1))
     {
 
     }
@@ -42,7 +42,7 @@ struct OneSidedFixedJointEnergyPool : HardConstraintEnergyPool<OneSidedFixedJoin
     )
     {
         // parent will call allocSlot()
-        unsigned slot = HardConstraintEnergyPool<OneSidedFixedJointEnergyInfo>::addEnergy();
+        unsigned slot = HardConstraintEnergyPool<OneSidedFixedJointEnergyInfo, 6>::addEnergy();
 
         // particle_indices[slot][0] = particle_index;
         data[slot].particle_indices[0] = particle_index;
