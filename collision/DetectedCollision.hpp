@@ -28,7 +28,7 @@ struct DetectedCollision
         struct { unsigned tri_vertex; Vec3u tri; Vec3r barys;  } TriangleTriangle_VertexFace;
         struct { Vec2u edge1; Real s1; Vec2u edge2; Real s2; } TriangleTriangle_EdgeEdge;
         struct { Vec3u tri; Vec3r barys; unsigned rb; Vec3r cp_rb_local; } TriangleRigid;
-        struct { Vec3u tri; Vec3r barys; Vec2u rod; Real s; } TriangleRod;
+        struct { Vec3u tri; Vec3r barys; Vec2u rod; Real s; Vec3r cp_rod_local; } TriangleRod;
         struct { Vec2u rod1; Real s1; Vec2u rod2; Real s2; } RodRod;
         struct { Vec2u rod; Real s; unsigned rb; Vec3r cp_rb_local; } RodRigid;
         struct { unsigned rb1; Vec3r cp_rb_local1; unsigned rb2; Vec3r cp_rb_local2; } RigidRigid;

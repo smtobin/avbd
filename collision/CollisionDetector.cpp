@@ -4,6 +4,7 @@
 #include "common/WorkerThreadContext.hpp"
 
 #include "energy/TriangleRigidCollisionEnergySolver.hpp"
+#include "energy/TriangleRodCollisionEnergySolver.hpp"
 
 #include "common/Math.hpp"
 #include "common/Algorithm.hpp"
@@ -367,6 +368,36 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
             ctx.coloring.markParticleDirty(collision.TriangleRigid.rb);
             break;
         }
+        case DetectedCollisionType::TriangleRod:
+        {
+            /** TODO: (08/26/26) set coefficients of friction based on material properties */
+            Vec3r t, b;
+            Math::completeOrthonormalBasisGivenNormal(collision.normal, t, b);
+            unsigned slot = ctx.energies.triangle_rod_collision.addEnergy(
+                collision.TriangleRod.tri[0],
+                collision.TriangleRod.tri[1],
+                collision.TriangleRod.tri[2],
+                collision.TriangleRod.rod[0],
+                collision.TriangleRod.rod[1],
+                collision.normal,
+                t,
+                b,
+                collision.TriangleRod.barys,
+                collision.TriangleRod.s,
+                collision.TriangleRod.cp_rod_local,
+                0.4, 
+                0.2
+            );
+            collision.e_idx = slot;
+
+            // add particles involved in this collision to the coloring dirty list for recoloring
+            ctx.coloring.markParticleDirty(collision.TriangleRod.tri[0]);
+            ctx.coloring.markParticleDirty(collision.TriangleRod.tri[1]);
+            ctx.coloring.markParticleDirty(collision.TriangleRod.tri[2]);
+            ctx.coloring.markParticleDirty(collision.TriangleRod.rod[0]);
+            ctx.coloring.markParticleDirty(collision.TriangleRod.rod[1]);
+            break;
+        }
         default:
         {
             throw std::runtime_error("CollisionDetector::_addCollision - unsupported DetectedCollisionType!");
@@ -392,6 +423,11 @@ void CollisionDetector::_removeCollision(Sim::SimulationContext& ctx, DetectedCo
         case DetectedCollisionType::TriangleRigid:
         {
             ctx.energies.triangle_rigid_collision.removeEnergy(collision.e_idx);
+            break;
+        }
+        case DetectedCollisionType::TriangleRod:
+        {
+            ctx.energies.triangle_rod_collision.removeEnergy(collision.e_idx);
             break;
         }
         default:
@@ -422,6 +458,15 @@ void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCo
             info.cp_rb_local = collision.TriangleRigid.cp_rb_local;
             info.barys = collision.TriangleRigid.barys;
             Energy::TriangleRigidCollisionEnergySolver::updateCollisionFrame(collision.e_idx, ctx.energies.triangle_rigid_collision, collision.normal);
+            break;
+        }
+        case DetectedCollisionType::TriangleRod:
+        {
+            Energy::TriangleRodCollisionEnergyInfo& info = ctx.energies.triangle_rod_collision.data[collision.e_idx];
+            info.s = collision.TriangleRod.s;
+            info.cp_rod_local = collision.TriangleRod.cp_rod_local;
+            info.barys = collision.TriangleRod.barys;
+            Energy::TriangleRodCollisionEnergySolver::updateCollisionFrame(collision.e_idx, ctx.energies.triangle_rod_collision, collision.normal);
             break;
         }
         default:
@@ -565,7 +610,44 @@ void CollisionDetector::_triangleRod(Sim::SimulationContext& ctx, unsigned trian
 
     if (dist < radius + ctx.params.collision_margin)
     {
-        std::cout << "Rod-triangle collision!" << std::endl;
+        // std::cout << "Rod-triangle collision!" << std::endl;
+        Vec3r cp_rod_centerline = s1*(1-cp_s) + s2*cp_s;
+        Vec3r cp_tri = v1*cp_barys[0] + v2*cp_barys[1] + v3*cp_barys[2];
+        Vec3r diff = cp_tri - cp_rod_centerline;
+        Real diff_mag = diff.norm();
+
+        Vec3r normal;
+        if (diff_mag > 1e-8)
+            normal = diff/diff_mag;
+        else
+            normal = Vec3r(1,0,0);
+
+        Vec3r cp_rod_global = cp_rod_centerline + normal*radius;
+        const Quaternion& q1 = ctx.particles.rotation(segment_idx[0]);
+        const Quaternion& q2 = ctx.particles.rotation(segment_idx[1]);
+        Quaternion q_mid = Math::Plus_S3(q1, cp_s*Math::Minus_S3(q2, q1));
+        Vec3r cp_rod_local = q_mid.inverse() * (radius*normal);
+
+        // std::cout << "Normal: " << normal.transpose() << "  Cp rod local: " << cp_rod_local.transpose() << "  Cp tri: " << cp_tri << std::endl;
+
+        DetectedCollision collision{};
+        collision.type = DetectedCollisionType::TriangleRod;
+        collision.key = DetectedCollision::generateKey(
+            DetectedCollisionType::TriangleRod,
+            triangle,
+            rod,
+            0
+        );
+        collision.gen1 = ctx.collision_pool.generation[triangle];
+        collision.gen2 = ctx.collision_pool.generation[rod];
+        collision.normal = normal;
+        collision.TriangleRod.tri = Vec3u(triangle_idx[0], triangle_idx[1], triangle_idx[2]);
+        collision.TriangleRod.rod = Vec2u(segment_idx[0], segment_idx[1]);
+        collision.TriangleRod.barys = cp_barys;
+        collision.TriangleRod.s = cp_s;
+        collision.TriangleRod.cp_rod_local = cp_rod_local;
+
+        detected_collisions.push_back(std::move(collision));
     }
 
 }

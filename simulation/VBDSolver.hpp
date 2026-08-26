@@ -10,6 +10,7 @@
 #include "energy/GroundCollisionEnergySolver.hpp"
 #include "energy/RigidBodyGroundCollisionEnergySolver.hpp"
 #include "energy/TriangleRigidCollisionEnergySolver.hpp"
+#include "energy/TriangleRodCollisionEnergySolver.hpp"
 #include "energy/OneSidedFixedJointEnergySolver.hpp"
 
 #include <chrono>

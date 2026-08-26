@@ -92,6 +92,7 @@ using Vec1u = Eigen::Vector<unsigned, 1>;
 using Vec2u = Eigen::Vector<unsigned, 2>;
 using Vec3u = Eigen::Vector<unsigned, 3>;
 using Vec4u = Eigen::Vector<unsigned, 4>;
+using Vec5u = Eigen::Vector<unsigned, 5>;
 
 using Mat2r = Eigen::Matrix<Real, 2, 2>;
 using Mat3r = Eigen::Matrix<Real, 3, 3>;
@@ -129,6 +130,7 @@ namespace Energy
     struct GroundCollisionEnergyPool;
     struct RigidBodyGroundCollisionEnergyPool;
     struct TriangleRigidCollisionEnergyPool;
+    struct TriangleRodCollisionEnergyPool;
 
     // joints
     struct OneSidedFixedJointEnergyPool;
@@ -142,6 +144,7 @@ namespace Energy
     struct GroundCollisionEnergySolver;
     struct RigidBodyGroundCollisionEnergySolver;
     struct TriangleRigidCollisionEnergySolver;
+    struct TriangleRodCollisionEnergySolver;
 
     // joints
     struct OneSidedFixedJointEnergySolver;
@@ -156,6 +159,7 @@ namespace Energy
     X(GROUND_COLLISION, GroundCollisionEnergySolver) \
     X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver) \
     X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver) \
+    X(TRIANGLE_ROD_COLLISION, TriangleRodCollisionEnergySolver) \
     X(ONE_SIDED_FIXED_JOINT, OneSidedFixedJointEnergySolver)
 
 // "Static" energies are those that are generally not added or removed throughout the course of the simulation
@@ -169,7 +173,8 @@ namespace Energy
 
 // "Dynamic" energies are those that are added often throughout the course of the simulation - e.g. most collision constraints
 #define DYNAMIC_ENERGY_LIST(X) \
-    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver)
+    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver) \
+    X(TRIANGLE_ROD_COLLISION, TriangleRodCollisionEnergySolver)
 
 // generate the enum for all energies
 enum class EnergyType : uint8_t
