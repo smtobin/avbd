@@ -173,37 +173,37 @@ struct CosseratRodEnergySolver
             strain_grad.block<3,3>(3,3) = dtheta_ds_dRi;
         }
 
-        std::cout << "\nParticle indices: " << indices.transpose() << ", local_idx=" << local_idx << std::endl;
-        std::cout << "q1: \n" << q1 << "\nq2: \n" << q2 << std::endl;
-        std::cout << "q_mid: \n" << q_mid << "\nR mid: \n" << R << std::endl;
-        std::cout << "Strain: " << strain.transpose() << std::endl;
-        std::cout << "Strain gradient: \n" << strain_grad << std::endl;
-        std::cout << "Stiffness: " << stiffness.transpose() << std::endl;
+        // std::cout << "\nParticle indices: " << indices.transpose() << ", local_idx=" << local_idx << std::endl;
+        // std::cout << "q1: \n" << q1 << "\nq2: \n" << q2 << std::endl;
+        // std::cout << "q_mid: \n" << q_mid << "\nR mid: \n" << R << std::endl;
+        // std::cout << "Strain: " << strain.transpose() << std::endl;
+        // std::cout << "Strain gradient: \n" << strain_grad << std::endl;
+        // std::cout << "Stiffness: " << stiffness.transpose() << std::endl;
 
         particle_G += rest_length * strain.transpose() * (stiffness.asDiagonal() * strain_grad);
         /** TODO: (08/23/26) Is Gauss-Newton approximation good enough? */
         // particle_H += rest_length * strain_grad.transpose() * stiffness.asDiagonal() * strain_grad; // Gauss-Newton approximation - ignoring constraint Hessian term
     
-        auto F = [&](const Vec6r& dx) {
-            Vec3r& p_cur = particles.positions[indices[local_idx]];
-            Vec3r p_orig = p_cur;
-            Quaternion& q_cur = particles.rotation(indices[local_idx]);
-            Quaternion q_orig = q_cur;
+        // auto F = [&](const Vec6r& dx) {
+        //     Vec3r& p_cur = particles.positions[indices[local_idx]];
+        //     Vec3r p_orig = p_cur;
+        //     Quaternion& q_cur = particles.rotation(indices[local_idx]);
+        //     Quaternion q_orig = q_cur;
 
-            p_cur += dx.head<3>();
-            q_cur = q_cur * Math::Exp_s3(dx.tail<3>());
+        //     p_cur += dx.head<3>();
+        //     q_cur = q_cur * Math::Exp_s3(dx.tail<3>());
 
-            Real E = Energy::CosseratRodEnergySolver::energy(e_idx, energies, particles, 0);
+        //     Real E = Energy::CosseratRodEnergySolver::energy(e_idx, energies, particles, 0);
 
-            p_cur = p_orig;
-            q_cur = q_orig;
+        //     p_cur = p_orig;
+        //     q_cur = q_orig;
 
-            return E;
-        };
-        Mat6r hess_fd = Hessian_FD(F);
+        //     return E;
+        // };
+        // Mat6r hess_fd = Hessian_FD(F);
         Mat6r hess_an = rest_length * strain_grad.transpose() * stiffness.asDiagonal() * strain_grad;
-        std::cout << "Hess diff: \n" << hess_fd - hess_an << std::endl;
-        particle_H += hess_fd;
+        // std::cout << "Hess diff: \n" << hess_fd - hess_an << std::endl;
+        particle_H += hess_an;
     }
 
 

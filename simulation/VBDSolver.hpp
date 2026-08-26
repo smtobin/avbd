@@ -98,6 +98,9 @@ public:
 
         _particleRangeVelocityUpdate(w_ctx, dt);
         w_ctx.barrier->arrive_and_wait();
+
+        Real E0 = Energy::CosseratRodEnergySolver::energy(0, _ctx->energies.cosserat_rod, _ctx->particles, dt);
+        std::cout << "Energy of rod after time step: " << E0 << std::endl;
     }
 
     /** Commits particles within a color that are conflicted.
@@ -123,6 +126,8 @@ public:
         for (unsigned p_idx = start; p_idx < end; p_idx++)
         {
             _particleInertialUpdate(p_idx, a_ext, dt);
+            if (_ctx->particles.isOriented(p_idx))
+                _particleRotationInertialUpdate(p_idx, dt);
         }
     }
 
@@ -203,6 +208,9 @@ public:
 private:
     void _particleInertialUpdate(unsigned p_idx, const Vec3r& a_ext, Real dt)
     {
+        if (_ctx->particles.fixed[p_idx])
+            return;
+
         // std::cout << "\n=== Particle " << p_idx << " inertial update" << std::endl;
         Vec3r& p = _ctx->particles.positions[p_idx];
         Vec3r& y = _ctx->particles.inertial_positions[p_idx];
@@ -248,7 +256,9 @@ private:
      */
     void _particleRotationInertialUpdate(unsigned p_idx, Real dt)
     {
-        
+        if (_ctx->particles.fixed[p_idx])
+            return;
+            
         Quaternion& q = _ctx->particles.rotation(p_idx);
         Quaternion& q_inertial = _ctx->particles.inertialRotation(p_idx);
         const Vec3r& w = _ctx->particles.angularVelocity(p_idx);
@@ -263,7 +273,7 @@ private:
         // Vec3r a = (w - w_prev) / dt;
 
         // compute inertially predicted rotation
-        Vec3r alpha_ext = Vec3r::Zero();
+        Vec3r alpha_ext = Vec3r(0,0,0); //Vec3r::Zero();
         Vec3r dq_inertial = dt*w + dt*dt*(alpha_ext - I_inv.asDiagonal() * (w.cross(I.asDiagonal()*w))); 
         q_inertial = Math::Plus_S3(q, dq_inertial);
 
@@ -531,10 +541,12 @@ private:
 
     void _particleVelocityUpdate(unsigned p_idx, Real dt)
     {
-        Vec6r dx;
-        dx.head<3>() = _ctx->particles.positions[p_idx] - _ctx->particles.previous_positions[p_idx];
-        dx.tail<3>() = Math::Minus_S3(_ctx->particles.rotation(p_idx), _ctx->particles.previousRotation(p_idx));
-        std::cout << "Particle " << p_idx << " dx: " << dx.transpose() << std::endl;
+        // Vec6r dx;
+        // dx.head<3>() = _ctx->particles.positions[p_idx] - _ctx->particles.previous_positions[p_idx];
+        // dx.tail<3>() = Math::Minus_S3(_ctx->particles.rotation(p_idx), _ctx->particles.previousRotation(p_idx));
+        // std::cout << "Particle " << p_idx << " dx: " << dx.transpose() << std::endl;
+        // std::cout << "Particle " << p_idx << " position: " << _ctx->particles.positions[p_idx].transpose() << std::endl;
+        // std::cout << "Particle " << p_idx << " rotation: " << _ctx->particles.rotation(p_idx).toRotationMatrix() << std::endl;
         
         _ctx->particles.previous_velocities[p_idx] = _ctx->particles.velocities[p_idx];
         _ctx->particles.velocities[p_idx] = 
