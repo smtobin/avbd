@@ -1,12 +1,12 @@
 name: "MeshSim"
-# sim-mode: "Frame-by-frame"
+sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
 time-step: 1e-3 # s
 end-time: 3
 g-accel: 9.81 # m/s^2
-solver-iters: 5
+solver-iters: 150
 iter-acceleration: 0.0
-num-threads: 1
+num-threads: 12
 collision-margin: 1e-3
 
 camera-position: [5, 5, 5]
@@ -33,4 +33,4 @@ objects:
     diameter: 0.1
     length: 1
     density: 1000
-    elements: 3
+    elements: 1

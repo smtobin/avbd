@@ -98,9 +98,6 @@ public:
 
         _particleRangeVelocityUpdate(w_ctx, dt);
         w_ctx.barrier->arrive_and_wait();
-
-        Real E0 = Energy::CosseratRodEnergySolver::energy(0, _ctx->energies.cosserat_rod, _ctx->particles, dt);
-        std::cout << "Energy of rod after time step: " << E0 << std::endl;
     }
 
     /** Commits particles within a color that are conflicted.

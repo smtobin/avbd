@@ -1,5 +1,4 @@
-#include "energy/CosseratRodEnergyPool.hpp"
-#include "energy/CosseratRodEnergySolver.hpp"
+#include "energy/OneSidedFixedJointEnergySolver.hpp"
 
 #include "simulation/SimulationContext.hpp"
 #include "test/finite_difference.hpp"
@@ -15,19 +14,20 @@ int main()
     unsigned n1 = ctx.particles.addOrientedParticle(Vec3r::Zero(), Quaternion::Identity(), 10, Vec3r::Ones());
     unsigned n2 = ctx.particles.addOrientedParticle(Vec3r(0.3, 0.4, 0.5), Math::QuaternionFromXYZEulerAngles(Vec3r(60,-30,20)), 10, Vec3r::Ones());
 
-    unsigned e_idx = ctx.energies.cosserat_rod.addEnergy(
-        { n1, n2 },
-        Vec6r(2, 2, 3.5, 0.5, 0.5, 0.8),
-        0.2,
-        Vec3r::Zero()
+    unsigned e_idx = ctx.energies.one_sided_fixed_joint.addEnergy(
+        n1,
+        Vec3r(0.4, 0.6, 0.2),
+        Math::QuaternionFromXYZEulerAngles(Vec3r(60,-30,20)),
+        Vec3r(-0.3, -0.5, -0.2),
+        Math::QuaternionFromXYZEulerAngles(Vec3r(-60,50,-20))
     );
 
     /** Use finite differences to check linearizations */
     std::cout << "\n === FINITE DIFFERENCE CHECK === " << std::endl;
 
     
-    Vec2u indices = ctx.energies.cosserat_rod.data[e_idx].particle_indices;
-    for (unsigned l_idx = 0; l_idx < 2; l_idx++)
+    Vec1u indices = ctx.energies.one_sided_fixed_joint.data[e_idx].particle_indices;
+    for (unsigned l_idx = 0; l_idx < 1; l_idx++)
     {
         auto F = [&](const Vec6r& dx) {
             Vec3r& p_cur = ctx.particles.positions[indices[l_idx]];
@@ -38,7 +38,7 @@ int main()
             p_cur += dx.head<3>();
             q_cur = q_cur * Math::Exp_s3(dx.tail<3>());
 
-            Real E = Energy::CosseratRodEnergySolver::energy(e_idx, ctx.energies.cosserat_rod, ctx.particles, dt);
+            Real E = Energy::OneSidedFixedJointEnergySolver::energy(e_idx, ctx.energies.one_sided_fixed_joint, ctx.particles, dt);
 
             p_cur = p_orig;
             q_cur = q_orig;
@@ -50,9 +50,9 @@ int main()
         
         Vec6r G_orig = Vec6r::Zero();
         Mat6r H_orig = Mat6r::Zero();
-        Energy::CosseratRodEnergySolver::accumulate(
+        Energy::OneSidedFixedJointEnergySolver::accumulate(
             e_idx,
-            ctx.energies.cosserat_rod,
+            ctx.energies.one_sided_fixed_joint,
             ctx.particles,
             l_idx,
             H_orig,

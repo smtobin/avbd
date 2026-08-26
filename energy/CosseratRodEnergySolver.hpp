@@ -8,35 +8,6 @@
 namespace Energy
 {
 
-template<typename Func>
-Mat6r Hessian_FD(Func&& F)
-{
-    Mat6r H;
-    Vec6r ei, ej;
-    Real eps = 1e-6;
-    for (unsigned i = 0; i < 6; i++)
-    {
-        ei = Vec6r::Zero();
-        ei[i] = 1;
-        for (unsigned j = 0; j < 6; j++)
-        {
-            ej = Vec6r::Zero();
-            ej[j] = 1;
-
-            if (i == j)
-            {
-                H(i,i) = ( F(eps*ei) - 2*F(Vec6r::Zero()) + F(-eps*ei) ) / (eps*eps);
-            }
-            else
-            {
-                H(i,j) = ( F(eps*(ei + ej)) - F(eps*(ei - ej)) - F(eps*(-ei + ej)) + F(-eps*(ei + ej)) ) / (4*eps*eps);
-            }
-        }
-    }
-
-    return H;
-}
-
 /** Implements linear Cosserat rod finite-element energies */
 struct CosseratRodEnergySolver
 {
@@ -182,25 +153,6 @@ struct CosseratRodEnergySolver
 
         particle_G += rest_length * strain.transpose() * (stiffness.asDiagonal() * strain_grad);
         /** TODO: (08/23/26) Is Gauss-Newton approximation good enough? */
-        // particle_H += rest_length * strain_grad.transpose() * stiffness.asDiagonal() * strain_grad; // Gauss-Newton approximation - ignoring constraint Hessian term
-    
-        // auto F = [&](const Vec6r& dx) {
-        //     Vec3r& p_cur = particles.positions[indices[local_idx]];
-        //     Vec3r p_orig = p_cur;
-        //     Quaternion& q_cur = particles.rotation(indices[local_idx]);
-        //     Quaternion q_orig = q_cur;
-
-        //     p_cur += dx.head<3>();
-        //     q_cur = q_cur * Math::Exp_s3(dx.tail<3>());
-
-        //     Real E = Energy::CosseratRodEnergySolver::energy(e_idx, energies, particles, 0);
-
-        //     p_cur = p_orig;
-        //     q_cur = q_orig;
-
-        //     return E;
-        // };
-        // Mat6r hess_fd = Hessian_FD(F);
         Mat6r hess_an = rest_length * strain_grad.transpose() * stiffness.asDiagonal() * strain_grad;
         // std::cout << "Hess diff: \n" << hess_fd - hess_an << std::endl;
         particle_H += hess_an;

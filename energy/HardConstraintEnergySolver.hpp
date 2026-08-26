@@ -2,6 +2,8 @@
 
 #include "common/common.hpp"
 #include "energy/HardConstraintEnergyPool.hpp"
+#include "common/ParticlePool.hpp"
+
 
 namespace Energy
 {
@@ -10,6 +12,27 @@ template <typename EnergyPool, typename ConstraintSolver>
 struct HardConstraintEnergySolver
 {
     using Vec = VecNr<EnergyPool::Dim>;
+
+    /** Energy function */
+    static Real energy(
+        unsigned e_idx,
+        const EnergyPool& energies,
+        ParticlePool& particles,
+        Real /* dt */
+    )
+    {
+        // evaluate the constraint
+        Vec C = ConstraintSolver::evaluateConstraint(e_idx, energies, particles);
+        const Vec& k = energies.data[e_idx].k;
+        const Vec& lambda = energies.data[e_idx].lambda;
+
+        Real E = 0;
+        for (unsigned ci = 0; ci < EnergyPool::Dim; ci++)
+        {
+            E += 0.5 * k[ci] * C[ci] * C[ci] + lambda[ci] * C[ci];
+        }
+        return E;
+    }
 
     /** Updates the stiffness and Lagrange multiplier after the iteration
      * @param c_idx : the constraint index

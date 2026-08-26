@@ -25,18 +25,15 @@ Rod::Rod(Sim::SimulationContext* ctx, const Config::RodConfig& config)
     _nodes.resize(num_nodes);
 
     Vec3r cur_position = config.initialPosition();
-    std::cout << "initial rotation: " << config.initialRotation().transpose() << std::endl;
     Quaternion cur_rotation = Math::QuaternionFromXYZEulerAngles(config.initialRotation()); 
 
     Real ds = _length / (num_nodes - 1);
     Vec3r dR = _curvature * ds;
     for (int i = 0; i < num_nodes; i++)
     {
-        std::cout << "Cur rotation: " << cur_rotation << std::endl;
         _nodes[i] = _ctx->particles.addOrientedParticle(cur_position, cur_rotation, 0, Vec3r::Zero());
         _ctx->particles.velocities[_nodes[i]] = config.initialVelocity();
 
-        
         cur_position += cur_rotation * Vec3r(0, 0, ds);
         cur_rotation = cur_rotation * Math::Exp_s3(dR);
     }
@@ -59,12 +56,6 @@ Rod::Rod(Sim::SimulationContext* ctx, const Config::RodConfig& config)
         _ctx->particles.rotationalInertia(_nodes[e+1]) += 0.5 * total_element_rot_inertia;
     }
 
-    for (unsigned ni = 0; ni < _num_elements+1; ni++)
-    {
-        std::cout << "Mass " << ni << ": " << _ctx->particles.masses[_nodes[ni]] << std::endl;
-        std::cout << "Rot inertia " << ni << ": " << _ctx->particles.rotationalInertia(_nodes[ni]).transpose() << std::endl;
-    }
-
     // create Cosserat energies
     for (unsigned e = 0; e < _num_elements; e++)
     {
@@ -77,22 +68,22 @@ Rod::Rod(Sim::SimulationContext* ctx, const Config::RodConfig& config)
     }
 
     // add fixed constraints
-    if (config.baseFixed())
-    {
-        _ctx->particles.fixed[_nodes.front()] = true;
-    }
     // if (config.baseFixed())
     // {
-    //     _ctx->energies.one_sided_fixed_joint.addEnergy(
-    //         _nodes.front(),
-    //         Vec3r::Zero(),
-    //         Quaternion::Identity(),
-    //         _ctx->particles.positions[_nodes.front()],
-    //         _ctx->particles.rotation(_nodes.front())
-    //     );
-
-    //     std::cout << "Adding fixed base constraint!" << std::endl;
+    //     _ctx->particles.fixed[_nodes.front()] = true;
     // }
+    if (config.baseFixed())
+    {
+        _ctx->energies.one_sided_fixed_joint.addEnergy(
+            _nodes.front(),
+            Vec3r::Zero(),
+            Quaternion::Identity(),
+            _ctx->particles.positions[_nodes.front()],
+            _ctx->particles.rotation(_nodes.front())
+        );
+
+        std::cout << "Adding fixed base constraint!" << std::endl;
+    }
 
     // if (config.tipFixed())
     // {
