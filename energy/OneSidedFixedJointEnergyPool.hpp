@@ -24,7 +24,7 @@ struct OneSidedFixedJointEnergyPool : HardConstraintEnergyPool<OneSidedFixedJoin
     using SolverType = OneSidedFixedJointEnergySolver;     // solver class type
 
     explicit OneSidedFixedJointEnergyPool(unsigned capacity)
-        : HardConstraintEnergyPool<OneSidedFixedJointEnergyInfo, 6>(capacity, Vec6r::Constant(1))
+        : HardConstraintEnergyPool<OneSidedFixedJointEnergyInfo, 6>(capacity, Vec6r::Constant(1e4))
     {
 
     }

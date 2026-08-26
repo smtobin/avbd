@@ -68,22 +68,26 @@ Rod::Rod(Sim::SimulationContext* ctx, const Config::RodConfig& config)
     }
 
     // add fixed constraints
-    // if (config.baseFixed())
-    // {
-    //     _ctx->particles.fixed[_nodes.front()] = true;
-    // }
     if (config.baseFixed())
     {
-        _ctx->energies.one_sided_fixed_joint.addEnergy(
-            _nodes.front(),
-            Vec3r::Zero(),
-            Quaternion::Identity(),
-            _ctx->particles.positions[_nodes.front()],
-            _ctx->particles.rotation(_nodes.front())
-        );
-
-        std::cout << "Adding fixed base constraint!" << std::endl;
+        _ctx->particles.fixed[_nodes.front()] = true;
     }
+    if (config.tipFixed())
+    {
+        _ctx->particles.fixed[_nodes.back()] = true;
+    }
+    // if (config.baseFixed())
+    // {
+    //     _ctx->energies.one_sided_fixed_joint.addEnergy(
+    //         _nodes.front(),
+    //         Vec3r::Zero(),
+    //         Quaternion::Identity(),
+    //         _ctx->particles.positions[_nodes.front()],
+    //         _ctx->particles.rotation(_nodes.front())
+    //     );
+
+    //     std::cout << "Adding fixed base constraint!" << std::endl;
+    // }
 
     // if (config.tipFixed())
     // {
