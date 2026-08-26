@@ -8,7 +8,7 @@ namespace Energy
 struct CosseratRodEnergyInfo
 {
     Vec2u particle_indices;     // the indices of the oriented particles in the rod element
-    Vec6r stiffness;            // the diagonal of the body-frame stiffness matrix (GA, GA, EA, EI, EI, GJ)
+    Vec6r stiffness;            // the diagonal of the body-frame stiffness matrix (GA, GA, EA, EI, EI, GJ)     /** TODO: (08/25/26) Move this to rod collision geometry with radius? */
     Real rest_length;           // initial length of the element
     Vec3r precurvature;         // initial curvature of the element
 };

@@ -281,7 +281,7 @@ private:
     {
         if (_ctx->particles.fixed[p_idx])
             return;
-            
+
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
         Vec3r_or_Vec6r<DOF> grad = Vec3r_or_Vec6r<DOF>::Zero();
@@ -531,6 +531,11 @@ private:
 
     void _particleVelocityUpdate(unsigned p_idx, Real dt)
     {
+        Vec6r dx;
+        dx.head<3>() = _ctx->particles.positions[p_idx] - _ctx->particles.previous_positions[p_idx];
+        dx.tail<3>() = Math::Minus_S3(_ctx->particles.rotation(p_idx), _ctx->particles.previousRotation(p_idx));
+        std::cout << "Particle " << p_idx << " dx: " << dx.transpose() << std::endl;
+        
         _ctx->particles.previous_velocities[p_idx] = _ctx->particles.velocities[p_idx];
         _ctx->particles.velocities[p_idx] = 
             (_ctx->particles.positions[p_idx] - _ctx->particles.previous_positions[p_idx]) / dt;

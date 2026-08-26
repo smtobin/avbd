@@ -310,9 +310,9 @@ static Quaternion QuaternionFromXYZEulerAngles(const Vec3r& eul_xyz)
     Real cz = std::cos(z * 0.5);
     Real sz = std::sin(z * 0.5);
 
-    Quaternion qx(sx, 0, 0, cx);
-    Quaternion qy(0, sy, 0, cy);
-    Quaternion qz(0, 0, sz, cz);
+    Quaternion qx(cx, sx, 0, 0);
+    Quaternion qy(cy, 0, sy, 0);
+    Quaternion qz(cz, 0, 0, sz);
 
     return qz*qy*qx;
 }

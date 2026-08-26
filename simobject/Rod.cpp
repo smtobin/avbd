@@ -25,12 +25,14 @@ Rod::Rod(Sim::SimulationContext* ctx, const Config::RodConfig& config)
     _nodes.resize(num_nodes);
 
     Vec3r cur_position = config.initialPosition();
+    std::cout << "initial rotation: " << config.initialRotation().transpose() << std::endl;
     Quaternion cur_rotation = Math::QuaternionFromXYZEulerAngles(config.initialRotation()); 
 
     Real ds = _length / (num_nodes - 1);
     Vec3r dR = _curvature * ds;
     for (int i = 0; i < num_nodes; i++)
     {
+        std::cout << "Cur rotation: " << cur_rotation << std::endl;
         _nodes[i] = _ctx->particles.addOrientedParticle(cur_position, cur_rotation, 0, Vec3r::Zero());
         _ctx->particles.velocities[_nodes[i]] = config.initialVelocity();
 
@@ -42,6 +44,7 @@ Rod::Rod(Sim::SimulationContext* ctx, const Config::RodConfig& config)
     // compute cross section properties
     _area = M_PI * _radius * _radius;
     _Ix = M_PI * _radius * _radius * _radius * _radius / 4.0;
+    _Iy = _Ix;
     _Iz = 2*_Ix;
 
     // assign masses
@@ -51,7 +54,15 @@ Rod::Rod(Sim::SimulationContext* ctx, const Config::RodConfig& config)
     for (unsigned e = 0; e < _num_elements; e++)
     {
         _ctx->particles.masses[_nodes[e]] += 0.5 * total_element_mass;
+        _ctx->particles.masses[_nodes[e+1]] += 0.5 * total_element_mass;
+        _ctx->particles.rotationalInertia(_nodes[e]) += 0.5 * total_element_rot_inertia;
         _ctx->particles.rotationalInertia(_nodes[e+1]) += 0.5 * total_element_rot_inertia;
+    }
+
+    for (unsigned ni = 0; ni < _num_elements+1; ni++)
+    {
+        std::cout << "Mass " << ni << ": " << _ctx->particles.masses[_nodes[ni]] << std::endl;
+        std::cout << "Rot inertia " << ni << ": " << _ctx->particles.rotationalInertia(_nodes[ni]).transpose() << std::endl;
     }
 
     // create Cosserat energies

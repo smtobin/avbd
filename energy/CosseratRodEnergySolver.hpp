@@ -8,6 +8,35 @@
 namespace Energy
 {
 
+template<typename Func>
+Mat6r Hessian_FD(Func&& F)
+{
+    Mat6r H;
+    Vec6r ei, ej;
+    Real eps = 1e-6;
+    for (unsigned i = 0; i < 6; i++)
+    {
+        ei = Vec6r::Zero();
+        ei[i] = 1;
+        for (unsigned j = 0; j < 6; j++)
+        {
+            ej = Vec6r::Zero();
+            ej[j] = 1;
+
+            if (i == j)
+            {
+                H(i,i) = ( F(eps*ei) - 2*F(Vec6r::Zero()) + F(-eps*ei) ) / (eps*eps);
+            }
+            else
+            {
+                H(i,j) = ( F(eps*(ei + ej)) - F(eps*(ei - ej)) - F(eps*(-ei + ej)) + F(-eps*(ei + ej)) ) / (4*eps*eps);
+            }
+        }
+    }
+
+    return H;
+}
+
 /** Implements linear Cosserat rod finite-element energies */
 struct CosseratRodEnergySolver
 {
@@ -45,7 +74,7 @@ struct CosseratRodEnergySolver
         // bending strain
         strain.block<3,1>(3,0) = 1.0/rest_length * q_diff - precurvature;
 
-        return 0.5 * strain.transpose() * stiffness.asDiagonal() * strain;
+        return 0.5 * rest_length * strain.transpose() * stiffness.asDiagonal() * strain;
     }
 
     /** Required - does nothing */
@@ -96,18 +125,17 @@ struct CosseratRodEnergySolver
         const Vec3r& precurvature = info.precurvature;
         const Vec6r& stiffness = info.stiffness;
         Real s_hat = 0.5;
+        Real inv_length = 1.0/rest_length;
 
         Vec3r q_diff = Math::Minus_S3(q2, q1);
         Vec6r strain;
 
         // shear strain
         Quaternion q_mid = Math::Plus_S3(q1, s_hat * q_diff);
-        strain.block<3,1>(0,0) = 1/rest_length * (q_mid.conjugate() * (p2 - p1)) - Vec3r(0,0,1);
+        strain.block<3,1>(0,0) = inv_length * (q_mid.conjugate() * (p2 - p1)) - Vec3r(0,0,1);
 
         // bending strain
-        strain.block<3,1>(3,0) = 1.0/rest_length * q_diff - precurvature;
-
-        Real inv_length = 1.0/rest_length;
+        strain.block<3,1>(3,0) = inv_length * q_diff - precurvature;
 
         Mat3r gam_inv = Math::ExpMap_InvRightJacobian(q_diff);
 
@@ -145,9 +173,37 @@ struct CosseratRodEnergySolver
             strain_grad.block<3,3>(3,3) = dtheta_ds_dRi;
         }
 
-        particle_G += strain.transpose() * (stiffness.asDiagonal() * strain_grad);
+        std::cout << "\nParticle indices: " << indices.transpose() << ", local_idx=" << local_idx << std::endl;
+        std::cout << "q1: \n" << q1 << "\nq2: \n" << q2 << std::endl;
+        std::cout << "q_mid: \n" << q_mid << "\nR mid: \n" << R << std::endl;
+        std::cout << "Strain: " << strain.transpose() << std::endl;
+        std::cout << "Strain gradient: \n" << strain_grad << std::endl;
+        std::cout << "Stiffness: " << stiffness.transpose() << std::endl;
+
+        particle_G += rest_length * strain.transpose() * (stiffness.asDiagonal() * strain_grad);
         /** TODO: (08/23/26) Is Gauss-Newton approximation good enough? */
-        particle_H += strain_grad.transpose() * stiffness.asDiagonal() * strain_grad; // Gauss-Newton approximation - ignoring constraint Hessian term
+        // particle_H += rest_length * strain_grad.transpose() * stiffness.asDiagonal() * strain_grad; // Gauss-Newton approximation - ignoring constraint Hessian term
+    
+        auto F = [&](const Vec6r& dx) {
+            Vec3r& p_cur = particles.positions[indices[local_idx]];
+            Vec3r p_orig = p_cur;
+            Quaternion& q_cur = particles.rotation(indices[local_idx]);
+            Quaternion q_orig = q_cur;
+
+            p_cur += dx.head<3>();
+            q_cur = q_cur * Math::Exp_s3(dx.tail<3>());
+
+            Real E = Energy::CosseratRodEnergySolver::energy(e_idx, energies, particles, 0);
+
+            p_cur = p_orig;
+            q_cur = q_orig;
+
+            return E;
+        };
+        Mat6r hess_fd = Hessian_FD(F);
+        Mat6r hess_an = rest_length * strain_grad.transpose() * stiffness.asDiagonal() * strain_grad;
+        std::cout << "Hess diff: \n" << hess_fd - hess_an << std::endl;
+        particle_H += hess_fd;
     }
 
 
