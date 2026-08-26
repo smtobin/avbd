@@ -189,6 +189,11 @@ void CollisionDetector::_processPotentialCollision(Sim::SimulationContext& ctx, 
                 _triangleSphere(ctx, a, b, detected_collisions);
                 break;
             }
+            case _makeCollisionKey(CollisionGeometryType::Triangle, CollisionGeometryType::RodSegment):
+            {
+                _triangleRod(ctx, a, b, detected_collisions);
+                break;
+            }
             case _makeCollisionKey(CollisionGeometryType::RodSegment, CollisionGeometryType::RodSegment):
             {
                 _rodRod(ctx, a, b, detected_collisions);
@@ -413,9 +418,6 @@ void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCo
         }
         case DetectedCollisionType::TriangleRigid:
         {
-            /** TODO: (08/04/26) Update tangent and binormal vectors so that they are coherent with last frame.
-             * Update Lagrange multipliers in tangent and binormal directions so that total force stays the same.
-             */
             Energy::TriangleRigidCollisionEnergyInfo& info = ctx.energies.triangle_rigid_collision.data[collision.e_idx];
             info.cp_rb_local = collision.TriangleRigid.cp_rb_local;
             info.barys = collision.TriangleRigid.barys;
@@ -534,6 +536,38 @@ void CollisionDetector::_triangleTriangle(Sim::SimulationContext& ctx, unsigned 
     /** TODO: (07/20/26) triangle-triangle collision detection */
     // std::cout << "Testing triangle-triangle collision..." << std::endl;
     // throw std::runtime_error("Triangle-triangle collision detection not implemented.");
+}
+
+void CollisionDetector::_triangleRod(Sim::SimulationContext& ctx, unsigned triangle, unsigned rod, std::vector<DetectedCollision>& detected_collisions)
+{
+    const auto& triangle_idx = ctx.collision_pool.particle_indices[triangle];
+    const auto& segment_idx = ctx.collision_pool.particle_indices[rod];
+
+    unsigned sdf_idx = segment_idx[2];
+    unsigned rod_idx = ctx.collision_pool.sdf_pool.particles[sdf_idx];
+    const auto& rod_params = ctx.collision_pool.sdf_pool.params[sdf_idx];
+
+    // extract current triangle vertex positions
+    const Vec3r& v1 = ctx.particles.positions[triangle_idx[0]];
+    const Vec3r& v2 = ctx.particles.positions[triangle_idx[1]];
+    const Vec3r& v3 = ctx.particles.positions[triangle_idx[2]];
+
+    // extract current rod segment positions
+    const Vec3r& s1 = ctx.particles.positions[segment_idx[0]];
+    const Vec3r& s2 = ctx.particles.positions[segment_idx[1]];
+
+    Real radius = rod_params.rod.radius;
+
+    Real cp_s;
+    Vec3r cp_barys;
+    Real dist;
+    Math::closestPoint_SegmentTriangle(s1, s2, v1, v2, v3, cp_s, cp_barys, dist);
+
+    if (dist < radius + ctx.params.collision_margin)
+    {
+        std::cout << "Rod-triangle collision!" << std::endl;
+    }
+
 }
 
 void CollisionDetector::_rodRod(Sim::SimulationContext& ctx, unsigned rod1, unsigned rod2, std::vector<DetectedCollision>& detected_collisions)

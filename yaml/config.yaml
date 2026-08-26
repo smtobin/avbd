@@ -45,8 +45,20 @@ objects:
     color: [1.0, 0.5, 0]
 
   - 
-    type: "RigidSphere"
-    fixed: true
-    position: [0, 20, 0]
-    radius: 3
-    density: 10e-6 # kg / mm^3
+    type: "Rod"
+    name: "rod"
+    position: [0,20,0]
+    base-fixed: false
+    E: 5
+    nu: 0.4
+    diameter: 1
+    length: 10
+    density: 1e-6
+    elements: 5
+
+  # - 
+  #   type: "RigidSphere"
+  #   fixed: true
+  #   position: [0, 20, 0]
+  #   radius: 3
+  #   density: 10e-6 # kg / mm^3
