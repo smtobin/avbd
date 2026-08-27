@@ -3,8 +3,8 @@
 #include "simulation/SimulationContext.hpp"
 #include "common/WorkerThreadContext.hpp"
 
-#include "energy/TriangleRigidCollisionEnergySolver.hpp"
-#include "energy/TriangleRodCollisionEnergySolver.hpp"
+#include "energy/collision/TriangleRigidCollisionEnergySolver.hpp"
+#include "energy/collision/TriangleRodCollisionEnergySolver.hpp"
 
 #include "common/Math.hpp"
 #include "common/Algorithm.hpp"

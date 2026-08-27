@@ -1,6 +1,6 @@
 #pragma once
 
-#include "energy/CollisionConstraintEnergyPool.hpp"
+#include "energy/collision/CollisionConstraintEnergyPool.hpp"
 
 namespace Energy
 {

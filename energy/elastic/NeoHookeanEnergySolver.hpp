@@ -3,7 +3,7 @@
 #include "common/common.hpp"
 #include "common/AVX.hpp"
 #include "common/ParticlePool.hpp"
-#include "energy/NeoHookeanEnergyPool.hpp"
+#include "energy/elastic/NeoHookeanEnergyPool.hpp"
 
 namespace Energy
 {

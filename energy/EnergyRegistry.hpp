@@ -1,12 +1,12 @@
 #pragma once
 
-#include "energy/NeoHookeanEnergyPool.hpp"
-#include "energy/CosseratRodEnergyPool.hpp"
-#include "energy/GroundCollisionEnergyPool.hpp"
-#include "energy/RigidBodyGroundCollisionEnergyPool.hpp"
-#include "energy/TriangleRigidCollisionEnergyPool.hpp"
-#include "energy/TriangleRodCollisionEnergyPool.hpp"
-#include "energy/OneSidedFixedJointEnergyPool.hpp"
+#include "energy/elastic/NeoHookeanEnergyPool.hpp"
+#include "energy/elastic/CosseratRodEnergyPool.hpp"
+#include "energy/collision/GroundCollisionEnergyPool.hpp"
+#include "energy/collision/RigidBodyGroundCollisionEnergyPool.hpp"
+#include "energy/collision/TriangleRigidCollisionEnergyPool.hpp"
+#include "energy/collision/TriangleRodCollisionEnergyPool.hpp"
+#include "energy/joint/OneSidedFixedJointEnergyPool.hpp"
 
 namespace Energy
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "energy/OneSidedFixedJointEnergyPool.hpp"
+#include "energy/joint/OneSidedFixedJointEnergyPool.hpp"
 #include "energy/HardConstraintEnergySolver.hpp"
 
 #include "common/ParticlePool.hpp"

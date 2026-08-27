@@ -1,5 +1,5 @@
-#include "energy/CosseratRodEnergyPool.hpp"
-#include "energy/CosseratRodEnergySolver.hpp"
+#include "energy/elastic/CosseratRodEnergyPool.hpp"
+#include "energy/elastic/CosseratRodEnergySolver.hpp"
 
 #include "simulation/SimulationContext.hpp"
 #include "test/finite_difference.hpp"

@@ -1,4 +1,4 @@
-#include "energy/OneSidedFixedJointEnergySolver.hpp"
+#include "energy/joint/OneSidedFixedJointEnergySolver.hpp"
 
 #include "simulation/SimulationContext.hpp"
 #include "test/finite_difference.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "energy/GroundCollisionEnergyPool.hpp"
-#include "energy/CollisionConstraintEnergySolver.hpp"
+#include "energy/collision/GroundCollisionEnergyPool.hpp"
+#include "energy/collision/CollisionConstraintEnergySolver.hpp"
 
 namespace Energy
 {

@@ -5,13 +5,13 @@
 #include "common/EnergyUtils.hpp"
 #include "simulation/SimulationContext.hpp"
 
-#include "energy/NeoHookeanEnergySolver.hpp"
-#include "energy/CosseratRodEnergySolver.hpp"
-#include "energy/GroundCollisionEnergySolver.hpp"
-#include "energy/RigidBodyGroundCollisionEnergySolver.hpp"
-#include "energy/TriangleRigidCollisionEnergySolver.hpp"
-#include "energy/TriangleRodCollisionEnergySolver.hpp"
-#include "energy/OneSidedFixedJointEnergySolver.hpp"
+#include "energy/elastic/NeoHookeanEnergySolver.hpp"
+#include "energy/elastic/CosseratRodEnergySolver.hpp"
+#include "energy/collision/GroundCollisionEnergySolver.hpp"
+#include "energy/collision/RigidBodyGroundCollisionEnergySolver.hpp"
+#include "energy/collision/TriangleRigidCollisionEnergySolver.hpp"
+#include "energy/collision/TriangleRodCollisionEnergySolver.hpp"
+#include "energy/joint/OneSidedFixedJointEnergySolver.hpp"
 
 #include <chrono>
 #include <thread>

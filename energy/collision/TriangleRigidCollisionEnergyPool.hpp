@@ -1,49 +1,49 @@
 #pragma once
 
-#include "energy/CollisionConstraintEnergyPool.hpp"
+// #include "energy/HardConstraintEnergyPool.hpp"
+#include "energy/collision/CollisionConstraintEnergyPool.hpp"
 #include "collision/SDF.hpp"
 
 namespace Energy
 {
 
-struct TriangleRodCollisionEnergyInfo : CollisionConstraintEnergyInfo
+struct TriangleRigidCollisionEnergyInfo : CollisionConstraintEnergyInfo
 {
-    Vec5u particle_indices;     // particle indices - first 3 indices are the triangle vertices, last 2 indices make up the rod segment
+    Vec4u particle_indices;     // particle indices - first 3 indices are the triangle vertices, last index is the rigid body
+    Collision::SDFShapeParams* sdf_params;  // pointer to SDF parameters - will be used to reevaluate the constraint
     Vec3r barys;    // barycentric coordinates of the contact point on the face
-    Real s;  // location of contact point along rod segment (in the interval [0,1])
-    Vec3r cp_rod_local; // local contact point in the rod interpolated frame
+    Vec3r cp_rb_local;  // contact point on the rigid body, in the rigid body's local frame
 };
 
-struct TriangleRodCollisionEnergyPool : CollisionConstraintEnergyPool<TriangleRodCollisionEnergyInfo>
+struct TriangleRigidCollisionEnergyPool : CollisionConstraintEnergyPool<TriangleRigidCollisionEnergyInfo>
 {
-    static constexpr int NumParticlesPerEnergy = 5;
-    static constexpr EnergyType Type = EnergyType::TRIANGLE_ROD_COLLISION;
-    static constexpr DynamicEnergyType DynamicType = DynamicEnergyType::TRIANGLE_ROD_COLLISION;
-    using SolverType = TriangleRodCollisionEnergySolver;
+    static constexpr int NumParticlesPerEnergy = 4;
+    static constexpr EnergyType Type = EnergyType::TRIANGLE_RIGID_COLLISION;
+    static constexpr DynamicEnergyType DynamicType = DynamicEnergyType::TRIANGLE_RIGID_COLLISION;
+    using SolverType = TriangleRigidCollisionEnergySolver;
 
-    explicit TriangleRodCollisionEnergyPool(unsigned capacity)
+    explicit TriangleRigidCollisionEnergyPool(unsigned capacity)
         : CollisionConstraintEnergyPool(capacity)
     {
     }
 
     /** Add an energy
      * @param p_idx1, p_idx2, p_idx3 the particle indices of the triangle face
-     * @param s_idx1, s_idx2 the particle indices of the rod segment
+     * @param op_idx the particle index of the rigid body
      * @param sdf_params a pointer to the SDF parameters for the rigid body
      */
     unsigned addEnergy(
         unsigned p_idx1, 
         unsigned p_idx2, 
         unsigned p_idx3, 
-        unsigned s_idx1,
-        unsigned s_idx2, 
+        unsigned op_idx, 
+        Collision::SDFShapeParams* sdf_params,
         const Vec3r& normal,
         const Vec3r& tangent,
         const Vec3r& binormal,
         const Vec3r& barys,
-        Real s,
-        const Vec3r& cp_rod_local,
-        Real k_start,
+        const Vec3r& cp_rb_local,
+        Real k_start, 
         Real mu_s,
         Real mu_k
     )
@@ -54,14 +54,13 @@ struct TriangleRodCollisionEnergyPool : CollisionConstraintEnergyPool<TriangleRo
         data[slot].particle_indices[0] = p_idx1;
         data[slot].particle_indices[1] = p_idx2;
         data[slot].particle_indices[2] = p_idx3;
-        data[slot].particle_indices[3] = s_idx1;
-        data[slot].particle_indices[4] = s_idx2;
+        data[slot].particle_indices[3] = op_idx;
+        data[slot].sdf_params = sdf_params;
         data[slot].normal = normal;
         data[slot].tangent = tangent;
         data[slot].binormal = binormal;
         data[slot].barys = barys;
-        data[slot].s = s;
-        data[slot].cp_rod_local = cp_rod_local;
+        data[slot].cp_rb_local = cp_rb_local;
 
         return slot;
     }

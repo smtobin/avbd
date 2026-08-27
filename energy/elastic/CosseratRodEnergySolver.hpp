@@ -3,7 +3,7 @@
 #include "common/common.hpp"
 #include "common/ParticlePool.hpp"
 #include "common/Math.hpp"
-#include "energy/CosseratRodEnergyPool.hpp"
+#include "energy/elastic/CosseratRodEnergyPool.hpp"
 
 namespace Energy
 {
