@@ -233,17 +233,17 @@ struct CollisionConstraintEnergySolver
         /** TODO: (08/04/26) After we've clamped the lambdas, these will always be false...? */
         // stiffness rescaling for normal - equation (14)
         Real k_scaled_n = k_n;
-        if (lambda_n_plus_unclamped < 0 && std::abs(C_n) > 1e-12)
-            k_scaled_n =  std::abs(-lambda_n / C_n);
+        // if (lambda_n_plus_unclamped < 0 && std::abs(C_n) > 1e-12)
+        //     k_scaled_n =  std::abs(-lambda_n / C_n);
         
         // stiffness rescling for tangent and binormal - equation (14)
         Vec2r k_scaled_tb(k_t, k_b);
-        Vec2r C_tb(C_t, C_b);
-        Vec2r lambda_tb(lambda_t, lambda_b);
-        if (lambda_tb_plus_mag > lambda_tb_max && C_tb.norm() > 1e-12)
-        {
-            k_scaled_tb = k_scaled_tb / k_scaled_tb.norm() * std::abs(lambda_tb_max - lambda_tb.norm()) / C_tb.norm();
-        }
+        // Vec2r C_tb(C_t, C_b);
+        // Vec2r lambda_tb(lambda_t, lambda_b);
+        // if (lambda_tb_plus_mag > lambda_tb_max && C_tb.norm() > 1e-12)
+        // {
+        //     k_scaled_tb = k_scaled_tb / k_scaled_tb.norm() * std::abs(lambda_tb_max - lambda_tb.norm()) / C_tb.norm();
+        // }
         // gradient
         Vec3r_or_Vec6r<DOF> grad_n = lambda_n_plus * C_grad_n;
         Vec3r_or_Vec6r<DOF> grad_t = lambda_tb_plus[0] * C_grad_t;

@@ -20,7 +20,7 @@ struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollision
     using SolverType = GroundCollisionEnergySolver;     // solver class type
 
     explicit GroundCollisionEnergyPool(unsigned capacity)
-        : CollisionConstraintEnergyPool(capacity, 1e2)
+        : CollisionConstraintEnergyPool(capacity, 0.1)
     {
 
     }

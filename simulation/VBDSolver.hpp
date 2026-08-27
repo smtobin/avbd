@@ -495,8 +495,11 @@ private:
             Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
             Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
 
-            // Vec3r dx = LHS.partialPivLu().solve(RHS);
-            Vec3r dx = LHS.inverse() * RHS;
+            
+
+            Vec3r dx = LHS.partialPivLu().solve(RHS);
+            // std::cout << "Particle " << p_idx << ": " << "\n  LHS:\n" << LHS << "\n  RHS: " << RHS.transpose() << "\n  dx: " << dx.transpose() << std::endl;
+            // Vec3r dx = LHS.inverse() * RHS;
 
             // std::cout << "dx: " << dx.transpose() << std::endl;
 
