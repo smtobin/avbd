@@ -23,7 +23,7 @@ struct TriangleRigidCollisionEnergyPool : CollisionConstraintEnergyPool<Triangle
     using SolverType = TriangleRigidCollisionEnergySolver;
 
     explicit TriangleRigidCollisionEnergyPool(unsigned capacity)
-        : CollisionConstraintEnergyPool(capacity, 1e2)
+        : CollisionConstraintEnergyPool(capacity)
     {
     }
 
@@ -43,12 +43,13 @@ struct TriangleRigidCollisionEnergyPool : CollisionConstraintEnergyPool<Triangle
         const Vec3r& binormal,
         const Vec3r& barys,
         const Vec3r& cp_rb_local,
+        Real k_start, 
         Real mu_s,
         Real mu_k
     )
     {
         // parent will call allocSlot()
-        unsigned slot = CollisionConstraintEnergyPool::addEnergy(mu_s, mu_k);
+        unsigned slot = CollisionConstraintEnergyPool::addEnergy(k_start, mu_s, mu_k);
 
         data[slot].particle_indices[0] = p_idx1;
         data[slot].particle_indices[1] = p_idx2;

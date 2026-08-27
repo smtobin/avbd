@@ -8,6 +8,7 @@ namespace Energy
 
 struct CollisionConstraintEnergyInfo
 {
+    Real k_start;                        // initial finite stiffness - this should scale depending on the inertia of the particle(s) affected
     Real k_n; Real k_t; Real k_b;        // the finite stiffnesses of the quadratic energy (one for each direction of the collision basis)
     Real lambda_n; Real lambda_t; Real lambda_b;   // the Lagrange multipliers enforcing the constraints (normal, tangent, binormal)
     Real C_n_prev;   // the constraint violation at the end of the previous time step (just for the normal direction)
@@ -32,22 +33,19 @@ struct CollisionConstraintEnergyInfo
 template <typename CollisionEnergyInfo>
 struct CollisionConstraintEnergyPool : TombstonePool
 {
-    Real k_start;
     std::vector<CollisionEnergyInfo> data;
 
     explicit CollisionConstraintEnergyPool(
-        unsigned capacity,
-        Real k_start_
+        unsigned capacity
     )
         : TombstonePool(capacity)
-        , k_start(k_start_)
         , data(capacity)
     {}
 
     /** Add an energy
      * @returns the index of the new energy in the pool
      */
-    unsigned addEnergy(Real mu_s, Real mu_k)
+    unsigned addEnergy(Real k_start, Real mu_s, Real mu_k)
     {
         unsigned slot = allocSlot();
 
@@ -55,6 +53,7 @@ struct CollisionConstraintEnergyPool : TombstonePool
         data[slot].lambda_n = 0;
         data[slot].lambda_t = 0;
         data[slot].lambda_b = 0;
+        data[slot].k_start = k_start;
         data[slot].k_n = k_start;
         data[slot].k_t = k_start;
         data[slot].k_b = k_start;

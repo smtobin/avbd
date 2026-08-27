@@ -343,6 +343,16 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
         case DetectedCollisionType::TriangleRigid:
         {
             /** TODO: (08/05/26) set coefficients of friction based on material properties */
+
+            // set starting collision stiffness based on minimum particle mass involved
+            Real min_mass = std::min({
+                ctx.particles.masses[collision.TriangleRigid.tri[0]],
+                ctx.particles.masses[collision.TriangleRigid.tri[1]],
+                ctx.particles.masses[collision.TriangleRigid.tri[2]],
+                ctx.particles.masses[collision.TriangleRigid.rb]
+            });
+            Real k_start = min_mass / (ctx.params.dt * ctx.params.dt);
+
             Vec3r t, b;
             Math::completeOrthonormalBasisGivenNormal(collision.normal, t, b);
             unsigned slot = ctx.energies.triangle_rigid_collision.addEnergy(
@@ -356,6 +366,7 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
                 b,
                 collision.TriangleRigid.barys,
                 collision.TriangleRigid.cp_rb_local,
+                k_start,
                 0.4, 
                 0.2
             );
@@ -371,6 +382,17 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
         case DetectedCollisionType::TriangleRod:
         {
             /** TODO: (08/26/26) set coefficients of friction based on material properties */
+
+            // set starting collision stiffness based on minimum particle mass involved
+            Real min_mass = std::min({
+                ctx.particles.masses[collision.TriangleRod.tri[0]],
+                ctx.particles.masses[collision.TriangleRod.tri[1]],
+                ctx.particles.masses[collision.TriangleRod.tri[2]],
+                ctx.particles.masses[collision.TriangleRod.rod[0]],
+                ctx.particles.masses[collision.TriangleRod.rod[1]]
+            });
+            Real k_start = min_mass / (ctx.params.dt * ctx.params.dt);
+
             Vec3r t, b;
             Math::completeOrthonormalBasisGivenNormal(collision.normal, t, b);
             unsigned slot = ctx.energies.triangle_rod_collision.addEnergy(
@@ -385,6 +407,7 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
                 collision.TriangleRod.barys,
                 collision.TriangleRod.s,
                 collision.TriangleRod.cp_rod_local,
+                k_start,
                 0.4, 
                 0.2
             );

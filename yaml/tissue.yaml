@@ -44,17 +44,17 @@ objects:
     draw-faces: True
     color: [1.0, 0.5, 0]
 
-  # - 
-  #   type: "Rod"
-  #   name: "rod"
-  #   position: [0,20,0]
-  #   base-fixed: false
-  #   E: 50
-  #   nu: 0.4
-  #   diameter: 1
-  #   length: 10
-  #   density: 1e-5
-  #   elements: 20
+  - 
+    type: "Rod"
+    name: "rod"
+    position: [0,20,0]
+    base-fixed: false
+    E: 50
+    nu: 0.4
+    diameter: 1
+    length: 10
+    density: 1e-6
+    elements: 20
 
   # - 
   #   type: "RigidSphere"

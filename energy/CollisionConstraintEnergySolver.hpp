@@ -161,9 +161,9 @@ struct CollisionConstraintEnergySolver
         energies.data[c_idx].lambda_n *= CONSTRAINT_ALPHA * STIFFNESS_GAMMA;
         energies.data[c_idx].lambda_t *= STIFFNESS_GAMMA;
         energies.data[c_idx].lambda_b *= STIFFNESS_GAMMA;
-        energies.data[c_idx].k_n = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_n, energies.k_start);
-        energies.data[c_idx].k_t = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_t, energies.k_start);
-        energies.data[c_idx].k_b = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_b, energies.k_start);
+        energies.data[c_idx].k_n = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_n, energies.data[c_idx].k_start);
+        energies.data[c_idx].k_t = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_t, energies.data[c_idx].k_start);
+        energies.data[c_idx].k_b = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_b, energies.data[c_idx].k_start);
     }
 
     /** Computes the Hessian and gradient for a specified particle affected by this energy.

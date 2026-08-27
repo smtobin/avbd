@@ -107,8 +107,10 @@ class Simulation
     void _addGroundCollisionConstraintsForObject(const SimObject::RigidSphere& sphere)
     {
         /** TODO: (08/10/26) set coefficients of friction based on material properties */
+        // initial energy stiffness should depend on the particle inertia
+        Real k_start = _ctx.particles.masses[sphere.com()] / (_ctx.params.dt * _ctx.params.dt);
         unsigned sdf_index = _ctx.collision_pool.particle_indices[sphere.collisionPrimitiveIndex()][0];
-        _ctx.energies.rigid_body_ground_collision.addEnergy(sphere.com(), sdf_index, Vec3r(0, -sphere.radius(), 0), 0.5, 0.2);
+        _ctx.energies.rigid_body_ground_collision.addEnergy(sphere.com(), sdf_index, Vec3r(0, -sphere.radius(), 0), k_start, 0.5, 0.2);
     }
 
     void _addGroundCollisionConstraintsForObject(const SimObject::TetMeshObject& tet_mesh_obj)
@@ -117,7 +119,8 @@ class Simulation
         /** TODO: (08/05/26) set coefficients of friction based on material properties */
         for (auto& v_idx : tet_mesh_obj.mesh().vertices())
         {
-            _ctx.energies.ground_collision.addEnergy(v_idx, 0.4, 0.2);
+            Real k_start = _ctx.particles.masses[v_idx] / (_ctx.params.dt * _ctx.params.dt);
+            _ctx.energies.ground_collision.addEnergy(v_idx, k_start, 0.4, 0.2);
         }
     }
 

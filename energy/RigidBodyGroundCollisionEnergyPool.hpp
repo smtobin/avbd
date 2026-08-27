@@ -22,7 +22,7 @@ struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidB
     using SolverType = RigidBodyGroundCollisionEnergySolver;     // solver class type
 
     explicit RigidBodyGroundCollisionEnergyPool(unsigned capacity)
-        : CollisionConstraintEnergyPool(capacity, 1e2)
+        : CollisionConstraintEnergyPool(capacity)
     {
 
     }
@@ -33,10 +33,10 @@ struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidB
      * @param cp_rb_local : the initial body-frame vector to the contact point on the rigid body
      * @returns the index of the new energy in the pool
      */
-    unsigned addEnergy(unsigned particle_index, unsigned sdf_index, const Vec3r& cp_rb_local, Real mu_s, Real mu_k)
+    unsigned addEnergy(unsigned particle_index, unsigned sdf_index, const Vec3r& cp_rb_local, Real k_start, Real mu_s, Real mu_k)
     {
         // parent will call allocSlot()
-        unsigned slot = CollisionConstraintEnergyPool::addEnergy(mu_s, mu_k);
+        unsigned slot = CollisionConstraintEnergyPool::addEnergy(k_start, mu_s, mu_k);
 
         // particle_indices[slot][0] = particle_index;
         data[slot].particle_indices[0] = particle_index;
