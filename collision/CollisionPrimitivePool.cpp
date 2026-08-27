@@ -23,7 +23,7 @@ void CollisionPrimitivePool::addObject(const SimObject::TetMeshObject& mesh_obj)
     }
 }
 
-void CollisionPrimitivePool::addObject(const SimObject::Rod& rod)
+unsigned CollisionPrimitivePool::addObject(const SimObject::Rod& rod)
 {
     // create an entry in the SDFPrimitivePool to store the rod parameters required for collision
     unsigned sdf_slot = sdf_pool.addObject(rod);
@@ -41,6 +41,8 @@ void CollisionPrimitivePool::addObject(const SimObject::Rod& rod)
         num_particles[slot] = 2;
         object_id[slot] = rod.id();
     }
+
+    return sdf_slot;
 }
 
 unsigned CollisionPrimitivePool::addObject(const SimObject::RigidSphere& sphere)

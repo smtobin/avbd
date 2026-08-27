@@ -187,6 +187,9 @@ struct CollisionConstraintEnergySolver
         Real dt
     )
     {
+        // if constexpr (std::is_same_v<CollisionEnergyPool, RigidBodyGroundCollisionEnergyPool>)
+        //     std::cout << "CollisionConstraint accumulate - e_idx=" << e_idx << std::endl;
+        
         // evaluate the constraint, gradients, and Hessians for the constraint for each particle involved
         Real C_n, C_t, C_b;
         Vec3r_or_Vec6r<DOF> C_grad_n, C_grad_t, C_grad_b;
@@ -216,6 +219,13 @@ struct CollisionConstraintEnergySolver
         // Lagrange multiplier for normal
         Real lambda_n_plus_unclamped = k_n * C_corr_n + lambda_n;
         Real lambda_n_plus = std::max(Real(0), lambda_n_plus_unclamped);
+
+        // if constexpr (std::is_same_v<CollisionEnergyPool, RigidBodyGroundCollisionEnergyPool>)
+        // {
+        //     std::cout << "C_corr_n: " << C_corr_n << std::endl;
+        //     std::cout << "k_n: " << k_n << std::endl;
+        //     std::cout << "lambda_n: " << lambda_n << " lambda_n_plus: " << lambda_n_plus << std::endl;
+        // }
 
         // Lagrange multipliers for tangent and binormal
         Vec2r lambda_tb_plus(k_t*C_t + lambda_t, k_b*C_b + lambda_b);
@@ -248,6 +258,11 @@ struct CollisionConstraintEnergySolver
         Vec3r_or_Vec6r<DOF> grad_n = lambda_n_plus * C_grad_n;
         Vec3r_or_Vec6r<DOF> grad_t = lambda_tb_plus[0] * C_grad_t;
         Vec3r_or_Vec6r<DOF> grad_b = lambda_tb_plus[1] * C_grad_b;
+
+        // if constexpr (std::is_same_v<CollisionEnergyPool, RigidBodyGroundCollisionEnergyPool>)
+        // {
+        //     std::cout << "grad_n: " << grad_n.transpose() << std::endl;
+        // }
 
             // Hessian
             /** TODO: do diagonalization of Hessian component

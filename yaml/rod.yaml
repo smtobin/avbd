@@ -21,14 +21,17 @@ create-skybox: True
 hdr-scaling: 0.3
 fancy-graphics: false
 
-ground-plane: False
+ground-plane: True
 
 objects:
   - 
     type: "Rod"
     name: "rod"
-    base-fixed: true
-    E: 5e8
+    position: [0, 0.5, 0]
+    rotation: [0, 0, 0]
+    velocity: [0, 0, 1]
+    base-fixed: false
+    E: 5e6
     nu: 0.4
     diameter: 0.1
     length: 1

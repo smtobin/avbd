@@ -56,6 +56,11 @@ Rod::Rod(Sim::SimulationContext* ctx, const Config::RodConfig& config)
         _ctx->particles.rotationalInertia(_nodes[e+1]) += 0.5 * total_element_rot_inertia;
     }
 
+    for (unsigned i = 0; i < _nodes.size(); i++)
+    {
+        std::cout << "Particle " << i << " gravity force: " << _ctx->params.g_accel * _ctx->particles.masses[_nodes[i]] << std::endl;
+    }
+
     // create Cosserat energies
     for (unsigned e = 0; e < _num_elements; e++)
     {

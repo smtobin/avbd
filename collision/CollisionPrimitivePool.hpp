@@ -238,7 +238,9 @@ struct CollisionPrimitivePool : TombstonePool
      */
     void addObject(const SimObject::TetMeshObject& mesh_obj);
     unsigned addObject(const SimObject::RigidSphere& sphere);
-    void addObject(const SimObject::Rod& rod);
+
+    /** @returns the index in the SDF pool */
+    unsigned addObject(const SimObject::Rod& rod);
 };
 
 } // namespace Collision

@@ -47,6 +47,7 @@ public:
 
     void solve_Parallel(WorkerThreadContext& w_ctx)
     {   
+        // std::cout << "\n\n=== Time step ===" << std::endl;
         Vec3r a_grav(0, -_ctx->params.g_accel, 0);
         Real dt = _ctx->params.dt;
 

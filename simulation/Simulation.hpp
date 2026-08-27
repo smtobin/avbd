@@ -95,7 +95,9 @@ class Simulation
         ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
         new_obj_ptr->setup();
 
-        _ctx.collision_pool.addObject(*new_obj_ptr);
+        unsigned sdf_slot = _ctx.collision_pool.addObject(*new_obj_ptr);
+        new_obj_ptr->setSdfIndex(sdf_slot);
+
         _addGroundCollisionConstraintsForObject(*new_obj_ptr);
 
         _graphics_scene.addObject(new_obj_ptr.get(), obj_config.renderConfig());
@@ -120,6 +122,7 @@ class Simulation
         for (auto& v_idx : tet_mesh_obj.mesh().vertices())
         {
             Real k_start = _ctx.particles.masses[v_idx] / (_ctx.params.dt * _ctx.params.dt);
+            std::cout << "k start: " << k_start << std::endl;
             _ctx.energies.ground_collision.addEnergy(v_idx, k_start, 0.4, 0.2);
         }
     }
@@ -127,6 +130,12 @@ class Simulation
     void _addGroundCollisionConstraintsForObject(const SimObject::Rod& rod)
     {
         /** TODO: (08/24/26) Add ground collision constraints for rods. */
+        for (unsigned n_idx : rod.nodes())
+        {
+            Real k_start = _ctx.particles.masses[n_idx] / (_ctx.params.dt * _ctx.params.dt);
+            _ctx.energies.rigid_body_ground_collision.addEnergy(n_idx, rod.sdfIndex(), Vec3r(0, -rod.radius(), 0), k_start, 0.5, 0.2);
+        }
+        
     }
 
     void _timeStep();
