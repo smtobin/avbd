@@ -40,9 +40,6 @@ struct GroundCollisionConstraintSolver
         C_t = particles.positions[p_idx][0] - energies.data[c_idx].cp_x;
         C_b = particles.positions[p_idx][2] - energies.data[c_idx].cp_z;
 
-        // if (C > 0)
-        //     particles.in_collision[p_idx] = true;
-
 
         if constexpr (DOF == 6)
         {

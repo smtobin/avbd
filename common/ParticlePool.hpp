@@ -84,10 +84,7 @@ struct ParticlePool : TombstonePool
     std::vector<Vec3r> velocities;                  // particle velocities
     std::vector<Vec3r> previous_velocities;         // particle previous velocities
     std::vector<Real> masses;                       // particle masses
-    std::vector<uint8_t> in_collision;              // whether or not particles are in collision - use uint8 instead of bool to avoid parallel writes to the same byte 
     std::vector<uint8_t> fixed;                     // whether or not the particle is fixed
-
-    /** TODO: (07/22/26) How to unset in_collision? How does a particle know if it is no longer in collision? */
 
     std::vector<unsigned> rotation_idx;             // index of the particle in the rotation pool. UINT_MAX if not oriented
     RotationPool rotation_pool;
@@ -106,7 +103,6 @@ struct ParticlePool : TombstonePool
         , velocities(capacity)
         , previous_velocities(capacity)
         , masses(capacity)
-        , in_collision(capacity)
         , fixed(capacity)
         , rotation_idx(capacity)
         , rotation_pool(oriented_capacity)
@@ -233,9 +229,6 @@ struct ParticlePool : TombstonePool
         // initialize velocities
         velocities[slot] = Vec3r::Zero();
         previous_velocities[slot] = Vec3r::Zero();
-
-        // assume particle is not initially in collision
-        in_collision[slot] = 0;
 
         // assume particle is not fixed
         fixed[slot] = false;

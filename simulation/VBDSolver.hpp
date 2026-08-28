@@ -242,9 +242,6 @@ private:
         // move particle to its initialized position
         p += dt*v + dt*dt*a_tilde_vec;
 
-        // mark particle as not in collision at the beginning of the time step
-        _ctx->particles.in_collision[p_idx] = false;
-
         // initialize the previous iteration positions
         _ctx->particles.last_iter_positions[p_idx] = _ctx->particles.positions[p_idx];
         _ctx->particles.last_last_iter_positions[p_idx] = _ctx->particles.positions[p_idx];
@@ -515,20 +512,17 @@ private:
 
     void _particleChebyshevAcceleration(unsigned p_idx, Real omega)
     {
-        // only do Chebyshev acceleration for particles not in collision
-        if (!_ctx->particles.in_collision[p_idx])
+        _ctx->particles.positions[p_idx] =
+            omega * (_ctx->particles.positions[p_idx] - _ctx->particles.last_last_iter_positions[p_idx]) + _ctx->particles.last_last_iter_positions[p_idx];
+
+        if (_ctx->particles.isOriented(p_idx))
         {
-            _ctx->particles.positions[p_idx] =
-                omega * (_ctx->particles.positions[p_idx] - _ctx->particles.last_last_iter_positions[p_idx]) + _ctx->particles.last_last_iter_positions[p_idx];
+            Quaternion& q = _ctx->particles.rotation(p_idx);
+            const Quaternion& last_last_q = _ctx->particles.lastLastIterRotation(p_idx);
 
-            if (_ctx->particles.isOriented(p_idx))
-            {
-                Quaternion& q = _ctx->particles.rotation(p_idx);
-                const Quaternion& last_last_q = _ctx->particles.lastLastIterRotation(p_idx);
-
-                q = Math::Plus_S3(last_last_q, omega * Math::Minus_S3(q, last_last_q));
-            }
+            q = Math::Plus_S3(last_last_q, omega * Math::Minus_S3(q, last_last_q));
         }
+        
 
         // update the previous iteration positions
         _ctx->particles.last_last_iter_positions[p_idx] = _ctx->particles.last_iter_positions[p_idx];
