@@ -81,8 +81,7 @@ struct GroundCollisionEnergySolver
     static void updateContactPoints(
         unsigned c_idx,
         GroundCollisionEnergyPool& energies,
-        ParticlePool& particles,
-        Collision::SDFPrimitivePool& /* sdf_pool */
+        ParticlePool& particles
     )
     {
         // update the contact point
