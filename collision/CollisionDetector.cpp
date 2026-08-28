@@ -508,18 +508,6 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
 
     unsigned sdf_idx = ctx.collision_pool.particle_indices[sphere][0];
     unsigned sphere_idx = ctx.collision_pool.sdf_pool.particles[sdf_idx];
-    const auto& sphere_params = ctx.collision_pool.sdf_pool.params[sdf_idx];
-
-    // extract current triangle vertex positions
-    const Vec3r& v1 = ctx.particles.positions[triangle_idx[0]];
-    const Vec3r& v2 = ctx.particles.positions[triangle_idx[1]];
-    const Vec3r& v3 = ctx.particles.positions[triangle_idx[2]];
-
-    // extract current sphere center
-    const Vec3r& p = ctx.particles.positions[sphere_idx];
-
-    // closest point on triangle to sphere center
-    Vec3r tri_cp = Math::closestPoint_PointTriangle(p, v1, v2, v3);
 
     Vec3r normal, cp_barys, cp_rb_local;
     if (_triangleSDF_CCD(ctx, triangle, sphere, ctx.params.dt, normal, cp_barys, cp_rb_local))
@@ -599,7 +587,12 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
 
 }
 
-void CollisionDetector::_triangleTriangle(Sim::SimulationContext& ctx, unsigned triangle1, unsigned triangle2, std::vector<DetectedCollision>& detected_collisions)
+void CollisionDetector::_triangleTriangle(
+    Sim::SimulationContext& /* ctx */, 
+    unsigned /* triangle1 */, 
+    unsigned /* triangle2 */, 
+    std::vector<DetectedCollision>& /* detected_collisions */
+)
 {
     /** TODO: (07/20/26) triangle-triangle collision detection */
     // std::cout << "Testing triangle-triangle collision..." << std::endl;
@@ -612,7 +605,6 @@ void CollisionDetector::_triangleRod(Sim::SimulationContext& ctx, unsigned trian
     const auto& segment_idx = ctx.collision_pool.particle_indices[rod];
 
     unsigned sdf_idx = segment_idx[2];
-    unsigned rod_idx = ctx.collision_pool.sdf_pool.particles[sdf_idx];
     const auto& rod_params = ctx.collision_pool.sdf_pool.params[sdf_idx];
 
     // extract current triangle vertex positions
@@ -645,7 +637,6 @@ void CollisionDetector::_triangleRod(Sim::SimulationContext& ctx, unsigned trian
         else
             normal = Vec3r(1,0,0);
 
-        Vec3r cp_rod_global = cp_rod_centerline + normal*radius;
         const Quaternion& q1 = ctx.particles.rotation(segment_idx[0]);
         const Quaternion& q2 = ctx.particles.rotation(segment_idx[1]);
         Quaternion q_mid = Math::Plus_S3(q1, cp_s*Math::Minus_S3(q2, q1));
@@ -675,12 +666,22 @@ void CollisionDetector::_triangleRod(Sim::SimulationContext& ctx, unsigned trian
 
 }
 
-void CollisionDetector::_rodRod(Sim::SimulationContext& ctx, unsigned rod1, unsigned rod2, std::vector<DetectedCollision>& detected_collisions)
+void CollisionDetector::_rodRod(
+    Sim::SimulationContext& /* ctx */,
+    unsigned /* rod1 */,
+    unsigned /* rod2 */,
+    std::vector<DetectedCollision>& /* detected_collisions */
+)
 {
     /** TODO: (08/24/26) rod-rod collision detection */
 }
 
-void CollisionDetector::_sphereSphere(Sim::SimulationContext& ctx, unsigned sphere1, unsigned sphere2, std::vector<DetectedCollision>& detected_collisions)
+void CollisionDetector::_sphereSphere(
+    Sim::SimulationContext& /* ctx */,
+    unsigned /* sphere1 */,
+    unsigned /* sphere2 */,
+    std::vector<DetectedCollision>& /* detected_collisions */
+)
 {
     /** TODO: (07/20/26) sphere-sphere collision detection */
     throw std::runtime_error("Sphere-sphere collision detetction not implemented.");

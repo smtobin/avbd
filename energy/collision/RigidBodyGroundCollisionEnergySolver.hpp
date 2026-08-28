@@ -161,8 +161,7 @@ struct RigidBodyGroundCollisionEnergySolver
     static void updateContactPoints(
         unsigned c_idx,
         RigidBodyGroundCollisionEnergyPool& energies,
-        ParticlePool& particles,
-        Collision::SDFPrimitivePool& sdf_pool
+        ParticlePool& particles
     )
     {
         // update the contact point
@@ -171,7 +170,7 @@ struct RigidBodyGroundCollisionEnergySolver
         energies.data[c_idx].cp_ground[2] = particles.positions[p_idx][2];
 
         // update the local contact point, when necessary
-        // (for spheres and capsules)
+        // (for spheres and rods)
         const Collision::SDFShapeParams& sdf_params = energies.data[c_idx].shape_params;
         if (sdf_params.type == Collision::SDFType::Sphere)
         {

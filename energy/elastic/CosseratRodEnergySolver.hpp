@@ -60,9 +60,9 @@ struct CosseratRodEnergySolver
 
     /** Required - does nothing */
     static void updateAfterTimeStep(
-        unsigned e_idx,
-        CosseratRodEnergyPool& energies,
-        ParticlePool& particles
+        unsigned /* e_idx */,
+        CosseratRodEnergyPool& /* energies */,
+        ParticlePool& /* particles */
     )
     {}
 

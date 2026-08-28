@@ -33,7 +33,7 @@ objects:
     velocity: [0, 0, 0]
     position-by-com: true
     # material parameters
-    E: 5e2 # MPa (0.35 = roughly chicken breast: https://academic.oup.com/mt/article/31/2/21/7116012)
+    E: 20e3 # Pa (0.35 = roughly chicken breast: https://academic.oup.com/mt/article/31/2/21/7116012)
     nu: 0.45
     density: 1000 # kg / m^3
     damping-coeff: 1e-3 # ?

@@ -140,7 +140,7 @@ public:
             {
                 if constexpr (Energy::HasUpdateContactPoints<typename EnergyPool::SolverType>)
                 {
-                    EnergyPool::SolverType::updateContactPoints(e_idx, pool, particles, _ctx->collision_pool.sdf_pool);
+                    EnergyPool::SolverType::updateContactPoints(e_idx, pool, particles);
                 }
                     
                 EnergyPool::SolverType::updateAfterTimeStep(e_idx, pool, particles);

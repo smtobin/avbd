@@ -38,7 +38,7 @@ struct OneSidedFixedJointConstraintSolver
         unsigned c_idx,
         const OneSidedFixedJointEnergyPool& energies,
         ParticlePool& particles,
-        unsigned local_idx,
+        unsigned /* local_idx */,
         Vec6r& C,
         std::array<Vec6r, 6>& C_grad,
         std::array<Mat6r, 6>& C_hess

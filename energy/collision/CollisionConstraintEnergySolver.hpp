@@ -184,7 +184,7 @@ struct CollisionConstraintEnergySolver
         unsigned local_idx,
         Mat3r_or_Mat6r<DOF>& particle_H,
         Vec3r_or_Vec6r<DOF>& particle_G,
-        Real dt
+        Real /* dt */
     )
     {
         // if constexpr (std::is_same_v<CollisionEnergyPool, RigidBodyGroundCollisionEnergyPool>)
@@ -229,7 +229,7 @@ struct CollisionConstraintEnergySolver
 
         // Lagrange multipliers for tangent and binormal
         Vec2r lambda_tb_plus(k_t*C_t + lambda_t, k_b*C_b + lambda_b);
-        Vec2r lambda_tb_plus_unclamped = lambda_tb_plus;
+        // Vec2r lambda_tb_plus_unclamped = lambda_tb_plus;
         // clamp magnitude
         Real lambda_tb_plus_mag = lambda_tb_plus.norm();
         Real mu = use_static ? mu_s : mu_k;

@@ -6,6 +6,10 @@
 namespace Collision
 {
 
+/** TODO: (08/27/26) Reaname "SDF" related things to "PrimitiveAuxData" or something like that.
+ * Since SDFShapeParams also stores info about rods.
+ */
+
 /** Enum for the different supported SDFs
  * 
  * Sphere : sphere centered at the origin

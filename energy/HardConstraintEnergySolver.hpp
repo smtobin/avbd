@@ -105,7 +105,7 @@ struct HardConstraintEnergySolver
         unsigned local_idx,
         Mat3r_or_Mat6r<DOF>& particle_H,
         Vec3r_or_Vec6r<DOF>& particle_G,
-        Real dt
+        Real /* dt */
     )
     {
         std::cout << "HardconstraintEnergy accumulate! DOF=" << DOF << std::endl;

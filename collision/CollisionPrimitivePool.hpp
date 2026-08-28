@@ -110,6 +110,8 @@ struct CollisionPrimitivePool : TombstonePool
                     default:
                         throw std::runtime_error("Unrecognized SDF type");
                 }
+            default:
+                throw std::runtime_error("Unrecognized collision geometry type");
         }
     }
 
@@ -158,6 +160,8 @@ struct CollisionPrimitivePool : TombstonePool
                 
                 return { bbox_min, bbox_max };
             }
+            default:
+                throw std::runtime_error("Unrecognized primitive type");
         }
     }
 
@@ -228,6 +232,8 @@ struct CollisionPrimitivePool : TombstonePool
                 bbox.expand(next_bbox);
                 return bbox;
             }
+            default:
+                throw std::runtime_error("Unrecognized primitive type");
         }
     }
 

@@ -12,7 +12,6 @@ int main()
 
     // add two oriented particles for rod element
     unsigned n1 = ctx.particles.addOrientedParticle(Vec3r::Zero(), Quaternion::Identity(), 10, Vec3r::Ones());
-    unsigned n2 = ctx.particles.addOrientedParticle(Vec3r(0.3, 0.4, 0.5), Math::QuaternionFromXYZEulerAngles(Vec3r(60,-30,20)), 10, Vec3r::Ones());
 
     unsigned e_idx = ctx.energies.one_sided_fixed_joint.addEnergy(
         n1,

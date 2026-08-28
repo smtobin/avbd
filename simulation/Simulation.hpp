@@ -122,7 +122,6 @@ class Simulation
         for (auto& v_idx : tet_mesh_obj.mesh().vertices())
         {
             Real k_start = _ctx.particles.masses[v_idx] / (_ctx.params.dt * _ctx.params.dt);
-            std::cout << "k start: " << k_start << std::endl;
             _ctx.energies.ground_collision.addEnergy(v_idx, k_start, 0.4, 0.2);
         }
     }
