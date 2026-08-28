@@ -408,8 +408,8 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
                 collision.TriangleRod.s,
                 collision.TriangleRod.cp_rod_local,
                 k_start,
-                0.0, 
-                0.0
+                0.4, 
+                0.2
             );
             collision.e_idx = slot;
 

@@ -11,7 +11,7 @@ struct RigidBodyGroundCollisionEnergyInfo : CollisionConstraintEnergyInfo
     Vec1u particle_indices;     // particle indices for each constraint
     Vec3r cp_rb_local;  // local vector to contact point on rigid body
     Vec3r cp_ground;    // contact point on the ground
-    unsigned sdf_index;    // index of the rigid body in the sim collision pool's SDF pool
+    Collision::SDFShapeParams shape_params;     // describes the rigid body shape
 };
 
 struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidBodyGroundCollisionEnergyInfo>
@@ -33,14 +33,21 @@ struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidB
      * @param cp_rb_local : the initial body-frame vector to the contact point on the rigid body
      * @returns the index of the new energy in the pool
      */
-    unsigned addEnergy(unsigned particle_index, unsigned sdf_index, const Vec3r& cp_rb_local, Real k_start, Real mu_s, Real mu_k)
+    unsigned addEnergy(
+        unsigned particle_index, 
+        const Collision::SDFShapeParams& shape_params,
+        const Vec3r& cp_rb_local, 
+        Real k_start, 
+        Real mu_s, 
+        Real mu_k
+    )
     {
         // parent will call allocSlot()
         unsigned slot = CollisionConstraintEnergyPool::addEnergy(k_start, mu_s, mu_k);
 
         // particle_indices[slot][0] = particle_index;
         data[slot].particle_indices[0] = particle_index;
-        data[slot].sdf_index = sdf_index;
+        data[slot].shape_params = shape_params;
         data[slot].cp_rb_local = cp_rb_local;
         data[slot].cp_ground = Vec3r::Zero();
         data[slot].normal = Vec3r(0,1,0);

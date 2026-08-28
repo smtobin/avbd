@@ -112,7 +112,7 @@ class Simulation
         // initial energy stiffness should depend on the particle inertia
         Real k_start = _ctx.particles.masses[sphere.com()] / (_ctx.params.dt * _ctx.params.dt);
         unsigned sdf_index = _ctx.collision_pool.particle_indices[sphere.collisionPrimitiveIndex()][0];
-        _ctx.energies.rigid_body_ground_collision.addEnergy(sphere.com(), sdf_index, Vec3r(0, -sphere.radius(), 0), k_start, 0.5, 0.2);
+        _ctx.energies.rigid_body_ground_collision.addEnergy(sphere.com(), _ctx.collision_pool.sdf_pool.params[sdf_index], Vec3r(0, -sphere.radius(), 0), k_start, 0.5, 0.2);
     }
 
     void _addGroundCollisionConstraintsForObject(const SimObject::TetMeshObject& tet_mesh_obj)
@@ -133,7 +133,7 @@ class Simulation
         for (unsigned n_idx : rod.nodes())
         {
             Real k_start = _ctx.particles.masses[n_idx] / (_ctx.params.dt * _ctx.params.dt);
-            _ctx.energies.rigid_body_ground_collision.addEnergy(n_idx, rod.sdfIndex(), Vec3r(0, -rod.radius(), 0), k_start, 0.5, 0.2);
+            _ctx.energies.rigid_body_ground_collision.addEnergy(n_idx, _ctx.collision_pool.sdf_pool.params[rod.sdfIndex()], Vec3r(0, -rod.radius(), 0), k_start, 0.5, 0.2);
         }
         
     }
