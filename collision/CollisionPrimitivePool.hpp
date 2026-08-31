@@ -216,7 +216,8 @@ struct CollisionPrimitivePool : TombstonePool
             AABB box = { world_center - world_extent, world_center + world_extent };
 
             // compute AABB at predicted position and rotation given the current linear and angular velocities
-            const Quaternion new_rotation = rotation; /** TODO: (07/22/26) Predict new orientation using exp map or linearized update */
+            const Vec3r& ang_vel = particle_pool.angularVelocity(op_idx);
+            const Quaternion new_rotation = Math::Exp_s3(rotation, dt*ang_vel);
             Vec3r new_world_center = new_rotation * center + particle_pool.positions[op_idx] + dt * particle_pool.velocities[op_idx];
             Mat3r new_abs_R = new_rotation.toRotationMatrix().cwiseAbs();
             Vec3r new_world_extent = new_abs_R * halfextent;
