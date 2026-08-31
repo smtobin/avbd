@@ -10,7 +10,7 @@ namespace Energy
 struct TriangleRigidCollisionEnergyInfo : CollisionConstraintEnergyInfo
 {
     Vec4u particle_indices;     // particle indices - first 3 indices are the triangle vertices, last index is the rigid body
-    Collision::SDFShapeParams* sdf_params;  // pointer to SDF parameters - will be used to reevaluate the constraint
+    Collision::CollisionShapeParams* sdf_params;  // pointer to SDF parameters - will be used to reevaluate the constraint
     Vec3r barys;    // barycentric coordinates of the contact point on the face
     Vec3r cp_rb_local;  // contact point on the rigid body, in the rigid body's local frame
 };
@@ -37,7 +37,7 @@ struct TriangleRigidCollisionEnergyPool : CollisionConstraintEnergyPool<Triangle
         unsigned p_idx2, 
         unsigned p_idx3, 
         unsigned op_idx, 
-        Collision::SDFShapeParams* sdf_params,
+        Collision::CollisionShapeParams* sdf_params,
         const Vec3r& normal,
         const Vec3r& tangent,
         const Vec3r& binormal,

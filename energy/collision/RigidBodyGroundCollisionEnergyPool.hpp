@@ -11,7 +11,7 @@ struct RigidBodyGroundCollisionEnergyInfo : CollisionConstraintEnergyInfo
     Vec1u particle_indices;     // particle indices for each constraint
     Vec3r cp_rb_local;  // local vector to contact point on rigid body
     Vec3r cp_ground;    // contact point on the ground
-    Collision::SDFShapeParams shape_params;     // describes the rigid body shape
+    Collision::CollisionShapeParams shape_params;     // describes the rigid body shape
 };
 
 struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidBodyGroundCollisionEnergyInfo>
@@ -35,7 +35,7 @@ struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidB
      */
     unsigned addEnergy(
         unsigned particle_index, 
-        const Collision::SDFShapeParams& shape_params,
+        const Collision::CollisionShapeParams& shape_params,
         const Vec3r& cp_rb_local, 
         Real k_start, 
         Real mu_s, 

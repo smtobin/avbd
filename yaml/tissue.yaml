@@ -60,6 +60,6 @@ objects:
   # - 
   #   type: "RigidSphere"
   #   fixed: false
-  #   position: [0, 20, 0]
-  #   radius: 3
-  #   density: 10e-6 # kg / mm^3
+  #   position: [0, 20e-3, 0]
+  #   radius: 3e-3
+  #   density: 10000 # kg / mm^3

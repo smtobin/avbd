@@ -60,11 +60,10 @@ class Simulation
         ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
         new_obj_ptr->setup();
 
-        unsigned prim_idx = _ctx.collision_pool.addObject(*new_obj_ptr);
-        new_obj_ptr->setCollisionPrimitiveIndex(prim_idx);
+        unsigned shape_params_idx = _ctx.collision_pool.addObject(*new_obj_ptr);
 
         // add static ground-object collision constraints
-        _addGroundCollisionConstraintsForObject(*new_obj_ptr);
+        _addGroundCollisionConstraintsForObject(*new_obj_ptr, shape_params_idx);
 
 
         _graphics_scene.addObject(new_obj_ptr.get(), obj_config.renderConfig());
@@ -88,31 +87,31 @@ class Simulation
         _objects.push_back(std::move(new_obj_ptr));
     }
 
-    void _addObjectFromConfig(const Config::RodConfig& obj_config)
-    {
-        using ObjType = SimObject::Rod;
-        using ObjPtrType = std::unique_ptr<ObjType>;
-        ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
-        new_obj_ptr->setup();
+    // void _addObjectFromConfig(const Config::RodConfig& obj_config)
+    // {
+    //     using ObjType = SimObject::Rod;
+    //     using ObjPtrType = std::unique_ptr<ObjType>;
+    //     ObjPtrType new_obj_ptr = std::make_unique<ObjType>(&_ctx, obj_config);
+    //     new_obj_ptr->setup();
 
-        unsigned sdf_slot = _ctx.collision_pool.addObject(*new_obj_ptr);
-        new_obj_ptr->setSdfIndex(sdf_slot);
+    //     unsigned sdf_slot = _ctx.collision_pool.addObject(*new_obj_ptr);
+    //     new_obj_ptr->setSdfIndex(sdf_slot);
 
-        _addGroundCollisionConstraintsForObject(*new_obj_ptr);
+    //     _addGroundCollisionConstraintsForObject(*new_obj_ptr);
 
-        _graphics_scene.addObject(new_obj_ptr.get(), obj_config.renderConfig());
+    //     _graphics_scene.addObject(new_obj_ptr.get(), obj_config.renderConfig());
 
-        _objects.push_back(std::move(new_obj_ptr));
-    }
+    //     _objects.push_back(std::move(new_obj_ptr));
+    // }
 
     /** Helpers for adding ground collision constraints for each type of object */
-    void _addGroundCollisionConstraintsForObject(const SimObject::RigidSphere& sphere)
+    void _addGroundCollisionConstraintsForObject(const SimObject::RigidSphere& sphere, unsigned shape_params_idx)
     {
         /** TODO: (08/10/26) set coefficients of friction based on material properties */
+        const Collision::CollisionShapeParams& shape_params = _ctx.collision_pool.shape_params_pool.shape_params[shape_params_idx];
         // initial energy stiffness should depend on the particle inertia
         Real k_start = _ctx.particles.masses[sphere.com()] / (_ctx.params.dt * _ctx.params.dt);
-        unsigned sdf_index = _ctx.collision_pool.particle_indices[sphere.collisionPrimitiveIndex()][0];
-        _ctx.energies.rigid_body_ground_collision.addEnergy(sphere.com(), _ctx.collision_pool.sdf_pool.params[sdf_index], Vec3r(0, -sphere.radius(), 0), k_start, 0.5, 0.2);
+        _ctx.energies.rigid_body_ground_collision.addEnergy(sphere.com(), shape_params, Vec3r(0, -sphere.radius(), 0), k_start, 0.5, 0.2);
     }
 
     void _addGroundCollisionConstraintsForObject(const SimObject::TetMeshObject& tet_mesh_obj)
@@ -126,13 +125,14 @@ class Simulation
         }
     }
 
-    void _addGroundCollisionConstraintsForObject(const SimObject::Rod& rod)
+    void _addGroundCollisionConstraintsForObject(const SimObject::Rod& rod, unsigned shape_params_idx)
     {
         /** TODO: (08/24/26) Add ground collision constraints for rods. */
+        const Collision::CollisionShapeParams& shape_params = _ctx.collision_pool.shape_params_pool.shape_params[shape_params_idx];
         for (unsigned n_idx : rod.nodes())
         {
             Real k_start = _ctx.particles.masses[n_idx] / (_ctx.params.dt * _ctx.params.dt);
-            _ctx.energies.rigid_body_ground_collision.addEnergy(n_idx, _ctx.collision_pool.sdf_pool.params[rod.sdfIndex()], Vec3r(0, -rod.radius(), 0), k_start, 0.5, 0.2);
+            _ctx.energies.rigid_body_ground_collision.addEnergy(n_idx, shape_params, Vec3r(0, -rod.radius(), 0), k_start, 0.5, 0.2);
         }
         
     }

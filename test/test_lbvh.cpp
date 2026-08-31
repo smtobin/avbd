@@ -202,7 +202,7 @@ void testFewTrianglesBVH()
         triangles.push_back(new_tri);
 
         unsigned c_idx = col_pool.allocSlot();
-        col_pool.type[c_idx] = Collision::PrimitiveType::Triangle;
+        col_pool.type[c_idx] = Collision::CollisionGeometryType::Triangle;
         col_pool.particle_indices[c_idx][0] = new_tri[0];
         col_pool.particle_indices[c_idx][1] = new_tri[1];
         col_pool.particle_indices[c_idx][2] = new_tri[2];
@@ -313,7 +313,7 @@ void testSpheresAndMeshBVH()
         triangles.push_back(new_tri);
 
         unsigned c_idx = ctx.collision_pool.allocSlot();
-        ctx.collision_pool.type[c_idx] = Collision::PrimitiveType::Triangle;
+        ctx.collision_pool.type[c_idx] = Collision::CollisionGeometryType::Triangle;
         ctx.collision_pool.particle_indices[c_idx][0] = new_tri[0];
         ctx.collision_pool.particle_indices[c_idx][1] = new_tri[1];
         ctx.collision_pool.particle_indices[c_idx][2] = new_tri[2];

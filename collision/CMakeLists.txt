@@ -12,7 +12,6 @@ set(COLLISION_HEADERS
     ${COLLISION_DIR}/LBVHTraversal.hpp
     ${COLLISION_DIR}/AABB.hpp
     ${COLLISION_DIR}/SDF.hpp
-    ${COLLISION_DIR}/SDFPrimitivePool.hpp
 )
 
 set(COLLISION_SOURCES
@@ -21,7 +20,6 @@ set(COLLISION_SOURCES
     ${COLLISION_DIR}/CollisionPrimitivePool.cpp
     ${COLLISION_DIR}/LBVH.cpp
     ${COLLISION_DIR}/LBVHBuilder.cpp
-    ${COLLISION_DIR}/SDFPrimitivePool.cpp
 )
 
 target_sources(Collision

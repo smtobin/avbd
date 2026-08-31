@@ -168,8 +168,8 @@ void CollisionDetector::_processPotentialCollision(Sim::SimulationContext& ctx, 
     if (_shouldSkip(ctx.collision_pool, a, b))
             return;
 
-        CollisionGeometryType type_a = ctx.collision_pool.getCollisionGeometryType(a);
-        CollisionGeometryType type_b = ctx.collision_pool.getCollisionGeometryType(b);
+        CollisionGeometryType type_a = ctx.collision_pool.type[a];
+        CollisionGeometryType type_b = ctx.collision_pool.type[b];
 
         if (type_a > type_b)
         {
@@ -506,8 +506,7 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
     // std::cout << "Testing sphere-triangle collision..." << std::endl;
     const auto& triangle_idx = ctx.collision_pool.particle_indices[triangle];
 
-    unsigned sdf_idx = ctx.collision_pool.particle_indices[sphere][0];
-    unsigned sphere_idx = ctx.collision_pool.sdf_pool.particles[sdf_idx];
+    unsigned sphere_idx = ctx.collision_pool.particle_indices[sphere][0];
 
     Vec3r normal, cp_barys, cp_rb_local;
     if (_triangleSDF_CCD(ctx, triangle, sphere, ctx.params.dt, normal, cp_barys, cp_rb_local))
@@ -604,8 +603,8 @@ void CollisionDetector::_triangleRod(Sim::SimulationContext& ctx, unsigned trian
     const auto& triangle_idx = ctx.collision_pool.particle_indices[triangle];
     const auto& segment_idx = ctx.collision_pool.particle_indices[rod];
 
-    unsigned sdf_idx = segment_idx[2];
-    const auto& rod_params = ctx.collision_pool.sdf_pool.params[sdf_idx];
+    unsigned params_idx = ctx.collision_pool.shapeParamsIndex(rod);
+    const auto& rod_params = ctx.collision_pool.shape_params_pool.shape_params[params_idx];
 
     // extract current triangle vertex positions
     const Vec3r& v1 = ctx.particles.positions[triangle_idx[0]];
@@ -689,9 +688,9 @@ void CollisionDetector::_sphereSphere(
 
 bool CollisionDetector::_triangleSDF_CCD(Sim::SimulationContext& ctx, unsigned triangle, unsigned rb, Real dt, Vec3r& normal, Vec3r& cp_barys, Vec3r& cp_rb_local)
 {
-    unsigned sdf_idx = ctx.collision_pool.particle_indices[rb][0];      // index in the SDF pool for the rigid body
-    unsigned rb_idx = ctx.collision_pool.sdf_pool.particles[sdf_idx];   // particle index of the rigid body COM
-    const SDFShapeParams& sdf_params = ctx.collision_pool.sdf_pool.params[sdf_idx];     // SDF parameters
+    unsigned params_idx = ctx.collision_pool.shapeParamsIndex(rb);      // index in the SDF pool for the rigid body
+    unsigned rb_idx = ctx.collision_pool.particle_indices[rb][0];   // particle index of the rigid body COM
+    const CollisionShapeParams& sdf_params = ctx.collision_pool.shape_params_pool.shape_params[params_idx];     // SDF parameters
 
     // extract quantities for rigid body
     const Vec3r& rb_pos = ctx.particles.positions[rb_idx];
