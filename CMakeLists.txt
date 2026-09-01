@@ -91,6 +91,12 @@ target_link_libraries(Sim Simulation ${VTK_LIBRARIES})
 add_executable(TestNeoHookeanAccumulate test/test_neohookean_accumulate.cpp)
 target_link_libraries(TestNeoHookeanAccumulate gmsh Common Collision Eigen3::Eigen)
 
+add_executable(TestCosseratAccumulate test/test_cosserat_accumulate.cpp)
+target_link_libraries(TestCosseratAccumulate Common Collision Eigen3::Eigen)
+
+add_executable(TestOneSidedFixedJointAccumulate test/test_one_sided_fixed_joint_accumulate.cpp)
+target_link_libraries(TestOneSidedFixedJointAccumulate Common Collision Eigen3::Eigen)
+
 add_executable(TestLBVH test/test_lbvh.cpp)
 target_link_libraries(TestLBVH Eigen3::Eigen SimObject Collision gmsh ${VTK_LIBRARIES})
 

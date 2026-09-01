@@ -166,6 +166,8 @@ int Simulation::run()
         update_thread = std::thread(&Simulation::update, this);
     
     _graphics_scene.interactorStart();
+
+    return 0;
 }
 
 void Simulation::notifyKeyPressed(const std::string& /*key*/)

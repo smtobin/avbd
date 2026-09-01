@@ -13,15 +13,10 @@ protected:
     /** Index in the particle pool corresponding to the center of mass of the rigid body */
     unsigned _com;
 
-    /** Index in the collision primitive pool corresponding to this object */
-    unsigned _prim_index;
-
 public:
     RigidObject_Base(Sim::SimulationContext* ctx, const Config::RigidObjectConfig& config);
 
     unsigned com() const { return _com; }
-    void setCollisionPrimitiveIndex(unsigned prim_index) { _prim_index = prim_index; }
-    unsigned collisionPrimitiveIndex() const { return _prim_index; }
     const Vec3r& position() const;
     const Quaternion& rotation() const;
     bool fixed() const;

@@ -6,6 +6,7 @@ set(SIMOBJECT_DIR "./")
 set(SIMOBJECT_HEADERS
     ${SIMOBJECT_DIR}/ObjectBase.hpp
     ${SIMOBJECT_DIR}/TetMeshObject.hpp
+    ${SIMOBJECT_DIR}/Rod.hpp
 
     ${SIMOBJECT_DIR}/rigid/RigidObjectBase.hpp
     ${SIMOBJECT_DIR}/rigid/RigidSphere.hpp
@@ -13,6 +14,7 @@ set(SIMOBJECT_HEADERS
 
 set(SIMOBJECT_SOURCES
     ${SIMOBJECT_DIR}/TetMeshObject.cpp
+    ${SIMOBJECT_DIR}/Rod.cpp
 
     ${SIMOBJECT_DIR}/rigid/RigidObjectBase.cpp
     ${SIMOBJECT_DIR}/rigid/RigidSphere.cpp

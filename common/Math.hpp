@@ -310,9 +310,9 @@ static Quaternion QuaternionFromXYZEulerAngles(const Vec3r& eul_xyz)
     Real cz = std::cos(z * 0.5);
     Real sz = std::sin(z * 0.5);
 
-    Quaternion qx(sx, 0, 0, cx);
-    Quaternion qy(0, sy, 0, cy);
-    Quaternion qz(0, 0, sz, cz);
+    Quaternion qx(cx, sx, 0, 0);
+    Quaternion qy(cy, 0, sy, 0);
+    Quaternion qz(cz, 0, 0, sz);
 
     return qz*qy*qx;
 }
@@ -557,5 +557,126 @@ inline static void closestPoint_SegmentSegment(const Vec3r& p1, const Vec3r& q1,
             }
         }
     }
+}
+
+inline static bool pointInTriangle(
+    const Vec3r& p,
+    const Vec3r& a,
+    const Vec3r& b,
+    const Vec3r& c)
+{
+    Vec3r v0 = b - a;
+    Vec3r v1 = c - a;
+    Vec3r v2 = p - a;
+
+    Real d00 = v0.dot(v0);
+    Real d01 = v0.dot(v1);
+    Real d11 = v1.dot(v1);
+    Real d20 = v2.dot(v0);
+    Real d21 = v2.dot(v1);
+
+    Real denom = d00 * d11 - d01 * d01;
+
+    if (std::abs(denom) < 1e-12)
+        return false; // Degenerate triangle
+
+    Real v = (d11 * d20 - d01 * d21) / denom;
+    Real w = (d00 * d21 - d01 * d20) / denom;
+    Real u = 1.0 - v - w;
+
+    Real EPS = 1e-8;
+    return u >= -EPS &&
+           v >= -EPS &&
+           w >= -EPS;
+}
+
+inline static void closestPoint_SegmentTriangle(
+    const Vec3r& p0, 
+    const Vec3r& p1, 
+    const Vec3r& a, 
+    const Vec3r& b, 
+    const Vec3r& c, 
+    Real& s_out, 
+    Vec3r& barys_out,
+    Real& dist_out
+)
+{
+    Real EPS = 1e-8;
+
+    Vec3r segment_dir = p1 - p0;
+    Vec3r ab = b - a;
+    Vec3r ac = c - a;
+    Vec3r normal = ab.cross(ac);
+    Real normal_len_sq = normal.squaredNorm();
+
+    // initialize output
+    s_out = 0.0;
+    barys_out = Vec3r(1,0,0);
+    dist_out = std::numeric_limits<Real>::max();
+
+    // check segment-triangle intersection
+    if (normal_len_sq > EPS)
+    {
+        Real denom = normal.dot(segment_dir);
+        if (std::abs(denom) > EPS)
+        {
+            Real s = normal.dot(a - p0) / denom;
+
+            if (s >= 0.0 && s <= 1.0)
+            {
+                Vec3r p = p0 + segment_dir * s;
+                if (pointInTriangle(p, a, b, c))
+                {
+                    // segment intersects the triangle
+                    s_out = s;
+                    barys_out = Math::barycentricCoordinates(p, a, b, c);
+                    dist_out = 0.0;
+                    return;
+                }
+            }
+        }
+    }
+
+    // check the three triangle edges
+    auto test_edge = [&](const Vec3r& p0, const Vec3r& p1, const Vec3r& q0, const Vec3r& q1, unsigned i0, unsigned i1)
+    {
+        Real s, t;
+        closestPoint_SegmentSegment(p0, p1, q0, q1, s, t);
+
+        Vec3r cp = (1-s)*p0 + s*p1;
+        Vec3r cq = (1-s)*q0 + s*q1;
+        Real dist_sq = (cp - cq).squaredNorm();
+
+        if (dist_sq < dist_out*dist_out)
+        {
+            s_out = s;
+            barys_out = Vec3r::Zero();
+            barys_out[i0] = 1-t;
+            barys_out[i1] = t;
+            dist_out = std::sqrt(dist_sq);
+        }
+    };
+    test_edge(p0, p1, a, b, 0, 1);
+    test_edge(p0, p1, a, c, 0, 2);
+    test_edge(p0, p1, b, c, 1, 2);
+
+    // check segment endpoints
+    Vec3r cp_p0 = closestPoint_PointTriangle(p0, a, b, c);
+    Real sq_dist_p0 = (p0 - cp_p0).squaredNorm();
+    if (sq_dist_p0 < dist_out*dist_out)
+    {
+        s_out = 0.0;
+        barys_out = Math::barycentricCoordinates(cp_p0, a, b, c);
+        dist_out = std::sqrt(sq_dist_p0);
+    }
+    Vec3r cp_p1 = closestPoint_PointTriangle(p1, a, b, c);
+    Real sq_dist_p1 = (p1 - cp_p1).squaredNorm();
+    if (sq_dist_p1 < dist_out*dist_out)
+    {
+        s_out = 1.0;
+        barys_out = Math::barycentricCoordinates(cp_p1, a, b, c);
+        dist_out = std::sqrt(sq_dist_p1);
+    }
+    
 }
 };

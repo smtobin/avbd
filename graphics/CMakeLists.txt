@@ -6,6 +6,7 @@ set(GRAPHICS_DIR "./")
 set(GRAPHICS_HEADERS
     ${GRAPHICS_DIR}/GraphicsObject.hpp
     ${GRAPHICS_DIR}/MeshGraphicsObject.hpp
+    ${GRAPHICS_DIR}/RodGraphicsObject.hpp
     ${GRAPHICS_DIR}/SphereGraphicsObject.hpp
     ${GRAPHICS_DIR}/PlaneGraphicsObject.hpp
     ${GRAPHICS_DIR}/GraphicsScene.hpp
@@ -14,6 +15,7 @@ set(GRAPHICS_HEADERS
 
 set(GRAPHICS_SOURCES
     ${GRAPHICS_DIR}/MeshGraphicsObject.cpp
+    ${GRAPHICS_DIR}/RodGraphicsObject.cpp
     ${GRAPHICS_DIR}/SphereGraphicsObject.cpp
     ${GRAPHICS_DIR}/PlaneGraphicsObject.cpp
     ${GRAPHICS_DIR}/GraphicsScene.cpp

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "energy/GroundCollisionEnergyPool.hpp"
-#include "energy/CollisionConstraintEnergySolver.hpp"
+#include "energy/collision/GroundCollisionEnergyPool.hpp"
+#include "energy/collision/CollisionConstraintEnergySolver.hpp"
 
 namespace Energy
 {
@@ -39,9 +39,6 @@ struct GroundCollisionConstraintSolver
         C_n = -particles.positions[p_idx][1];
         C_t = particles.positions[p_idx][0] - energies.data[c_idx].cp_x;
         C_b = particles.positions[p_idx][2] - energies.data[c_idx].cp_z;
-
-        // if (C > 0)
-        //     particles.in_collision[p_idx] = true;
 
 
         if constexpr (DOF == 6)
@@ -84,8 +81,7 @@ struct GroundCollisionEnergySolver
     static void updateContactPoints(
         unsigned c_idx,
         GroundCollisionEnergyPool& energies,
-        ParticlePool& particles,
-        Collision::SDFPrimitivePool& /* sdf_pool */
+        ParticlePool& particles
     )
     {
         // update the contact point

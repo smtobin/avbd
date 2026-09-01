@@ -5,10 +5,13 @@
 #include "common/EnergyUtils.hpp"
 #include "simulation/SimulationContext.hpp"
 
-#include "energy/NeoHookeanEnergySolver.hpp"
-#include "energy/GroundCollisionEnergySolver.hpp"
-#include "energy/RigidBodyGroundCollisionEnergySolver.hpp"
-#include "energy/TriangleRigidCollisionEnergySolver.hpp"
+#include "energy/elastic/NeoHookeanEnergySolver.hpp"
+#include "energy/elastic/CosseratRodEnergySolver.hpp"
+#include "energy/collision/GroundCollisionEnergySolver.hpp"
+#include "energy/collision/RigidBodyGroundCollisionEnergySolver.hpp"
+#include "energy/collision/TriangleRigidCollisionEnergySolver.hpp"
+#include "energy/collision/TriangleRodCollisionEnergySolver.hpp"
+#include "energy/joint/OneSidedFixedJointEnergySolver.hpp"
 
 #include <chrono>
 #include <thread>
@@ -44,6 +47,7 @@ public:
 
     void solve_Parallel(WorkerThreadContext& w_ctx)
     {   
+        // std::cout << "\n\n=== Time step ===" << std::endl;
         Vec3r a_grav(0, -_ctx->params.g_accel, 0);
         Real dt = _ctx->params.dt;
 
@@ -121,6 +125,8 @@ public:
         for (unsigned p_idx = start; p_idx < end; p_idx++)
         {
             _particleInertialUpdate(p_idx, a_ext, dt);
+            if (_ctx->particles.isOriented(p_idx))
+                _particleRotationInertialUpdate(p_idx, dt);
         }
     }
 
@@ -134,7 +140,7 @@ public:
             {
                 if constexpr (Energy::HasUpdateContactPoints<typename EnergyPool::SolverType>)
                 {
-                    EnergyPool::SolverType::updateContactPoints(e_idx, pool, particles, _ctx->collision_pool.sdf_pool);
+                    EnergyPool::SolverType::updateContactPoints(e_idx, pool, particles);
                 }
                     
                 EnergyPool::SolverType::updateAfterTimeStep(e_idx, pool, particles);
@@ -201,6 +207,9 @@ public:
 private:
     void _particleInertialUpdate(unsigned p_idx, const Vec3r& a_ext, Real dt)
     {
+        if (_ctx->particles.fixed[p_idx])
+            return;
+
         // std::cout << "\n=== Particle " << p_idx << " inertial update" << std::endl;
         Vec3r& p = _ctx->particles.positions[p_idx];
         Vec3r& y = _ctx->particles.inertial_positions[p_idx];
@@ -233,9 +242,6 @@ private:
         // move particle to its initialized position
         p += dt*v + dt*dt*a_tilde_vec;
 
-        // mark particle as not in collision at the beginning of the time step
-        _ctx->particles.in_collision[p_idx] = false;
-
         // initialize the previous iteration positions
         _ctx->particles.last_iter_positions[p_idx] = _ctx->particles.positions[p_idx];
         _ctx->particles.last_last_iter_positions[p_idx] = _ctx->particles.positions[p_idx];
@@ -246,7 +252,9 @@ private:
      */
     void _particleRotationInertialUpdate(unsigned p_idx, Real dt)
     {
-        
+        if (_ctx->particles.fixed[p_idx])
+            return;
+            
         Quaternion& q = _ctx->particles.rotation(p_idx);
         Quaternion& q_inertial = _ctx->particles.inertialRotation(p_idx);
         const Vec3r& w = _ctx->particles.angularVelocity(p_idx);
@@ -261,7 +269,7 @@ private:
         // Vec3r a = (w - w_prev) / dt;
 
         // compute inertially predicted rotation
-        Vec3r alpha_ext = Vec3r::Zero();
+        Vec3r alpha_ext = Vec3r(0,0,0); //Vec3r::Zero();
         Vec3r dq_inertial = dt*w + dt*dt*(alpha_ext - I_inv.asDiagonal() * (w.cross(I.asDiagonal()*w))); 
         q_inertial = Math::Plus_S3(q, dq_inertial);
 
@@ -277,6 +285,9 @@ private:
     template <int DOF>
     void _solveParticle(unsigned p_idx, Real dt)
     {
+        if (_ctx->particles.fixed[p_idx])
+            return;
+
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
         Vec3r_or_Vec6r<DOF> grad = Vec3r_or_Vec6r<DOF>::Zero();
@@ -482,8 +493,11 @@ private:
             Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
             Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
 
-            // Vec3r dx = LHS.partialPivLu().solve(RHS);
-            Vec3r dx = LHS.inverse() * RHS;
+            
+
+            Vec3r dx = LHS.partialPivLu().solve(RHS);
+            // std::cout << "Particle " << p_idx << ": " << "\n  LHS:\n" << LHS << "\n  RHS: " << RHS.transpose() << "\n  dx: " << dx.transpose() << std::endl;
+            // Vec3r dx = LHS.inverse() * RHS;
 
             // std::cout << "dx: " << dx.transpose() << std::endl;
 
@@ -498,20 +512,17 @@ private:
 
     void _particleChebyshevAcceleration(unsigned p_idx, Real omega)
     {
-        // only do Chebyshev acceleration for particles not in collision
-        if (!_ctx->particles.in_collision[p_idx])
+        _ctx->particles.positions[p_idx] =
+            omega * (_ctx->particles.positions[p_idx] - _ctx->particles.last_last_iter_positions[p_idx]) + _ctx->particles.last_last_iter_positions[p_idx];
+
+        if (_ctx->particles.isOriented(p_idx))
         {
-            _ctx->particles.positions[p_idx] =
-                omega * (_ctx->particles.positions[p_idx] - _ctx->particles.last_last_iter_positions[p_idx]) + _ctx->particles.last_last_iter_positions[p_idx];
+            Quaternion& q = _ctx->particles.rotation(p_idx);
+            const Quaternion& last_last_q = _ctx->particles.lastLastIterRotation(p_idx);
 
-            if (_ctx->particles.isOriented(p_idx))
-            {
-                Quaternion& q = _ctx->particles.rotation(p_idx);
-                const Quaternion& last_last_q = _ctx->particles.lastLastIterRotation(p_idx);
-
-                q = Math::Plus_S3(last_last_q, omega * Math::Minus_S3(q, last_last_q));
-            }
+            q = Math::Plus_S3(last_last_q, omega * Math::Minus_S3(q, last_last_q));
         }
+        
 
         // update the previous iteration positions
         _ctx->particles.last_last_iter_positions[p_idx] = _ctx->particles.last_iter_positions[p_idx];
@@ -526,6 +537,13 @@ private:
 
     void _particleVelocityUpdate(unsigned p_idx, Real dt)
     {
+        // Vec6r dx;
+        // dx.head<3>() = _ctx->particles.positions[p_idx] - _ctx->particles.previous_positions[p_idx];
+        // dx.tail<3>() = Math::Minus_S3(_ctx->particles.rotation(p_idx), _ctx->particles.previousRotation(p_idx));
+        // std::cout << "Particle " << p_idx << " dx: " << dx.transpose() << std::endl;
+        // std::cout << "Particle " << p_idx << " position: " << _ctx->particles.positions[p_idx].transpose() << std::endl;
+        // std::cout << "Particle " << p_idx << " rotation: " << _ctx->particles.rotation(p_idx).toRotationMatrix() << std::endl;
+        
         _ctx->particles.previous_velocities[p_idx] = _ctx->particles.velocities[p_idx];
         _ctx->particles.velocities[p_idx] = 
             (_ctx->particles.positions[p_idx] - _ctx->particles.previous_positions[p_idx]) / dt;

@@ -76,6 +76,9 @@ using base_type_t = typename base_type<T>::type;
 /** Universal typedefs used by the simulation */
 using Real = double;
 
+template <int N>
+using VecNr = Eigen::Vector<Real, N>;
+
 using Vec2r = Eigen::Vector<Real, 2>;
 using Vec3r = Eigen::Vector<Real, 3>;
 using Vec4r = Eigen::Vector<Real, 4>;
@@ -89,6 +92,7 @@ using Vec1u = Eigen::Vector<unsigned, 1>;
 using Vec2u = Eigen::Vector<unsigned, 2>;
 using Vec3u = Eigen::Vector<unsigned, 3>;
 using Vec4u = Eigen::Vector<unsigned, 4>;
+using Vec5u = Eigen::Vector<unsigned, 5>;
 
 using Mat2r = Eigen::Matrix<Real, 2, 2>;
 using Mat3r = Eigen::Matrix<Real, 3, 3>;
@@ -118,16 +122,32 @@ namespace Energy
     class Energy_Base;
     
     /** Pools */
+    // elastic
     struct NeoHookeanEnergyPool;
+    struct CosseratRodEnergyPool;
+
+    // collision
     struct GroundCollisionEnergyPool;
     struct RigidBodyGroundCollisionEnergyPool;
     struct TriangleRigidCollisionEnergyPool;
+    struct TriangleRodCollisionEnergyPool;
+
+    // joints
+    struct OneSidedFixedJointEnergyPool;
 
     /** Solvers */
+    // elastic
     struct NeoHookeanEnergySolver;
+    struct CosseratRodEnergySolver;
+
+    // collision
     struct GroundCollisionEnergySolver;
     struct RigidBodyGroundCollisionEnergySolver;
     struct TriangleRigidCollisionEnergySolver;
+    struct TriangleRodCollisionEnergySolver;
+
+    // joints
+    struct OneSidedFixedJointEnergySolver;
 }
 
 
@@ -135,20 +155,26 @@ namespace Energy
 // when a new energy is added, we must update the list below
 #define ENERGY_LIST(X) \
     X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
+    X(COSSERAT_ROD, CosseratRodEnergySolver) \
     X(GROUND_COLLISION, GroundCollisionEnergySolver) \
     X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver) \
-    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver)
+    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver) \
+    X(TRIANGLE_ROD_COLLISION, TriangleRodCollisionEnergySolver) \
+    X(ONE_SIDED_FIXED_JOINT, OneSidedFixedJointEnergySolver)
 
 // "Static" energies are those that are generally not added or removed throughout the course of the simulation
 // (unless topology changes)
 #define STATIC_ENERGY_LIST(X) \
     X(NEO_HOOKEAN, NeoHookeanEnergySolver) \
+    X(COSSERAT_ROD, CosseratRodEnergySolver) \
     X(GROUND_COLLISION, GroundCollisionEnergySolver) \
-    X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver)
+    X(RIGID_BODY_GROUND_COLLISION, RigidBodyGroundCollisionEnergySolver) \
+    X(ONE_SIDED_FIXED_JOINT, OneSidedFixedJointEnergySolver)
 
 // "Dynamic" energies are those that are added often throughout the course of the simulation - e.g. most collision constraints
 #define DYNAMIC_ENERGY_LIST(X) \
-    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver)
+    X(TRIANGLE_RIGID_COLLISION, TriangleRigidCollisionEnergySolver) \
+    X(TRIANGLE_ROD_COLLISION, TriangleRodCollisionEnergySolver)
 
 // generate the enum for all energies
 enum class EnergyType : uint8_t
@@ -223,6 +249,7 @@ namespace SimObject
 {
     class Object_Base;
     class TetMeshObject;
+    class Rod;
     class RigidSphere;
 }
 
@@ -231,6 +258,7 @@ namespace Config
     class Config;
     class ObjectConfig;
     class TetMeshObjectConfig;
+    class RodConfig;
     class RigidSphereConfig;
 }
 
@@ -247,7 +275,8 @@ namespace Sim
 
 using ObjectConfigs_TypeList = TypeList<
     Config::RigidSphereConfig,
-    Config::TetMeshObjectConfig
+    Config::TetMeshObjectConfig,
+    Config::RodConfig
 >;
 
 using ObjectConfigs_Container = VariadicVectorContainerFromTypeList<ObjectConfigs_TypeList>::type;

@@ -2,6 +2,7 @@
 
 #include "config/Config.hpp"
 #include "config/TetMeshObjectConfig.hpp"
+#include "config/RodConfig.hpp"
 #include "config/RigidSphereConfig.hpp"
 
 #include "common/VariadicVectorContainer.hpp"
@@ -72,6 +73,10 @@ class SimulationConfig : public Config_Base
             if (type == "TetMeshObject")
             {
                 _object_configs.template emplace_back<TetMeshObjectConfig>(obj_node);
+            }
+            else if (type == "Rod")
+            {
+                _object_configs.template emplace_back<RodConfig>(obj_node);
             }
             else if (type == "RigidSphere")
             {

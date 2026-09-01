@@ -3,6 +3,7 @@
 
 #include "simulation/Simulation.hpp"
 #include "graphics/MeshGraphicsObject.hpp"
+#include "graphics/RodGraphicsObject.hpp"
 #include "graphics/SphereGraphicsObject.hpp"
 #include "graphics/PlaneGraphicsObject.hpp"
 
@@ -254,6 +255,14 @@ void GraphicsScene::addObject(const SimObject::TetMeshObject* mesh_obj, const Co
     _renderer->AddActor(mesh_go->actor());
 
     _graphics_objects.push_back(std::move(mesh_go));
+}
+
+void GraphicsScene::addObject(const SimObject::Rod* rod, const Config::ObjectRenderConfig& render_config)
+{
+    std::unique_ptr<RodGraphicsObject> rod_go = std::make_unique<RodGraphicsObject>(rod, render_config);
+    _renderer->AddActor(rod_go->actor());
+
+    _graphics_objects.push_back(std::move(rod_go));
 }
 
 void GraphicsScene::addObject(const SimObject::RigidSphere* sphere, const Config::ObjectRenderConfig& render_config)

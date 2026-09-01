@@ -1,5 +1,5 @@
-#include "energy/NeoHookeanEnergyPool.hpp"
-#include "energy/NeoHookeanEnergySolver.hpp"
+#include "energy/elastic/NeoHookeanEnergyPool.hpp"
+#include "energy/elastic/NeoHookeanEnergySolver.hpp"
 
 #include "simulation/SimulationContext.hpp"
 

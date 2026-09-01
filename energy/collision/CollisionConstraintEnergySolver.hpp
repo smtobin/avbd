@@ -92,9 +92,6 @@ struct CollisionConstraintEnergySolver
         {
             // additive stiffness update
             k_n += STIFFNESS_BETA * std::abs(C_corr_n);
-
-            // store the current constraint violation
-            energies.data[c_idx].C_n_prev = C_n;
         }
 
         // update normal lambda - equation (11)
@@ -144,9 +141,17 @@ struct CollisionConstraintEnergySolver
     static void updateAfterTimeStep(
         unsigned c_idx,
         CollisionEnergyPool& energies,
-        ParticlePool& /* particles */
+        ParticlePool& particles
     )
     {
+        // store the current constraint violation
+        if (energies.data[c_idx].lambda_n > 0)
+        {
+            Real C_n, C_t, C_b;
+            CollisionConstraintSolver::evaluateConstraint(c_idx, energies, particles, C_n, C_t, C_b);
+            energies.data[c_idx].C_n_prev = C_n;
+        }
+
         // if, at the final iteration of the time step, the frictional Lagrange multiplier magnitude was unclamped
         // (i.e. friction erased all tangential movement for this particle)
         // then if we were using kinetic friction, switch to static
@@ -156,9 +161,9 @@ struct CollisionConstraintEnergySolver
         energies.data[c_idx].lambda_n *= CONSTRAINT_ALPHA * STIFFNESS_GAMMA;
         energies.data[c_idx].lambda_t *= STIFFNESS_GAMMA;
         energies.data[c_idx].lambda_b *= STIFFNESS_GAMMA;
-        energies.data[c_idx].k_n = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_n, energies.k_start);
-        energies.data[c_idx].k_t = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_t, energies.k_start);
-        energies.data[c_idx].k_b = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_b, energies.k_start);
+        energies.data[c_idx].k_n = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_n, energies.data[c_idx].k_start);
+        energies.data[c_idx].k_t = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_t, energies.data[c_idx].k_start);
+        energies.data[c_idx].k_b = std::max(STIFFNESS_GAMMA * energies.data[c_idx].k_b, energies.data[c_idx].k_start);
     }
 
     /** Computes the Hessian and gradient for a specified particle affected by this energy.
@@ -179,9 +184,12 @@ struct CollisionConstraintEnergySolver
         unsigned local_idx,
         Mat3r_or_Mat6r<DOF>& particle_H,
         Vec3r_or_Vec6r<DOF>& particle_G,
-        Real dt
+        Real /* dt */
     )
     {
+        // if constexpr (std::is_same_v<CollisionEnergyPool, RigidBodyGroundCollisionEnergyPool>)
+        //     std::cout << "CollisionConstraint accumulate - e_idx=" << e_idx << std::endl;
+        
         // evaluate the constraint, gradients, and Hessians for the constraint for each particle involved
         Real C_n, C_t, C_b;
         Vec3r_or_Vec6r<DOF> C_grad_n, C_grad_t, C_grad_b;
@@ -209,10 +217,19 @@ struct CollisionConstraintEnergySolver
 
 
         // Lagrange multiplier for normal
-        Real lambda_n_plus = std::max(Real(0), k_n * C_corr_n + lambda_n);
+        Real lambda_n_plus_unclamped = k_n * C_corr_n + lambda_n;
+        Real lambda_n_plus = std::max(Real(0), lambda_n_plus_unclamped);
+
+        // if constexpr (std::is_same_v<CollisionEnergyPool, RigidBodyGroundCollisionEnergyPool>)
+        // {
+        //     std::cout << "C_corr_n: " << C_corr_n << std::endl;
+        //     std::cout << "k_n: " << k_n << std::endl;
+        //     std::cout << "lambda_n: " << lambda_n << " lambda_n_plus: " << lambda_n_plus << std::endl;
+        // }
 
         // Lagrange multipliers for tangent and binormal
         Vec2r lambda_tb_plus(k_t*C_t + lambda_t, k_b*C_b + lambda_b);
+        // Vec2r lambda_tb_plus_unclamped = lambda_tb_plus;
         // clamp magnitude
         Real lambda_tb_plus_mag = lambda_tb_plus.norm();
         Real mu = use_static ? mu_s : mu_k;
@@ -226,20 +243,26 @@ struct CollisionConstraintEnergySolver
         /** TODO: (08/04/26) After we've clamped the lambdas, these will always be false...? */
         // stiffness rescaling for normal - equation (14)
         Real k_scaled_n = k_n;
-        if (lambda_n_plus < 0 && std::abs(C_n) > 1e-12)
-            k_scaled_n =  -lambda_n / C_n;
+        // if (lambda_n_plus_unclamped < 0 && std::abs(C_n) > 1e-12)
+        //     k_scaled_n =  std::abs(-lambda_n / C_n);
         
         // stiffness rescling for tangent and binormal - equation (14)
         Vec2r k_scaled_tb(k_t, k_b);
-        Vec2r C_tb(C_t, C_b);
-        if (lambda_tb_plus.norm() > lambda_tb_max && C_tb.norm() > 1e-12)
-        {
-            k_scaled_tb = k_scaled_tb / k_scaled_tb.norm() * (lambda_tb_max - lambda_tb_plus.norm()) / C_tb.norm();
-        }
+        // Vec2r C_tb(C_t, C_b);
+        // Vec2r lambda_tb(lambda_t, lambda_b);
+        // if (lambda_tb_plus_mag > lambda_tb_max && C_tb.norm() > 1e-12)
+        // {
+        //     k_scaled_tb = k_scaled_tb / k_scaled_tb.norm() * std::abs(lambda_tb_max - lambda_tb.norm()) / C_tb.norm();
+        // }
         // gradient
         Vec3r_or_Vec6r<DOF> grad_n = lambda_n_plus * C_grad_n;
         Vec3r_or_Vec6r<DOF> grad_t = lambda_tb_plus[0] * C_grad_t;
         Vec3r_or_Vec6r<DOF> grad_b = lambda_tb_plus[1] * C_grad_b;
+
+        // if constexpr (std::is_same_v<CollisionEnergyPool, RigidBodyGroundCollisionEnergyPool>)
+        // {
+        //     std::cout << "grad_n: " << grad_n.transpose() << std::endl;
+        // }
 
             // Hessian
             /** TODO: do diagonalization of Hessian component

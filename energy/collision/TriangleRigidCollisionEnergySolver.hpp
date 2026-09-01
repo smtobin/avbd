@@ -1,7 +1,7 @@
 #pragma once
 
-#include "energy/TriangleRigidCollisionEnergyPool.hpp"
-#include "energy/CollisionConstraintEnergySolver.hpp"
+#include "energy/collision/TriangleRigidCollisionEnergyPool.hpp"
+#include "energy/collision/CollisionConstraintEnergySolver.hpp"
 
 namespace Energy
 {
@@ -39,14 +39,6 @@ struct TriangleRigidCollisionConstraintSolver
         C_n = n.dot(diff);
         C_t = t.dot(diff);
         C_b = b.dot(diff);
-
-        // if (C > 0)
-        // {
-        //     particles.in_collision[indices[0]] = true;
-        //     particles.in_collision[indices[1]] = true;
-        //     particles.in_collision[indices[2]] = true;
-        //     particles.in_collision[indices[3]] = true;
-        // }
     }
 
     template <int DOF>
@@ -81,14 +73,6 @@ struct TriangleRigidCollisionConstraintSolver
         C_n = n.dot(diff);
         C_t = t.dot(diff);
         C_b = b.dot(diff);
-
-        // if (C > 0)
-        // {
-        //     particles.in_collision[indices[0]] = true;
-        //     particles.in_collision[indices[1]] = true;
-        //     particles.in_collision[indices[2]] = true;
-        //     particles.in_collision[indices[3]] = true;
-        // }
 
         if constexpr (DOF == 6)
         {

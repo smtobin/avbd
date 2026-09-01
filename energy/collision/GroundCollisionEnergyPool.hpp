@@ -1,6 +1,6 @@
 #pragma once
 
-#include "energy/CollisionConstraintEnergyPool.hpp"
+#include "energy/collision/CollisionConstraintEnergyPool.hpp"
 
 namespace Energy
 {
@@ -20,7 +20,7 @@ struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollision
     using SolverType = GroundCollisionEnergySolver;     // solver class type
 
     explicit GroundCollisionEnergyPool(unsigned capacity)
-        : CollisionConstraintEnergyPool(capacity, 1e2)
+        : CollisionConstraintEnergyPool(capacity)
     {
 
     }
@@ -29,10 +29,10 @@ struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollision
      * @param particle_index : the index of the particle in the particle pool
      * @returns the index of the new energy in the pool
      */
-    unsigned addEnergy(unsigned particle_index, Real mu_s, Real mu_k)
+    unsigned addEnergy(unsigned particle_index, Real k_start, Real mu_s, Real mu_k)
     {
         // parent will call allocSlot()
-        unsigned slot = CollisionConstraintEnergyPool::addEnergy(mu_s, mu_k);
+        unsigned slot = CollisionConstraintEnergyPool::addEnergy(k_start, mu_s, mu_k);
 
         // particle_indices[slot][0] = particle_index;
         data[slot].particle_indices[0] = particle_index;
