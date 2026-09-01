@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/Math.hpp"
 #include "common/TombstonePool.hpp"
 #include "common/ParticlePool.hpp"
 #include "collision/CollisionGeometryType.hpp"
@@ -217,7 +218,7 @@ struct CollisionPrimitivePool : TombstonePool
 
             // compute AABB at predicted position and rotation given the current linear and angular velocities
             const Vec3r& ang_vel = particle_pool.angularVelocity(op_idx);
-            const Quaternion new_rotation = Math::Exp_s3(rotation, dt*ang_vel);
+            const Quaternion new_rotation = Math::Plus_S3(rotation, dt*ang_vel);
             Vec3r new_world_center = new_rotation * center + particle_pool.positions[op_idx] + dt * particle_pool.velocities[op_idx];
             Mat3r new_abs_R = new_rotation.toRotationMatrix().cwiseAbs();
             Vec3r new_world_extent = new_abs_R * halfextent;
