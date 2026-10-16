@@ -29,6 +29,23 @@ target_sources(Collision
         
 )
 
+if (ENABLE_CUDA)
+    # Example
+    # set(SIMULATION_CUDA_SOURCES
+    #     ${SIMULATION_DIR}/cuda/CudaSolver.cu
+    # )
+
+    # target_sources(Simulation
+    #     PRIVATE
+    #         ${SIMULATION_CUDA_SOURCES}
+    # )
+
+    target_link_libraries(Collision CUDA::cudart)
+    target_compile_definitions(Collision PUBLIC HAS_CUDA=1)
+else ()
+    target_compile_definitions(Collision PUBLIC HAS_CUDA=0)
+endif()
+
 install(TARGETS Collision EXPORT Collision-targets
     RUNTIME DESTINATION bin/${PROJECT_NAME}
     LIBRARY DESTINATION lib/${PROJECT_NAME})

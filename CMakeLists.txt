@@ -1,5 +1,25 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.18)
 project(XPBDRods LANGUAGES CXX)
+
+option(ENABLE_CUDA "Enable CUDA acceleration" OFF)
+if (ENABLE_CUDA)
+  include(CheckLanguage)
+  check_language(CUDA)
+
+  if (CMAKE_CUDA_COMPILER)
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
+
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+    message(STATUS "CUDA support enabled")
+
+  else()
+    message(WARNING "CUDA requested, but no CUDA compiler was found. Building wihtout CUDA.")
+    set(ENABLE_CUDA OFF)
+  endif()
+endif()
 
 set(CMAKE_BUILD_RPATH "/usr/local/lib")
 set(CMAKE_INSTALL_RPATH "/usr/local/lib")
@@ -48,22 +68,6 @@ target_link_libraries(Common Eigen3::Eigen assimp gmsh)
 add_library(Collision)
 add_subdirectory("collision")
 target_link_libraries(Collision Eigen3::Eigen Common SimObject)
-
-# add_library(Collision)
-# add_subdirectory("collision")
-# target_link_libraries(Collision Eigen3::Eigen Common)
-
-# add_library(Energy)
-# add_subdirectory("energy")
-# target_link_libraries(Energy Eigen3::Eigen Common)
-
-# add_library(Solver)
-# add_subdirectory("solver")
-# target_link_libraries(Solver Eigen3::Eigen Common)
-
-# add_library(Constraint)
-# add_subdirectory("constraint")
-# target_link_libraries(Constraint Eigen3::Eigen Common SimObject)
 
 add_library(SimObject)
 add_subdirectory("simobject")

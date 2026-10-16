@@ -27,6 +27,23 @@ target_sources(SimObject
         
 )
 
+if (ENABLE_CUDA)
+    # Example
+    # set(SIMULATION_CUDA_SOURCES
+    #     ${SIMULATION_DIR}/cuda/CudaSolver.cu
+    # )
+
+    # target_sources(Simulation
+    #     PRIVATE
+    #         ${SIMULATION_CUDA_SOURCES}
+    # )
+
+    target_link_libraries(SimObject CUDA::cudart)
+    target_compile_definitions(SimObject PUBLIC HAS_CUDA=1)
+else ()
+    target_compile_definitions(SimObject PUBLIC HAS_CUDA=0)
+endif()
+
 install(TARGETS SimObject EXPORT SimObject-targets
     RUNTIME DESTINATION bin/${PROJECT_NAME}
     LIBRARY DESTINATION lib/${PROJECT_NAME})

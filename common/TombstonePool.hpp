@@ -13,7 +13,7 @@
 struct TombstonePool
 {
     
-    std::vector<bool> active;   // whether elements are valid
+    std::vector<uint8_t> active;   // whether elements are valid
     unsigned capacity;          // total capacity (allocated memory)
     unsigned count;             // current number of active elements
     unsigned highest_index;     // highest active index
