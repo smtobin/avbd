@@ -88,11 +88,11 @@ using VecXr = Eigen::Vector<Real, -1>;
 using Vec3i = Eigen::Vector<int, 3>;
 using Vec4i = Eigen::Vector<int, 4>;
 
-using Vec1u = Eigen::Vector<unsigned, 1>;
-using Vec2u = Eigen::Vector<unsigned, 2>;
-using Vec3u = Eigen::Vector<unsigned, 3>;
-using Vec4u = Eigen::Vector<unsigned, 4>;
-using Vec5u = Eigen::Vector<unsigned, 5>;
+using Vec1u = std::array<unsigned, 1>;//Eigen::Vector<unsigned, 1>;
+using Vec2u = std::array<unsigned, 2>;//Eigen::Vector<unsigned, 2>;
+using Vec3u = std::array<unsigned, 3>;//Eigen::Vector<unsigned, 3>;
+using Vec4u = std::array<unsigned, 4>;//Eigen::Vector<unsigned, 4>;
+using Vec5u = std::array<unsigned, 5>;//Eigen::Vector<unsigned, 5>;
 
 using Mat2r = Eigen::Matrix<Real, 2, 2>;
 using Mat3r = Eigen::Matrix<Real, 3, 3>;
