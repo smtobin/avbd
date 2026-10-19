@@ -10,7 +10,9 @@
     #define HD
 #endif
 
-/** Simple Vec3 struct for GPU operations. */
+/** Simple Vec3 struct for GPU operations.
+ * TODO: (10/19/26) Should the CPU code us this math layer as well?? (Probably yes long term)
+ */
 struct DVec3
 {
     float x, y, z;

@@ -11,6 +11,9 @@
     #define HD
 #endif
 
+/** Quaternion class for GPU operations.
+ * TODO: (10/19/26) CPU code should use this struct as well
+ */
 struct DQuaternion
 {
     // Storage order: x, y, z, w
@@ -36,29 +39,6 @@ struct DQuaternion
     // Access vector/scalar parts
     HD constexpr DVec3 vec() const { return {x, y, z}; }
     HD constexpr float scalar() const { return w; }
-
-    // Coefficient access in storage order: x, y, z, w
-    HD constexpr float& coeff(int i)
-    {
-        assert(i >= 0 && i < 4);
-        switch (i) {
-            case 0: return x;
-            case 1: return y;
-            case 2: return z;
-            default: return w;
-        }
-    }
-
-    HD constexpr const float& coeff(int i) const
-    {
-        assert(i >= 0 && i < 4);
-        switch (i) {
-            case 0: return x;
-            case 1: return y;
-            case 2: return z;
-            default: return w;
-        }
-    }
 
     // Unary operations
     HD constexpr DQuaternion operator+() const { return *this; }
