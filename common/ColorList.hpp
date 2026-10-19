@@ -477,7 +477,6 @@ struct ColorList
     {
         for (unsigned p_idx : residual_dirty)
         {
-            /** TODO: (08/02/26) Replace with "forEachNeighbor" or some nice way to iterate over adjacency structure */
             ForEachNeighbor(static_adj, dynamic_adj, p_idx, [&](unsigned neighbor) {
                 if (color[neighbor] == color[p_idx])
                 {
