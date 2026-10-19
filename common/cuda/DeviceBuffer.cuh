@@ -2,17 +2,23 @@
 
 #include "cuda_runtime.h"
 
+#include "common/common.hpp"
+#include "common/cuda/Vec3.cuh"
+#include "common/cuda/Quaternion.cuh"
+
+#include <vector>
+
 template <typename T>
 class DeviceBuffer
 {
 private:
     T* _ptr = nullptr;
-    _sizet _size = 0;
+    size_t _size = 0;
 
 public:
     DeviceBuffer() = default;
 
-    explicit DeviceBuffer(_sizet count)
+    explicit DeviceBuffer(size_t count)
     {
         allocate(count);
     }
@@ -44,7 +50,7 @@ public:
         return *this;
     }
 
-    void allocate(_sizet count)
+    void allocate(size_t count)
     {
         if (count == _size)
             return;
@@ -74,7 +80,7 @@ public:
         _size = 0;
     }
 
-    void upload(const T* src, _sizet count)
+    void upload(const T* src, size_t count)
     {
         if (count > _size)
             throw std::runtime_error("DeviceBuffer capacity exceeded");
@@ -85,7 +91,7 @@ public:
         cudaMemcpy(_ptr, src, count * sizeof(T), cudaMemcpyHostToDevice);
     }
 
-    void download(T* dst, _sizet count) const
+    void download(T* dst, size_t count) const
     {
         if (count > _size)
             throw std::runtime_error("DeviceBuffer capacity exceeded");
@@ -99,5 +105,60 @@ public:
     T* data() { return _ptr; }
     const T* data() const { return _ptr; }
 
-    _sizet size() const { return _size; }
+    size_t size() const { return _size; }
 };
+
+// add specific overloads for uploading Vec3r and Quaternion
+void DeviceBuffer<DVec3>::upload(const Vec3r* src, size_t count)
+{
+    if (count > _size)
+            throw std::runtime_error("DeviceBuffer capacity exceeded");
+
+    if (count == 0)
+        return;
+
+    // safe approach - convert Eigen Vec3r to device DVec3, then copy
+    std::vector<DVec3> staging(count);
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        staging[i] = DVec3(src[i].x(), src[i].y(), src[i].z());
+    }
+
+    const cudaError_t err = cudaMemcpy(
+        _ptr,
+        staging.data(),
+        count * sizeof(DVec3),
+        cudaMemcpyHostToDevice
+    );
+
+    if (err != cudaSuccess)
+        throw std::runtime_error(cudaGetErrorString(err));
+}
+
+void DeviceBuffer<DQuaternion>::upload(const Quaternion* src, size_t count)
+{
+    if (count > _size)
+            throw std::runtime_error("DeviceBuffer capacity exceeded");
+
+    if (count == 0)
+        return;
+
+    // safe approach - convert Eigen Quaternion to device DQuaternion, then copy
+    std::vector<DQuaternion> staging(count);
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        staging[i] = DQuaternion(src[i].w(), src[i].x(), src[i].y(), src[i].z());
+    }
+
+    const cudaError_t err = cudaMemcpy(
+        _ptr,
+        staging.data(),
+        count * sizeof(DQuaternion),
+        cudaMemcpyHostToDevice
+    );
+
+    if (err != cudaSuccess)
+        throw std::runtime_error(cudaGetErrorString(err));
+}
