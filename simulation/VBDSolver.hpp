@@ -472,7 +472,10 @@ private:
             LHS += hess;
 
             Vec6r dx = Vec6r::Zero();
-            LHS.solve(RHS, dx);
+            bool success = LHS.solve(RHS, dx);
+            if (!success)
+                throw std::runtime_error("Failed to solve 6x6 particle system!");
+
             Vec3r dp = dx.head<3>();
             Vec3r dq = dx.tail<3>();
 
@@ -501,7 +504,10 @@ private:
             
 
             Vec3r dx = Vec3r::Zero();
-            LHS.solve(RHS, dx);
+            bool success = LHS.solve(RHS, dx);
+            if (!success)
+                throw std::runtime_error("Failed to solve 3x3 particle system!");
+                
             // std::cout << "Particle " << p_idx << ": " << "\n  LHS:\n" << LHS << "\n  RHS: " << RHS.transpose() << "\n  dx: " << dx.transpose() << std::endl;
             // Vec3r dx = LHS.inverse() * RHS;
 

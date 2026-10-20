@@ -451,44 +451,53 @@ struct MatN {
     {
         Real a[Rows][Cols];
         Real rhs[Rows];
-        Real scale = Real(0);
+        Real rowScale[Rows];
 
-        for (int r = 0; r < Rows; ++r) {
+        for (int r = 0; r < Rows; ++r)
+        {
+            rowScale[r] = Real(0);
             rhs[r] = b[r];
-            if (!isfinite(rhs[r]))
-                return false;
 
-            for (int c = 0; c < Cols; ++c) {
+            for (int c = 0; c < Cols; ++c)
+            {
                 const Real value = (*this)(r, c);
                 if (!isfinite(value))
                     return false;
 
                 a[r][c] = value;
+
                 const Real av = fabs(value);
-                if (av > scale)
-                    scale = av;
+                if (av > rowScale[r])
+                    rowScale[r] = av;
             }
+
+            if (rowScale[r] == Real(0))
+                return false;
         }
-
-        if (scale == Real(0))
-            return false;
-
-        const Real threshold = relativeEps * scale;
 
         for (int k = 0; k < Rows; ++k) {
             int pivotRow = k;
-            Real pivotAbs = fabs(a[k][k]);
+            Real bestRatio = Real(-1);
 
-            for (int r = k + 1; r < Rows; ++r) {
-                const Real candidate = fabs(a[r][k]);
-                if (candidate > pivotAbs) {
-                    pivotAbs = candidate;
+            for (int r = k; r < Rows; ++r)
+            {
+                const Real ratio =
+                    fabs(a[r][k]) / rowScale[r];
+
+                if (ratio > bestRatio)
+                {
+                    bestRatio = ratio;
                     pivotRow = r;
                 }
             }
 
-            if (!isfinite(pivotAbs) || pivotAbs <= threshold)
+            const Real pivotAbs = fabs(a[pivotRow][k]);
+
+            if (!isfinite(pivotAbs) ||
+                pivotAbs <= relativeEps * rowScale[pivotRow])
+            {
                 return false;
+            }
 
             if (pivotRow != k) {
                 for (int c = k; c < Cols; ++c) {
@@ -500,6 +509,9 @@ struct MatN {
                 const Real tmp = rhs[k];
                 rhs[k] = rhs[pivotRow];
                 rhs[pivotRow] = tmp;
+                const Real tmpScale = rowScale[k];
+                rowScale[k] = rowScale[pivotRow];
+                rowScale[pivotRow] = tmpScale;
             }
 
             const Real pivot = a[k][k];
@@ -524,8 +536,10 @@ struct MatN {
                 value -= a[r][c] * result[c];
 
             const Real pivot = a[r][r];
-            if (!isfinite(pivot) || fabs(pivot) <= threshold)
+            if (!isfinite(pivot) || fabs(pivot) <= relativeEps * rowScale[r])
+            {
                 return false;
+            }
 
             result[r] = value / pivot;
             if (!isfinite(result[r]))
