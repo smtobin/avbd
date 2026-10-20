@@ -40,12 +40,12 @@ struct CosseratRodEnergySolver
 
         // shear strain
         Quaternion q_mid = Math::Plus_S3(q1, s_hat * q_diff);
-        strain.block<3,1>(0,0) = 1/rest_length * (q_mid.conjugate() * (p2 - p1)) - Vec3r(0,0,1);
+        strain.head<3>() = 1/rest_length * (q_mid.conjugate() * (p2 - p1)) - Vec3r(0,0,1);
 
         // bending strain
-        strain.block<3,1>(3,0) = 1.0/rest_length * q_diff - precurvature;
+        strain.tail<3>() = 1.0/rest_length * q_diff - precurvature;
 
-        return 0.5 * rest_length * strain.transpose() * stiffness.asDiagonal() * strain;
+        return 0.5 * rest_length * strain.dot(stiffness.cwiseProduct(strain));
     }
 
     /** Required - does nothing */
@@ -103,10 +103,10 @@ struct CosseratRodEnergySolver
 
         // shear strain
         Quaternion q_mid = Math::Plus_S3(q1, s_hat * q_diff);
-        strain.block<3,1>(0,0) = inv_length * (q_mid.conjugate() * (p2 - p1)) - Vec3r(0,0,1);
+        strain.head<3>() = inv_length * (q_mid.conjugate() * (p2 - p1)) - Vec3r(0,0,1);
 
         // bending strain
-        strain.block<3,1>(3,0) = inv_length * q_diff - precurvature;
+        strain.tail<3>() = inv_length * q_diff - precurvature;
 
         Mat3r gam_inv = Math::ExpMap_InvRightJacobian(q_diff);
 
@@ -151,9 +151,10 @@ struct CosseratRodEnergySolver
         // std::cout << "Strain gradient: \n" << strain_grad << std::endl;
         // std::cout << "Stiffness: " << stiffness.transpose() << std::endl;
 
-        particle_G += rest_length * strain.transpose() * (stiffness.asDiagonal() * strain_grad);
+        particle_G += rest_length * strain_grad.transpose() * stiffness.cwiseProduct(strain);
         /** TODO: (08/23/26) Is Gauss-Newton approximation good enough? */
-        Mat6r hess_an = rest_length * strain_grad.transpose() * stiffness.asDiagonal() * strain_grad;
+        Mat6r weighted_strain_grad = strain_grad.scaleRows(stiffness);
+        Mat6r hess_an = rest_length * strain_grad.transpose() * weighted_strain_grad;
         // std::cout << "Hess diff: \n" << hess_fd - hess_an << std::endl;
         particle_H += hess_an;
     }

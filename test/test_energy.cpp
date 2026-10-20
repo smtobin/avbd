@@ -52,7 +52,7 @@ std::vector<Mat3r> numericalEnergyHessians(const Energy::Energy_Base* energy)
             Vec3r new_grad = energy->gradient(pi, DT);
             particle_i->position[k] -= delta;
 
-            hessian.col(k) = (new_grad - orig_grad) / delta;
+            hessian.setCol(k) = (new_grad - orig_grad) / delta;
         }
 
         hessians.push_back(hessian);

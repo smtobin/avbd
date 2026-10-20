@@ -61,8 +61,8 @@ int main()
 
         Mat6r H_diff = H_fd - H_orig;
         std::cout << "Local idx " << l_idx << std::endl;
-        std::cout << "G_orig: " << G_orig.transpose() << std::endl;
-        std::cout << "G_fd: " << G_fd.transpose() << std::endl;
+        std::cout << "G_orig: " << G_orig << std::endl;
+        std::cout << "G_fd: " << G_fd << std::endl;
         std::cout << "H_orig:\n" << H_orig << std::endl;
         std::cout << "H_fd:\n" << H_fd << std::endl;
         std::cout << "Local idx " << l_idx << " H_diff:\n" << H_diff << std::endl;

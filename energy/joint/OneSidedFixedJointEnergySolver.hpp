@@ -30,7 +30,7 @@ struct OneSidedFixedJointConstraintSolver
         C.tail<3>() = Math::Minus_S3(jnt_q, info.ref_rotation);
         return C;
 
-        std::cout << "C: " << C.transpose() << std::endl;
+        std::cout << "C: " << C << std::endl;
     }
 
     template <int>
@@ -55,7 +55,7 @@ struct OneSidedFixedJointConstraintSolver
         C.head<3>() = jnt_p - info.ref_position;
         C.tail<3>() = theta;
 
-        std::cout << "C: " << C.transpose() << std::endl;
+        std::cout << "C: " << C << std::endl;
 
         for (int ci = 0; ci < 6; ci++)
         {

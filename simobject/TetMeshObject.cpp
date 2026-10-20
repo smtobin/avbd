@@ -73,11 +73,15 @@ void TetMeshObject::setup()
         const Vec3r& v2 = _mesh.vertex(elem[1]);
         const Vec3r& v3 = _mesh.vertex(elem[2]);
         const Vec3r& v4 = _mesh.vertex(elem[3]);
-        Mat3r X;
-        X.col(0) = (v1 - v4);
-        X.col(1) = (v2 - v4);
-        X.col(2) = (v3 - v4);
-        Mat3r Q = X.inverse();
+        Mat3r X = Mat3r::Zero();
+        X.setCol(0, v1 - v4);
+        X.setCol(1, v2 - v4);
+        X.setCol(2, v3 - v4);
+        Mat3r Q = Mat3r::Zero();
+        bool success = X.tryInverse(Q);
+        if (!success)
+            throw std::runtime_error("Undeformed basis could not be inverted!");
+
         Real rest_volume = std::abs(X.determinant() / 6.0);
 
         // create the new energy

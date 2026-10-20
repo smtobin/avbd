@@ -45,8 +45,8 @@ SphereGraphicsObject::SphereGraphicsObject(const SimObject::RigidSphere* sphere,
 
     _vtk_transform = vtkSmartPointer<vtkTransform>::New();
 
-    // IMPORTANT: use row-major ordering since that is what VTKTransform expects (default for Eigen is col-major)
-    Eigen::Matrix<Real, 4, 4, Eigen::RowMajor> sphere_transform_mat = Eigen::Matrix<Real, 4, 4, Eigen::RowMajor>::Identity();
+    // IMPORTANT: use row-major ordering since that is what VTKTransform expects
+    Mat4r sphere_transform_mat = Mat4r::Identity();
     sphere_transform_mat.block<3,3>(0,0) = _sphere->rotation().toRotationMatrix();
     sphere_transform_mat.block<3,1>(0,3) = _sphere->position();
     _vtk_transform->SetMatrix(sphere_transform_mat.data());
@@ -57,7 +57,7 @@ SphereGraphicsObject::SphereGraphicsObject(const SimObject::RigidSphere* sphere,
 void SphereGraphicsObject::update()
 {
     // IMPORTANT: use row-major ordering since that is what VTKTransform expects (default for Eigen is col-major)
-    Eigen::Matrix<Real, 4, 4, Eigen::RowMajor> sphere_transform_mat = Eigen::Matrix<Real, 4, 4, Eigen::RowMajor>::Identity();
+    Mat4r sphere_transform_mat = Mat4r::Identity();
     sphere_transform_mat.block<3,3>(0,0) = _sphere->rotation().toRotationMatrix();
     sphere_transform_mat.block<3,1>(0,3) = _sphere->position();
     _vtk_transform->SetMatrix(sphere_transform_mat.data());

@@ -30,8 +30,8 @@ struct HardConstraintEnergyPool : TombstonePool
     explicit HardConstraintEnergyPool(
         unsigned capacity,
         VecNr<N> k_start_,
-        VecNr<N> lambda_min_= VecNr<N>::Constant(std::numeric_limits<Real>::lowest()),
-        VecNr<N> lambda_max_= VecNr<N>::Constant(std::numeric_limits<Real>::max())
+        VecNr<N> lambda_min_= VecNr<N>(std::numeric_limits<Real>::lowest()),
+        VecNr<N> lambda_max_= VecNr<N>(std::numeric_limits<Real>::max())
     )
         : TombstonePool(capacity)
         , k_start(k_start_)

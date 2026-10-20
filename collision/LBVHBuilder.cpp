@@ -114,7 +114,7 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, Coll
 
     // Morton code
     Vec3r extent = scene_box.max - scene_box.min;
-    extent = extent.cwiseMax(1e-6); // guard against degenerate axes
+    extent = extent.cwiseMax(Vec3r(1e-6)); // guard against degenerate axes
     for (unsigned p_idx : col_pool)
     {
         // normalize centroid between [0,1]^3
@@ -164,7 +164,7 @@ void LBVHBuilder::computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, co
 
     // compute Morton codes
     Vec3r extent = ctx.scene_box.max - ctx.scene_box.min;
-    extent = extent.cwiseMax(1e-6); // guard against degenerate axes
+    extent = extent.cwiseMax(Vec3r(1e-6)); // guard against degenerate axes
     for (unsigned p_idx = start; p_idx < end; p_idx++)
     {
         if (!ctx.collision_pool.active[p_idx])

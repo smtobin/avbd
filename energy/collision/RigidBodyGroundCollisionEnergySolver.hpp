@@ -86,7 +86,7 @@ struct RigidBodyGroundCollisionConstraintSolver
         // precomputations for gradients
         Mat3r R = rb_rot.toRotationMatrix();
         Mat3r skew_cp = Math::Skew3(cp_rb_local);
-        Mat3r R_rloc = R * skew_cp;
+        Mat3r R_rloc_T = (R * skew_cp).transpose();
 
         // if shape is round (e.g. sphere, rod), always use the exact contact point
         // (instead of the one computed at the beginning of the time step)
@@ -96,27 +96,27 @@ struct RigidBodyGroundCollisionConstraintSolver
         {
             Vec3r cp_global = particles.positions[p_idx] - Vec3r(0, shape_params.sphere.radius, 0);
             C_n = n.dot(cp_ground - cp_global);
-            C_grad_n.template block<3,1>(0,0) = -n;
-            C_grad_n.template block<3,1>(3,0) = Vec3r::Zero();
+            C_grad_n.template head<3>() = -n;
+            C_grad_n.template tail<3>() = Vec3r::Zero();
             C_hess_n = Mat6r::Zero();
         }
         else if (shape_params.type == Collision::CollisionGeometryType::RodSegment)
         {
             Vec3r cp_global = particles.positions[p_idx] - Vec3r(0, shape_params.rod.radius, 0);
             C_n = n.dot(cp_ground - cp_global);
-            C_grad_n.template block<3,1>(0,0) = -n;
-            C_grad_n.template block<3,1>(3,0) = Vec3r::Zero();
+            C_grad_n.template head<3>() = -n;
+            C_grad_n.template tail<3>() = Vec3r::Zero();
             C_hess_n = Mat6r::Zero();
         }
         else
         {
             // default, just use the contact point
             C_n = n.dot(diff);
-            C_grad_n.template block<3,1>(0,0) = -n;
-            C_grad_n.template block<3,1>(3,0) = n.transpose() * R_rloc;
+            C_grad_n.template head<3>() = -n;
+            C_grad_n.template tail<3>() = R_rloc_T * n;
             C_hess_n = Mat6r::Zero();
-            C_hess_n.template block<3,3>(3,3) = -R.transpose() * Math::Skew3(n) * R * skew_cp;
-            C_hess_n.template block<3,3>(3,3) = 0.5*(C_hess_n.template block<3,3>(3,3) + C_hess_n.template block<3,3>(3,3).transpose());
+            Mat3r block = -R.transpose() * Math::Skew3(n) * R * skew_cp;
+            C_hess_n.template block<3,3>(3,3) = 0.5*(block + block.transpose());
         }
 
         // std::cout << "C_n: " << C_n << "  C_t: " << C_t << "  C_b: " << C_b << std::endl;
@@ -124,19 +124,19 @@ struct RigidBodyGroundCollisionConstraintSolver
         
         
         // gradients
-        C_grad_t.template block<3,1>(0,0) = -t;
-        C_grad_t.template block<3,1>(3,0) = t.transpose() * R_rloc;
-        C_grad_b.template block<3,1>(0,0) = -b;
-        C_grad_b.template block<3,1>(3,0) = b.transpose() * R_rloc;
+        C_grad_t.template head<3>() = -t;
+        C_grad_t.template tail<3>() = R_rloc_T * t;
+        C_grad_b.template head<3>() = -b;
+        C_grad_b.template tail<3>() = R_rloc_T * b;
 
         // Hessians
         // grad = (Skew(cp_rb_local) * R^T * n)^T
         // ==> (Skew(cp_rb_local) * -R^T * skew(n) * -R)^T = R^T * skew(n) * R * skew(cp_rb_local)
         C_hess_t = C_hess_b = Mat6r::Zero();
-        C_hess_t.template block<3,3>(3,3) = -R.transpose() * Math::Skew3(t) * R * skew_cp;
-        C_hess_t.template block<3,3>(3,3) = 0.5*(C_hess_t.template block<3,3>(3,3) + C_hess_t.template block<3,3>(3,3).transpose());
-        C_hess_b.template block<3,3>(3,3) = -R.transpose() * Math::Skew3(b) * R * skew_cp;
-        C_hess_b.template block<3,3>(3,3) = 0.5*(C_hess_b.template block<3,3>(3,3) + C_hess_b.template block<3,3>(3,3).transpose());
+        Mat3r block1 = -R.transpose() * Math::Skew3(t) * R * skew_cp;
+        C_hess_t.template block<3,3>(3,3) = 0.5*(block1 + block1.transpose());
+        Mat3r block2 = -R.transpose() * Math::Skew3(b) * R * skew_cp;
+        C_hess_b.template block<3,3>(3,3) = 0.5*(block2 + block2.transpose());
     }
 };
 

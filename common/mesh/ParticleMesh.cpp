@@ -96,10 +96,10 @@ std::tuple<Real, Vec3r, Mat3r> ParticleMesh::massProperties(Real density) const
         const Vec3r v3 = vertex(f[2]);
 
         // tet basis matrix
-        Mat3r A;
-        A.col(0) = (v1 - v0);
-        A.col(1) = (v2 - v0);
-        A.col(2) = (v3 - v0);
+        Mat3r A = Mat3r::Zero();
+        A.setCol(0, v1 - v0);
+        A.setCol(1, v2 - v0);
+        A.setCol(2, v3 - v0);
 
         // find signed volume of tet
         const Real volume = A.determinant() / 6.0;
@@ -118,7 +118,8 @@ std::tuple<Real, Vec3r, Mat3r> ParticleMesh::massProperties(Real density) const
     Vec3r center_of_mass = weighted_volume / total_volume;
 
     // move covariance matrix to center of mass
-    covariance = covariance + total_volume * ( 2*(-center_of_mass) * (center_of_mass).transpose() + (-center_of_mass)*(-center_of_mass).transpose());
+    Mat3r com_outer_prod = outerProduct(center_of_mass, center_of_mass);
+    covariance = covariance - total_volume * com_outer_prod;
 
     // compute moment of inertia tensor from covariance mat
     const Mat3r I = Mat3r::Identity() * covariance.trace() - covariance;
@@ -140,10 +141,10 @@ Vec3r ParticleMesh::massCenter() const
         const Vec3r v3 = vertex(f[2]);
 
         // tet basis matrix
-        Mat3r A;
-        A.col(0) = (v1 - v0);
-        A.col(1) = (v2 - v0);
-        A.col(2) = (v3 - v0);
+        Mat3r A = Mat3r::Zero();
+        A.setCol(0, v1 - v0);
+        A.setCol(1, v2 - v0);
+        A.setCol(2, v3 - v0);
 
         // find signed volume of tet
         const Real volume = A.determinant() / 6.0;

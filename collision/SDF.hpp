@@ -19,11 +19,14 @@ struct SDF
         {
             case CollisionGeometryType::Sphere:
             {
-                return { Vec3r::Constant(-s.sphere.radius), Vec3r::Constant(s.sphere.radius) };
+                return { Vec3r(-s.sphere.radius), Vec3r(s.sphere.radius) };
             }
             case CollisionGeometryType::Box:
             {
-                return { -Vec3r(s.box.half_extents), Vec3r(s.box.half_extents) };
+                return { 
+                    -Vec3r(s.box.half_extents[0], s.box.half_extents[1], s.box.half_extents[2]),
+                     Vec3r(s.box.half_extents[0], s.box.half_extents[1], s.box.half_extents[2])
+                    };
             }
             case CollisionGeometryType::Capsule:
             {  

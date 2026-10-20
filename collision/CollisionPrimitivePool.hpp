@@ -125,8 +125,8 @@ struct CollisionPrimitivePool : TombstonePool
             Real radius = shape_params_pool.shape_params[params_idx].rod.radius;
 
             // construct bounding box
-            Vec3r bbox_min = p1.cwiseMin(p2) - Vec3r::Constant(radius);
-            Vec3r bbox_max = p1.cwiseMax(p2) + Vec3r::Constant(radius);
+            Vec3r bbox_min = p1.cwiseMin(p2) - Vec3r(radius);
+            Vec3r bbox_max = p1.cwiseMax(p2) + Vec3r(radius);
             
             return { bbox_min, bbox_max };
         }
@@ -181,15 +181,15 @@ struct CollisionPrimitivePool : TombstonePool
             Real radius = shape_params_pool.shape_params[params_idx].rod.radius;
 
             // construct current bounding box
-            Vec3r bbox_min = p1.cwiseMin(p2) - Vec3r::Constant(radius);
-            Vec3r bbox_max = p1.cwiseMax(p2) + Vec3r::Constant(radius);
+            Vec3r bbox_min = p1.cwiseMin(p2) - Vec3r(radius);
+            Vec3r bbox_max = p1.cwiseMax(p2) + Vec3r(radius);
             AABB bbox = { bbox_min, bbox_max };
 
             // construct extrapolated bounding box at next frame based on current velocities
             Vec3r next_p1 = p1 + dt * particle_pool.velocities[particle_indices[p_idx][0]];
             Vec3r next_p2 = p2 + dt * particle_pool.velocities[particle_indices[p_idx][1]];
-            Vec3r next_bbox_min = next_p1.cwiseMin(next_p2) - Vec3r::Constant(radius);
-            Vec3r next_bbox_max = next_p1.cwiseMax(next_p2) + Vec3r::Constant(radius);
+            Vec3r next_bbox_min = next_p1.cwiseMin(next_p2) - Vec3r(radius);
+            Vec3r next_bbox_max = next_p1.cwiseMax(next_p2) + Vec3r(radius);
             AABB next_bbox = { next_bbox_min, next_bbox_max };
 
             // merge the boxes

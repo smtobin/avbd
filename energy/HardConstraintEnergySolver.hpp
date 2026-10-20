@@ -148,7 +148,7 @@ struct HardConstraintEnergySolver
                 
 
             Mat3r_or_Mat6r<DOF> hess = (k_scaled[ci] * C[ci] + lambda[ci]) * C_hess[ci] +
-                k_scaled[ci] * C_grad[ci] * C_grad[ci].transpose();
+                k_scaled[ci] * outerProduct(C_grad[ci], C_grad[ci]);
 
             particle_H += hess;
         }

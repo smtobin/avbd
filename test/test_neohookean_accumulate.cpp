@@ -24,15 +24,16 @@ int main()
     const Vec3r& v2 = mesh.vertex(indices[1]);
     const Vec3r& v3 = mesh.vertex(indices[2]);
     const Vec3r& v4 = mesh.vertex(indices[3]);
-    std::cout << "v1: " << v1.transpose() << std::endl;
-    std::cout << "v2: " << v2.transpose() << std::endl;
-    std::cout << "v3: " << v3.transpose() << std::endl;
-    std::cout << "v4: " << v4.transpose() << std::endl;
-    Mat3r X;
-    X.col(0) = v1 - v4;
-    X.col(1) = v2 - v4;
-    X.col(2) = v3 - v4;
-    Mat3r Q = X.inverse();
+    std::cout << "v1: " << v1 << std::endl;
+    std::cout << "v2: " << v2 << std::endl;
+    std::cout << "v3: " << v3 << std::endl;
+    std::cout << "v4: " << v4 << std::endl;
+    Mat3r X = Mat3r::Zero();
+    X.setCol(0, v1 - v4);
+    X.setCol(1, v2 - v4);
+    X.setCol(2, v3 - v4);
+    Mat3r Q = Mat3r::Zero();
+    X.tryInverse(Q);
 
     unsigned e_idx = ctx.energies.neo_hookean.addEnergy(indices, 1e7, 1e6, 10, Q, 5);
     Energy::NeoHookeanEnergySolver::updateAfterTimeStep(
@@ -76,8 +77,8 @@ int main()
             dt
         );
 
-        std::cout << "G single: " << G_single.transpose() << std::endl;
-        std::cout << "G AVX: " << G4.transpose() / 4 << std::endl;
+        std::cout << "G single: " << G_single << std::endl;
+        std::cout << "G AVX: " << G4 / 4 << std::endl;
 
         std::cout << "H single:\n" << H_single << std::endl;
         std::cout << "H AVX:\n" << H4/4 << std::endl;
@@ -140,13 +141,13 @@ int main()
             mesh.setVertex(indices[l_idx], vi_cur);
             
             G_fd[k] = (E_new - E_orig) / delta;
-            H_fd.col(k) = (G_new - G_orig) / delta;
+            H_fd.setCol(k, (G_new - G_orig) / delta);
         }
 
         Mat3r H_diff = H_fd - H_orig;
         std::cout << "Local idx " << l_idx << std::endl;
-        std::cout << "G_orig: " << G_orig.transpose() << std::endl;
-        std::cout << "G_fd: " << G_fd.transpose() << std::endl;
+        std::cout << "G_orig: " << G_orig << std::endl;
+        std::cout << "G_fd: " << G_fd << std::endl;
         std::cout << "H_orig:\n" << H_orig << std::endl;
         std::cout << "H_fd:\n" << H_fd << std::endl;
         std::cout << "Local idx " << l_idx << " H_diff:\n" << H_diff << std::endl;

@@ -17,7 +17,17 @@ struct DeviceNeoHookeanEnergyInfo
     float rest_volume;
     DMat3 E_prev;
 
-    /** TODO: (10/19/26) For custom device types, have a uniform method to convert from analogous CPU type. */
+    static DeviceNeoHookeanEnergyInfo from(const NeoHookeanEnergyInfo& src)
+    {
+        DeviceNeoHookeanEnergyInfo i;
+        i.particle_indices = src.particle_indices;
+        i.lambda = src.lambda;
+        i.mu = src.mu;
+        i.kd = src.kd;
+        i.Q = DMat3::from(Q);
+        i.rest_volume = src.rest_volume;
+        i.E_prev = DMat3::from(E_prev);
+    }
 };
 
 struct DeviceNeoHookeanEnergyPoolView : DeviceTombstonePoolView
@@ -47,7 +57,8 @@ struct DeviceNeoHookeanEnergyPool : DeviceTombstonePool
 
     void upload(const NeoHookeanEnergyPool& src)
     {
-        /** TODO: (10/19/26) Finish this. */
+        DeviceTombstonePool::upload(src);
+        data.upload(src.data);
     }
 };
 

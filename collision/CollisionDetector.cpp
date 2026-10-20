@@ -527,7 +527,7 @@ void CollisionDetector::_triangleSphere(Sim::SimulationContext& ctx, unsigned tr
         collision.gen1 = ctx.collision_pool.generation[triangle];
         collision.gen2 = ctx.collision_pool.generation[sphere];
         collision.normal = normal;
-        collision.TriangleRigid.tri = Vec3u(triangle_idx[0], triangle_idx[1], triangle_idx[2]);
+        collision.TriangleRigid.tri = {triangle_idx[0], triangle_idx[1], triangle_idx[2]};
         collision.TriangleRigid.barys = cp_barys;
         collision.TriangleRigid.rb = sphere_idx;
         collision.TriangleRigid.cp_rb_local = cp_rb_local;
@@ -654,8 +654,8 @@ void CollisionDetector::_triangleRod(Sim::SimulationContext& ctx, unsigned trian
         collision.gen1 = ctx.collision_pool.generation[triangle];
         collision.gen2 = ctx.collision_pool.generation[rod];
         collision.normal = normal;
-        collision.TriangleRod.tri = Vec3u(triangle_idx[0], triangle_idx[1], triangle_idx[2]);
-        collision.TriangleRod.rod = Vec2u(segment_idx[0], segment_idx[1]);
+        collision.TriangleRod.tri = {triangle_idx[0], triangle_idx[1], triangle_idx[2]};
+        collision.TriangleRod.rod = {segment_idx[0], segment_idx[1]};
         collision.TriangleRod.barys = cp_barys;
         collision.TriangleRod.s = cp_s;
         collision.TriangleRod.cp_rod_local = cp_rod_local;

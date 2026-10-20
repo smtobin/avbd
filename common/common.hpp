@@ -8,6 +8,9 @@
 #include <cassert>
 
 #include "common/TypeList.hpp"
+#include "common/math/VecN.hpp"
+#include "common/math/MatN.hpp"
+#include "common/math/Quaternion.hpp"
 // #include "common/VariadicVectorContainer.hpp"
 
 #define STIFFNESS_BETA 10
@@ -77,30 +80,28 @@ using base_type_t = typename base_type<T>::type;
 using Real = double;
 
 template <int N>
-using VecNr = Eigen::Vector<Real, N>;
+using VecNr = VecN<N, Real>;//Eigen::Vector<Real, N>;
 
-using Vec2r = Eigen::Vector<Real, 2>;
-using Vec3r = Eigen::Vector<Real, 3>;
-using Vec4r = Eigen::Vector<Real, 4>;
-using Vec6r = Eigen::Vector<Real, 6>;
-using VecXr = Eigen::Vector<Real, -1>;
+using Vec2r = Vec2<Real>;//Eigen::Vector<Real, 2>;
+using Vec3r = Vec3<Real>;//Eigen::Vector<Real, 3>;
+using Vec4r = Vec4<Real>;//Eigen::Vector<Real, 4>;
+using Vec6r = Vec6<Real>;//Eigen::Vector<Real, 6>;
 
-using Vec3i = Eigen::Vector<int, 3>;
-using Vec4i = Eigen::Vector<int, 4>;
+using Vec3i = std::array<int, 3>;
+using Vec4i = std::array<int, 4>;
 
-using Vec1u = std::array<unsigned, 1>;//Eigen::Vector<unsigned, 1>;
-using Vec2u = std::array<unsigned, 2>;//Eigen::Vector<unsigned, 2>;
-using Vec3u = std::array<unsigned, 3>;//Eigen::Vector<unsigned, 3>;
-using Vec4u = std::array<unsigned, 4>;//Eigen::Vector<unsigned, 4>;
-using Vec5u = std::array<unsigned, 5>;//Eigen::Vector<unsigned, 5>;
+using Vec1u = std::array<unsigned, 1>;
+using Vec2u = std::array<unsigned, 2>;
+using Vec3u = std::array<unsigned, 3>;
+using Vec4u = std::array<unsigned, 4>;
+using Vec5u = std::array<unsigned, 5>;
 
-using Mat2r = Eigen::Matrix<Real, 2, 2>;
-using Mat3r = Eigen::Matrix<Real, 3, 3>;
-using Mat4r = Eigen::Matrix<Real, 4, 4>;
-using Mat6r = Eigen::Matrix<Real, 6, 6>;
-using MatXr = Eigen::Matrix<Real,-1,-1>;
+using Mat2r = Mat2<Real>;//Eigen::Matrix<Real, 2, 2>;
+using Mat3r = Mat3<Real>;//Eigen::Matrix<Real, 3, 3>;
+using Mat4r = Mat4<Real>;//Eigen::Matrix<Real, 4, 4>;
+using Mat6r = Mat6<Real>;//Eigen::Matrix<Real, 6, 6>;
 
-using Quaternion = Eigen::Quaternion<Real>;
+using Quaternion = QuaternionT<Real>;//Eigen::Quaternion<Real>;
 
 // template for switching between Vec3r and Vec6r depending on some template parameter
 template <int DOF>

@@ -91,6 +91,34 @@ public:
         cudaMemcpy(_ptr, src, count * sizeof(T), cudaMemcpyHostToDevice);
     }
 
+    template <typename K>
+    void upload(const K* src, size_t count)
+    {
+        if (count > _size)
+            throw std::runtime_error("DeviceBuffer capacity exceeded");
+
+        if (count == 0)
+            return;
+
+        // safe approach - convert Eigen Vec3r to device DVec3, then copy
+        std::vector<T> staging(count);
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            staging[i] = T::from(src[i]);
+        }
+
+        const cudaError_t err = cudaMemcpy(
+            _ptr,
+            staging.data(),
+            count * sizeof(T),
+            cudaMemcpyHostToDevice
+        );
+
+        if (err != cudaSuccess)
+            throw std::runtime_error(cudaGetErrorString(err));
+    }
+
     void download(T* dst, size_t count) const
     {
         if (count > _size)
@@ -107,58 +135,3 @@ public:
 
     size_t size() const { return _size; }
 };
-
-// add specific overloads for uploading Vec3r and Quaternion
-void DeviceBuffer<DVec3>::upload(const Vec3r* src, size_t count)
-{
-    if (count > _size)
-            throw std::runtime_error("DeviceBuffer capacity exceeded");
-
-    if (count == 0)
-        return;
-
-    // safe approach - convert Eigen Vec3r to device DVec3, then copy
-    std::vector<DVec3> staging(count);
-
-    for (size_t i = 0; i < count; ++i)
-    {
-        staging[i] = DVec3(src[i].x(), src[i].y(), src[i].z());
-    }
-
-    const cudaError_t err = cudaMemcpy(
-        _ptr,
-        staging.data(),
-        count * sizeof(DVec3),
-        cudaMemcpyHostToDevice
-    );
-
-    if (err != cudaSuccess)
-        throw std::runtime_error(cudaGetErrorString(err));
-}
-
-void DeviceBuffer<DQuaternion>::upload(const Quaternion* src, size_t count)
-{
-    if (count > _size)
-            throw std::runtime_error("DeviceBuffer capacity exceeded");
-
-    if (count == 0)
-        return;
-
-    // safe approach - convert Eigen Quaternion to device DQuaternion, then copy
-    std::vector<DQuaternion> staging(count);
-
-    for (size_t i = 0; i < count; ++i)
-    {
-        staging[i] = DQuaternion(src[i].w(), src[i].x(), src[i].y(), src[i].z());
-    }
-
-    const cudaError_t err = cudaMemcpy(
-        _ptr,
-        staging.data(),
-        count * sizeof(DQuaternion),
-        cudaMemcpyHostToDevice
-    );
-
-    if (err != cudaSuccess)
-        throw std::runtime_error(cudaGetErrorString(err));
-}

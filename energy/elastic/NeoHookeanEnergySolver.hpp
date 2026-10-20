@@ -101,9 +101,9 @@ struct NeoHookeanEnergySolver
         const Mat3r& Q,
         Mat3r& F)
     {
-        F.col(0).noalias() = v1 - v4;
-        F.col(1).noalias() = v2 - v4;
-        F.col(2).noalias() = v3 - v4;
+        F.setCol(0, v1 - v4);
+        F.setCol(1, v2 - v4);
+        F.setCol(2, v3 - v4);
 
         F = F*Q;
     }
@@ -160,17 +160,6 @@ struct NeoHookeanEnergySolver
         Vec3r c1 = F.col(2).cross(F.col(0));
         Vec3r c2 = F.col(0).cross(F.col(1));
 
-        // Mat3r F_cross;
-        // F_cross.col(0) = F.col(1).cross(F.col(2));
-        // F_cross.col(1) = F.col(2).cross(F.col(0));
-        // F_cross.col(2) = F.col(0).cross(F.col(1));
-
-        // Mat3r detF_grad_full = F_cross * Q.transpose();
-        // Mat3r hyd_grad_full = V*lambda * (F.determinant() - mu/lambda - 1) * detF_grad_full;
-
-        // deviatoric gradient
-        // Mat3r dev_grad_full = V*mu * F * Q.transpose();
-
         const Real detF = F.col(0).dot(c0);
 
         
@@ -196,8 +185,7 @@ struct NeoHookeanEnergySolver
         const Real dev_mult = V*mu;
 
         // compute rate of change of Green strain
-        Mat3r FtF;
-        FtF.noalias() = F.transpose() * F;
+        Mat3r FtF = F.transpose() * F;
         
         const Real qi_norm2 = qi.squaredNorm();
 
@@ -207,7 +195,7 @@ struct NeoHookeanEnergySolver
         particle_G += sign * dev_mult * Fqi;
 
         Mat3r E_dot = 0.5 * FtF;
-        E_dot.diagonal().array() -= 0.5;
+        E_dot(0,0) -= 0.5; E_dot(1,1) -= 0.5; E_dot(2,2) -= 0.5;
         E_dot -= E_prev;
         E_dot *= 1/dt;
 
@@ -215,15 +203,17 @@ struct NeoHookeanEnergySolver
 
         // Hessian
         // hydrostatic
-        particle_H += (V * lambda) * Fcross_qi * Fcross_qi.transpose();
+        particle_H += (V * lambda) * outerProduct(Fcross_qi, Fcross_qi);
         // deviatoric
-        particle_H.diagonal().array() += V * mu * qi_norm2;
+        Real t1 = V * mu * qi_norm2;
+        particle_H(0,0) += t1; particle_H(1,1) += t1; particle_H(2,2) += t1;
 
         // damping
-        Real qi_Edot_qi = qi.transpose() * E_dot * qi;
-        particle_H.diagonal().array() += damp_mult_factor * qi_Edot_qi;
+        Real qi_Edot_qi = qi.dot(E_dot * qi);
+        Real t2 = qi_Edot_qi * damp_mult_factor;
+        particle_H(0,0) += t2; particle_H(1,1) += t2; particle_H(2,2) += t2;
 
-        particle_H += (0.5 * damp_mult_factor/dt) * (F*F.transpose() * qi_norm2 + Fqi * Fqi.transpose());
+        particle_H += (0.5 * damp_mult_factor/dt) * (F*F.transpose() * qi_norm2 + outerProduct(Fqi, Fqi));
     }
 
     struct Batch4
@@ -619,9 +609,9 @@ struct NeoHookeanEnergySolver
 
     //     // hydrostatic gradient
     //     Mat3r F_cross;
-    //     F_cross.col(0) = F.col(1).cross(F.col(2));
-    //     F_cross.col(1) = F.col(2).cross(F.col(0));
-    //     F_cross.col(2) = F.col(0).cross(F.col(1));
+    //     F_cross.setCol(0) = F.setCol(1).cross(F.setCol(2));
+    //     F_cross.setCol(1) = F.setCol(2).cross(F.setCol(0));
+    //     F_cross.setCol(2) = F.setCol(0).cross(F.setCol(1));
 
     //     Mat3r hyd_grad_full = V*lambda * (F.determinant() - mu/lambda - 1) * F_cross * Q.transpose();
 
@@ -635,13 +625,13 @@ struct NeoHookeanEnergySolver
     //         Vec3r Fqi = F*qi;
 
     //         // gradient
-    //         Vec3r hyd_grad_i = hyd_grad_full.col(i);
-    //         Vec3r dev_grad_i = dev_grad_full.col(i);
+    //         Vec3r hyd_grad_i = hyd_grad_full.setCol(i);
+    //         Vec3r dev_grad_i = dev_grad_full.setCol(i);
     //         Vec3r damp_grad_i = 2/dt * V * kd * F * E_dot * qi;
     //         vertex_Gs[indices[i]] += hyd_grad_i + dev_grad_i + damp_grad_i;
 
     //         // Hessian
-    //         Mat3r hyd_hess_i = V * lambda * detF_grad_full.col(i) * detF_grad_full.col(i).transpose();
+    //         Mat3r hyd_hess_i = V * lambda * detF_grad_full.setCol(i) * detF_grad_full.setCol(i).transpose();
     //         Mat3r dev_hess_i = V * mu * qi.squaredNorm() * Mat3r::Identity();
     //         Mat3r damp_hess_i = 2/dt * V * kd * ( (qi.transpose() * E_dot * qi) * Mat3r::Identity() + 1/dt * (Fqi * Fqi.transpose() + F*F.transpose() * qi.squaredNorm()) );
     //         vertex_Hs[indices[i]] += hyd_hess_i + dev_hess_i + damp_hess_i;
@@ -650,16 +640,16 @@ struct NeoHookeanEnergySolver
     //     // compute Hessian and gradient for the 4th particle
     //     // gradient
     //     Vec3r q4 = Q.row(0) + Q.row(1) + Q.row(2);
-    //     Vec3r hyd_grad_4 = -hyd_grad_full.col(0) - hyd_grad_full.col(1) - hyd_grad_full.col(2);
-    //     Vec3r dev_grad_4 = -dev_grad_full.col(0) - dev_grad_full.col(1) - dev_grad_full.col(2);
+    //     Vec3r hyd_grad_4 = -hyd_grad_full.setCol(0) - hyd_grad_full.setCol(1) - hyd_grad_full.setCol(2);
+    //     Vec3r dev_grad_4 = -dev_grad_full.setCol(0) - dev_grad_full.setCol(1) - dev_grad_full.setCol(2);
     //     Vec3r damp_grad_4 = -2/dt * V * kd * F * E_dot * q4;
     //     vertex_Gs[indices[i]] += hyd_grad_4 + dev_grad_4 + damp_grad_4;
 
     //     // Hessian
     //     Vec3r a3 =
-    //         -detF_grad_full.col(0)
-    //         -detF_grad_full.col(1)
-    //         -detF_grad_full.col(2);
+    //         -detF_grad_full.setCol(0)
+    //         -detF_grad_full.setCol(1)
+    //         -detF_grad_full.setCol(2);
 
     //     Mat3r hyd_hess =
     //         V*lambda * a3 * a3.transpose();

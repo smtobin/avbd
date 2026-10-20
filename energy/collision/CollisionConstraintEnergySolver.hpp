@@ -274,11 +274,11 @@ struct CollisionConstraintEnergySolver
             
 
         Mat3r_or_Mat6r<DOF> hess_n = (k_scaled_n * C_corr_n + lambda_n) * C_hess_n +
-            k_scaled_n * C_grad_n* C_grad_n.transpose();
+            k_scaled_n * outerProduct(C_grad_n, C_grad_n);
         Mat3r_or_Mat6r<DOF> hess_t = (k_scaled_tb[0] * C_t + lambda_t) * C_hess_t +
-            k_scaled_tb[0] * C_grad_t * C_grad_t.transpose();
+            k_scaled_tb[0] * outerProduct(C_grad_t, C_grad_t);
         Mat3r_or_Mat6r<DOF> hess_b = (k_scaled_tb[1] * C_b + lambda_b) * C_hess_b +
-            k_scaled_tb[1] * C_grad_b * C_grad_b.transpose();
+            k_scaled_tb[1] * outerProduct(C_grad_b, C_grad_b);
 
         particle_H += hess_n + hess_t + hess_b;
         particle_G += grad_n + grad_t + grad_b;

@@ -82,9 +82,9 @@ void ParticleTetMesh::setCurrentStateAsUndeformedState()
         const Vec3r& v4 = vertex(elem[3]);
 
         Mat3r X;
-        X.col(0) = (v1 - v4);
-        X.col(1) = (v2 - v4);
-        X.col(2) = (v3 - v4);
+        X.setCol(0) = (v1 - v4);
+        X.setCol(1) = (v2 - v4);
+        X.setCol(2) = (v3 - v4);
 
         _element_inv_undeformed_basis[elem_ind] = X.inverse();
     }
@@ -163,9 +163,9 @@ Real ParticleTetMesh::elementVolume(int index) const
 Real ParticleTetMesh::elementVolume(const Vec3r& v1, const Vec3r& v2, const Vec3r& v3, const Vec3r& v4) const
 {
     Mat3r X;
-    X.col(0) = (v1 - v4);
-    X.col(1) = (v2 - v4);
-    X.col(2) = (v3 - v4);
+    X.setCol(0) = (v1 - v4);
+    X.setCol(1) = (v2 - v4);
+    X.setCol(2) = (v3 - v4);
 
     return std::abs(X.determinant() / 6.0);
 }
@@ -179,9 +179,9 @@ Mat3r ParticleTetMesh::elementDeformationGradient(int index) const
     const Vec3r& v4 = vertex(elem[3]);
 
     Mat3r deformed_basis;
-    deformed_basis.col(0) = (v1 - v4);
-    deformed_basis.col(1) = (v2 - v4);
-    deformed_basis.col(2) = (v3 - v4);
+    deformed_basis.setCol(0) = (v1 - v4);
+    deformed_basis.setCol(1) = (v2 - v4);
+    deformed_basis.setCol(2) = (v3 - v4);
 
     return deformed_basis * _element_inv_undeformed_basis[index];
 }
@@ -195,9 +195,9 @@ Mat3r ParticleTetMesh::elementPreviousDeformationGradient(int index) const
     const Vec3r& v4 = previousVertex(elem[3]);
 
     Mat3r deformed_basis;
-    deformed_basis.col(0) = (v1 - v4);
-    deformed_basis.col(1) = (v2 - v4);
-    deformed_basis.col(2) = (v3 - v4);
+    deformed_basis.setCol(0) = (v1 - v4);
+    deformed_basis.setCol(1) = (v2 - v4);
+    deformed_basis.setCol(2) = (v3 - v4);
 
     return deformed_basis * _element_inv_undeformed_basis[index];
 }

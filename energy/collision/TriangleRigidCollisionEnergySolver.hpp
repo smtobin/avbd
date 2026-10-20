@@ -79,26 +79,26 @@ struct TriangleRigidCollisionConstraintSolver
             /** TODO: (07/21/26) gradient w.r.t oriented particle */
             Mat3r R = rb_rot.toRotationMatrix();
             Mat3r skew_cp = Math::Skew3(cp_rb_local);
-            Mat3r R_rloc = R * skew_cp;
+            Mat3r R_rloc_T = (R * skew_cp).transpose();
             // gradients
-            C_grad_n.template block<3,1>(0,0) = n;
-            C_grad_n.template block<3,1>(3,0) = -n.transpose() * R_rloc;
-            C_grad_t.template block<3,1>(0,0) = t;
-            C_grad_t.template block<3,1>(3,0) = -t.transpose() * R_rloc;
-            C_grad_b.template block<3,1>(0,0) = b;
-            C_grad_b.template block<3,1>(3,0) = -b.transpose() * R_rloc;
+            C_grad_n.template head<3>() = n;
+            C_grad_n.template tail<3>() = R_rloc_T * -n;
+            C_grad_t.template head<3>() = t;
+            C_grad_t.template tail<3>() = R_rloc_T * -t;
+            C_grad_b.template head<3>() = b;
+            C_grad_b.template tail<3>() = R_rloc_T * -b;
             C_grad_t = C_grad_b = Vec6r::Zero();
 
             // Hessians
             // grad = (Skew(cp_rb_local) * R^T * n)^T
             // ==> (Skew(cp_rb_local) * -R^T * skew(n) * -R)^T = R^T * skew(n) * R * skew(cp_rb_local)
             C_hess_n = C_hess_t = C_hess_b = Mat6r::Zero();
-            C_hess_n.template block<3,3>(3,3) = R.transpose() * Math::Skew3(n) * R * skew_cp;
-            C_hess_n.template block<3,3>(3,3) = 0.5*(C_hess_n.template block<3,3>(3,3) + C_hess_n.template block<3,3>(3,3).transpose());
-            C_hess_t.template block<3,3>(3,3) = R.transpose() * Math::Skew3(t) * R * skew_cp;
-            C_hess_t.template block<3,3>(3,3) = 0.5*(C_hess_t.template block<3,3>(3,3) + C_hess_t.template block<3,3>(3,3).transpose());
-            C_hess_b.template block<3,3>(3,3) = R.transpose() * Math::Skew3(b) * R * skew_cp;
-            C_hess_b.template block<3,3>(3,3) = 0.5*(C_hess_b.template block<3,3>(3,3) + C_hess_b.template block<3,3>(3,3).transpose());
+            Mat3r block1 = R.transpose() * Math::Skew3(n) * R * skew_cp;
+            C_hess_n.template block<3,3>(3,3) = 0.5*(block1 + block1.transpose());
+            Mat3r block2 = R.transpose() * Math::Skew3(t) * R * skew_cp;
+            C_hess_t.template block<3,3>(3,3) = 0.5*(block2 + block2.transpose());
+            Mat3r block3 = R.transpose() * Math::Skew3(b) * R * skew_cp;
+            C_hess_b.template block<3,3>(3,3) = 0.5*(block3 + block3.transpose());
 
         }
         else

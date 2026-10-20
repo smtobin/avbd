@@ -259,7 +259,7 @@ private:
         Quaternion& q_inertial = _ctx->particles.inertialRotation(p_idx);
         const Vec3r& w = _ctx->particles.angularVelocity(p_idx);
         const Vec3r& I = _ctx->particles.rotationalInertia(p_idx);
-        Vec3r I_inv = 1/I.array();
+        Vec3r I_inv(1.0/I[0], 1.0/I[1], 1.0/I[2]);
 
 
         /** no need to do adaptive acceleration since assuming no external angular acceleration */
@@ -270,7 +270,7 @@ private:
 
         // compute inertially predicted rotation
         Vec3r alpha_ext = Vec3r(0,0,0); //Vec3r::Zero();
-        Vec3r dq_inertial = dt*w + dt*dt*(alpha_ext - I_inv.asDiagonal() * (w.cross(I.asDiagonal()*w))); 
+        Vec3r dq_inertial = dt*w + dt*dt*(alpha_ext - I_inv.cwiseProduct( ( w.cross( I.cwiseProduct(w) ) ) ) ); 
         q_inertial = Math::Plus_S3(q, dq_inertial);
 
         // move particle to its initialized position
@@ -459,29 +459,34 @@ private:
 
             // form RHS
             Vec6r RHS;
-            RHS.block<3,1>(0,0) = -1/(dt*dt) * mass * (p - p_inertial);
-            RHS.block<3,1>(3,0) = -1/(dt*dt) * I.asDiagonal() * Math::Minus_S3(q, q_inertial);
+            RHS.head<3>() = -1/(dt*dt) * mass * (p - p_inertial);
+            RHS.tail<3>() = -1/(dt*dt) * I.cwiseProduct( Math::Minus_S3(q, q_inertial) );
             RHS -= grad;
 
             // form LHS
             Mat6r LHS = Mat6r::Zero();
-            LHS.diagonal().block<3,1>(0,0) = Vec3r::Constant(mass / (dt*dt));
-            LHS.diagonal().block<3,1>(3,0) = I / (dt*dt);
+            Vec3r diag1( mass / (dt*dt) );
+            LHS(0,0) = diag1[0]; LHS(1,1) = diag1[1]; LHS(2,2) = diag1[2];
+            Vec3r diag2 = I / (dt*dt);
+            LHS(3,3) = diag2[0]; LHS(4,4) = diag2[1]; LHS(5,5) = diag2[2];
             LHS += hess;
 
-            Vec6r dx = LHS.partialPivLu().solve(RHS);
-            
+            Vec6r dx = Vec6r::Zero();
+            LHS.solve(RHS, dx);
+            Vec3r dp = dx.head<3>();
+            Vec3r dq = dx.tail<3>();
+
             // if this particle has an intra-color conflict, buffer its update
             if (_ctx->coloring.is_conflicted[p_idx])
             {
-                _ctx->particles.buffered_positions[p_idx] = p + dx.block<3,1>(0,0);
-                _ctx->particles.bufferedRotation(p_idx) = Math::Plus_S3(q, dx.block<3,1>(3,0));
+                _ctx->particles.buffered_positions[p_idx] = p + dp;
+                _ctx->particles.bufferedRotation(p_idx) = Math::Plus_S3(q, dq);
             }
             // otherwise update normally
             else
             {
-                p += dx.block<3,1>(0,0);
-                q = Math::Plus_S3(q, dx.block<3,1>(3,0));
+                p += dp;
+                q = Math::Plus_S3(q, dq);
             }
         }
         else
@@ -495,7 +500,8 @@ private:
 
             
 
-            Vec3r dx = LHS.partialPivLu().solve(RHS);
+            Vec3r dx = Vec3r::Zero();
+            LHS.solve(RHS, dx);
             // std::cout << "Particle " << p_idx << ": " << "\n  LHS:\n" << LHS << "\n  RHS: " << RHS.transpose() << "\n  dx: " << dx.transpose() << std::endl;
             // Vec3r dx = LHS.inverse() * RHS;
 

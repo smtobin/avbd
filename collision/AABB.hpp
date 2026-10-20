@@ -13,7 +13,7 @@ struct AABB
 
     static AABB empty()
     {
-        return { Vec3r::Constant(std::numeric_limits<Real>::max()), Vec3r::Constant(std::numeric_limits<Real>::lowest()) };
+        return { Vec3r(std::numeric_limits<Real>::max()), Vec3r(std::numeric_limits<Real>::lowest()) };
     }
 
     void expand(const Vec3r& p)
@@ -30,8 +30,8 @@ struct AABB
 
     void pad(Real margin)
     {
-        min.array() -= margin;
-        max.array() += margin;
+        min -= margin;
+        max += margin;
     }
 
     Vec3r center()  const { return (min + max) * Real(0.5); }
@@ -39,15 +39,18 @@ struct AABB
 
     bool overlaps(const AABB& o) const
     {
-        return (min.array() <= o.max.array()).all() &&
-               (max.array() >= o.min.array()).all();
+        // return (min.array() <= o.max.array()).all() &&
+        //        (max.array() >= o.min.array()).all();
+
+        return  (min[0] <= o.max[0]) && (min[1] <= o.max[1]) && (min[2] <= o.max[2]) &&
+                (max[0] >= o.min[0]) && (max[1] >= o.min[1]) && (max[2] >= o.min[2]);
     }
 };
 
 
 inline std::ostream& operator<<(std::ostream& os, const Collision::AABB& aabb)
 {
-    os << aabb.min.transpose() << " to " << aabb.max.transpose();
+    os << aabb.min << " to " << aabb.max;
     return os;
 }
 

@@ -118,15 +118,15 @@ struct TriangleRodCollisionConstraintSolver
             else
                 throw std::runtime_error("TriangleRigidCollisionEnergySolver::constraintGradientHessian local_idx out of bounds!");
             
-            Mat3r R_rloc_dRs_dR = R_rloc * dRs_dR;
+            Mat3r R_rloc_dRs_dR_T = (R_rloc * dRs_dR).transpose();
             
             // gradients
-            C_grad_n.template block<3,1>(0,0) = scaling*n;
-            C_grad_n.template block<3,1>(3,0) = -n.transpose() * R_rloc_dRs_dR;
-            C_grad_t.template block<3,1>(0,0) = scaling*t;
-            C_grad_t.template block<3,1>(3,0) = -t.transpose() * R_rloc_dRs_dR;
-            C_grad_b.template block<3,1>(0,0) = scaling*b;
-            C_grad_b.template block<3,1>(3,0) = -b.transpose() * R_rloc_dRs_dR;
+            C_grad_n.template head<3>() = scaling*n;
+            C_grad_n.template tail<3>() = R_rloc_dRs_dR_T * -n;
+            C_grad_t.template head<3>() = scaling*t;
+            C_grad_t.template tail<3>() = R_rloc_dRs_dR_T * -t;
+            C_grad_b.template head<3>() = scaling*b;
+            C_grad_b.template tail<3>() = R_rloc_dRs_dR_T * -b;
             C_grad_t = C_grad_b = Vec6r::Zero();
 
             // Hessians set to 0 (for now just use Gauss-Newton)

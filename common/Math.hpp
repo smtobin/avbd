@@ -104,10 +104,10 @@ static Mat3r DExpMap_RightJacobian_Contract_j(const Vec3r& theta, const Vec3r& x
     Mat3r term1, term2, term3, term4;
     for (int k = 0; k < 3; k++)
     {
-        term1.col(k) = -da_dtheta_norm * theta[k] / theta_norm * skew_theta * xi;
-        term2.col(k) = -a * dskew_dtheta_i[k] * xi;
-        term3.col(k) = db_dtheta_norm * theta[k] / theta_norm * skew_theta * skew_theta * xi;
-        term4.col(k) = b * (dskew_dtheta_i[k] * skew_theta + skew_theta * dskew_dtheta_i[k]) * xi;
+        term1.setCol(k, -da_dtheta_norm * theta[k] / theta_norm * skew_theta * xi);
+        term2.setCol(k, -a * dskew_dtheta_i[k] * xi);
+        term3.setCol(k, db_dtheta_norm * theta[k] / theta_norm * skew_theta * skew_theta * xi);
+        term4.setCol(k, b * (dskew_dtheta_i[k] * skew_theta + skew_theta * dskew_dtheta_i[k]) * xi);
     }
 
     return term1 + term2 + term3 + term4;
@@ -124,9 +124,9 @@ static Mat3r DExpMap_RightJacobian_Contract_j_approx(const Vec3r& theta, const V
     Mat3r term1, term2, term3;
     for (int k = 0; k < 3; k++)
     {
-        term1.col(k) = 1.0/12.0 * theta[k] * skew_xi;
-        term2.col(k) = -1.0/2.0 * dskew_dtheta_xi_i[k];
-        term3.col(k) = 1.0/6.0 * (dskew_dtheta_skew_xi_i[k] + theta.cross(dskew_dtheta_xi_i[k]));
+        term1.setCol(k, 1.0/12.0 * theta[k] * skew_xi);
+        term2.setCol(k, -1.0/2.0 * dskew_dtheta_xi_i[k]);
+        term3.setCol(k, 1.0/6.0 * (dskew_dtheta_skew_xi_i[k] + theta.cross(dskew_dtheta_xi_i[k])) );
     }
 
     return term1 + term2 + term3;

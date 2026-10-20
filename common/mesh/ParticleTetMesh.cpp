@@ -14,10 +14,10 @@ Real ParticleTetMesh::elementVolume(int index) const
     const Vec3r& v3 = vertex(elem[2]);
     const Vec3r& v4 = vertex(elem[3]);
 
-    Mat3r X;
-    X.col(0) = (v1 - v4);
-    X.col(1) = (v2 - v4);
-    X.col(2) = (v3 - v4);
+    Mat3r X = Mat3r::Zero();
+    X.setCol(0, v1 - v4);
+    X.setCol(1, v2 - v4);
+    X.setCol(2, v3 - v4);
 
     return std::abs(X.determinant() / 6.0);
 }

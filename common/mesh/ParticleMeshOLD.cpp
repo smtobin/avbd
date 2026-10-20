@@ -143,8 +143,8 @@ void ParticleMesh::updateVertexNormals()
 
 AABB ParticleMesh::boundingBox() const
 {
-    Vec3r min = Vec3r::Constant(std::numeric_limits<Real>::max());
-    Vec3r max = Vec3r::Constant(std::numeric_limits<Real>::lowest());
+    Vec3r min = Vec3r(std::numeric_limits<Real>::max());
+    Vec3r max = Vec3r(std::numeric_limits<Real>::lowest());
     for (const auto& v : _vertices)
     {
         min[0] = std::min(v.position[0], min[0]);
@@ -283,9 +283,9 @@ std::tuple<Real, Vec3r, Mat3r> ParticleMesh::massProperties(Real density) const
 
         // tet basis matrix
         Mat3r A;
-        A.col(0) = (v1 - v0);
-        A.col(1) = (v2 - v0);
-        A.col(2) = (v3 - v0);
+        A.setCol(0) = (v1 - v0);
+        A.setCol(1) = (v2 - v0);
+        A.setCol(2) = (v3 - v0);
 
         // find signed volume of tet
         const Real volume = A.determinant() / 6.0;
@@ -327,9 +327,9 @@ Vec3r ParticleMesh::massCenter() const
 
         // tet basis matrix
         Mat3r A;
-        A.col(0) = (v1 - v0);
-        A.col(1) = (v2 - v0);
-        A.col(2) = (v3 - v0);
+        A.setCol(0) = (v1 - v0);
+        A.setCol(1) = (v2 - v0);
+        A.setCol(2) = (v3 - v0);
 
         // find signed volume of tet
         const Real volume = A.determinant() / 6.0;
