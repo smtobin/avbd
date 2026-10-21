@@ -91,34 +91,6 @@ public:
         cudaMemcpy(_ptr, src, count * sizeof(T), cudaMemcpyHostToDevice);
     }
 
-    template <typename K>
-    void upload(const K* src, size_t count)
-    {
-        if (count > _size)
-            throw std::runtime_error("DeviceBuffer capacity exceeded");
-
-        if (count == 0)
-            return;
-
-        // safe approach - convert Eigen Vec3r to device DVec3, then copy
-        std::vector<T> staging(count);
-
-        for (size_t i = 0; i < count; ++i)
-        {
-            staging[i] = T::from(src[i]);
-        }
-
-        const cudaError_t err = cudaMemcpy(
-            _ptr,
-            staging.data(),
-            count * sizeof(T),
-            cudaMemcpyHostToDevice
-        );
-
-        if (err != cudaSuccess)
-            throw std::runtime_error(cudaGetErrorString(err));
-    }
-
     void download(T* dst, size_t count) const
     {
         if (count > _size)

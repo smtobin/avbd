@@ -1,28 +1,19 @@
 #pragma once
 
 #include "common/cuda/DeviceTombstonePool.cuh"
-#include "common/cuda/Vec6.cuh"
-#include "energy/elastic/NeoHookeanEnergyPool.hpp"
+#include "energy/elastic/CosseratRodEnergyPool.hpp"
 
 namespace Energy
 {
 
-struct DeviceCosseratRodEnergyInfo
+struct DeviceCosseratRodEnergyPoolView : DeviceTombstonePoolView
 {
-    Vec2u particle_indices;
-    DVec6 stiffness;
-    float rest_length;
-    DVec3 precurvature; 
-};
-
-struct DeviceCosseratRodEnergyPoolView
-{
-    DeviceCosseratRodEnergyInfo* data;
+    CosseratRodEnergyInfo* data;
 };
 
 struct DeviceCosseratRodEnergyPool
 {
-    DeviceBuffer<DeviceCosseratRodEnergyInfo> data;
+    DeviceBuffer<CosseratRodEnergyInfo> data;
     
     explicit DeviceCosseratRodEnergyPool(unsigned capacity)
         : DeviceTombstonePool(capacity)

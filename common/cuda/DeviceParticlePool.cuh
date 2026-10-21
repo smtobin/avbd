@@ -1,34 +1,32 @@
 #pragma once
 
-#include "common/cuda/Vec3.cuh"
-#include "common/cuda/Quaternion.cuh"
 #include "common/cuda/DeviceTombstonePool.cuh"
 #include "common/ParticlePool.hpp"
 
 
 struct DeviceRotationPoolView : DeviceTombstonePoolView
 {
-    DQuaternion* rotations;
-    DQuaternion* buffered_rotations;
-    DQuaternion* inertial_rotations;
-    DQuaternion* previous_rotations;
-    DQuaternion* last_iter_rotations;
-    DQuaternion* last_last_iter_rotations;
-    DVec3* angular_velocities;
-    DVec3* previous_angular_velocities;
-    DVec3* rotational_inertias;
+    Quaternion* rotations;
+    Quaternion* buffered_rotations;
+    Quaternion* inertial_rotations;
+    Quaternion* previous_rotations;
+    Quaternion* last_iter_rotations;
+    Quaternion* last_last_iter_rotations;
+    Vec3r* angular_velocities;
+    Vec3r* previous_angular_velocities;
+    Vec3r* rotational_inertias;
 };
 
 struct DeviceParticlePoolView : DeviceTombstonePoolView
 {
-    DVec3* positions;
-    DVec3* buffered_positions;
-    DVec3* inertial_positions;
-    DVec3* previous_positions;
-    DVec3* last_iter_positions;
-    DVec3* last_last_iter_positions;
-    DVec3* velocities;
-    DVec3* previous_velocities;
+    Vec3r* positions;
+    Vec3r* buffered_positions;
+    Vec3r* inertial_positions;
+    Vec3r* previous_positions;
+    Vec3r* last_iter_positions;
+    Vec3r* last_last_iter_positions;
+    Vec3r* velocities;
+    Vec3r* previous_velocities;
     float* masses;
     uint8_t* fixed;
 
@@ -45,89 +43,89 @@ struct DeviceParticlePoolView : DeviceTombstonePoolView
     }
 
     /** Convenience function to get the rotation of an oriented particle */
-    const DQuaternion& rotation(unsigned p_idx) const
+    const Quaternion& rotation(unsigned p_idx) const
     {
         return rotation_pool_view.rotations[rotation_idx[p_idx]];
     }
-    DQuaternion& rotation(unsigned p_idx)
+    Quaternion& rotation(unsigned p_idx)
     {
         return rotation_pool_view.rotations[rotation_idx[p_idx]];
     }
 
     /** Convenience function to get the buffered rotation of an oriented particle */
-    const DQuaternion& bufferedRotation(unsigned p_idx) const
+    const Quaternion& bufferedRotation(unsigned p_idx) const
     {
         return rotation_pool_view.buffered_rotations[rotation_idx[p_idx]];
     }
-    DQuaternion& bufferedRotation(unsigned p_idx)
+    Quaternion& bufferedRotation(unsigned p_idx)
     {
         return rotation_pool_view.buffered_rotations[rotation_idx[p_idx]];
     }
 
     /** Convenience function to get the previous rotation of an oriented particle */
-    const DQuaternion& previousRotation(unsigned p_idx) const
+    const Quaternion& previousRotation(unsigned p_idx) const
     {
         return rotation_pool_view.previous_rotations[rotation_idx[p_idx]];
     }
-    DQuaternion& previousRotation(unsigned p_idx)
+    Quaternion& previousRotation(unsigned p_idx)
     {
         return rotation_pool_view.previous_rotations[rotation_idx[p_idx]];
     }
 
     /** Convenience function to get the angular velocity of an oriented particle */
-    const DVec3r& angularVelocity(unsigned p_idx) const
+    const Vec3r& angularVelocity(unsigned p_idx) const
     {
         return rotation_pool_view.angular_velocities[rotation_idx[p_idx]];
     }
-    DVec3r& angularVelocity(unsigned p_idx)
+    Vec3r& angularVelocity(unsigned p_idx)
     {
         return rotation_pool_view.angular_velocities[rotation_idx[p_idx]];
     }
 
     /** Convenience function to get the previous angular velocity of an oriented particle */
-    const DVec3r& previousAngularVelocity(unsigned p_idx) const
+    const Vec3r& previousAngularVelocity(unsigned p_idx) const
     {
         return rotation_pool_view.previous_angular_velocities[rotation_idx[p_idx]];
     }
-    DVec3r& previousAngularVelocity(unsigned p_idx)
+    Vec3r& previousAngularVelocity(unsigned p_idx)
     {
         return rotation_pool_view.previous_angular_velocities[rotation_idx[p_idx]];
     }
 
     /** Convenience function to get the rotational inertia of an oriented particle */
-    const DVec3r& rotationalInertia(unsigned p_idx) const
+    const Vec3r& rotationalInertia(unsigned p_idx) const
     {
         return rotation_pool_view.rotational_inertias[rotation_idx[p_idx]];
     }
-    DVec3r& rotationalInertia(unsigned p_idx)
+    Vec3r& rotationalInertia(unsigned p_idx)
     {
         return rotation_pool_view.rotational_inertias[rotation_idx[p_idx]];
     }
 
     /** Convenience function to get inertial rotation of an oriented particle */
-    const DQuaternion& inertialRotation(unsigned p_idx) const
+    const Quaternion& inertialRotation(unsigned p_idx) const
     {
         return rotation_pool_view.inertial_rotations[rotation_idx[p_idx]];
     }
-    DQuaternion& inertialRotation(unsigned p_idx)
+    Quaternion& inertialRotation(unsigned p_idx)
     {
         return rotation_pool_view.inertial_rotations[rotation_idx[p_idx]];
     }
 
     /** Convenience function to get previous iteration rotations of an oriented particle */
-    const DQuaternion& lastIterRotation(unsigned p_idx) const
+    const Quaternion& lastIterRotation(unsigned p_idx) const
     {
         return rotation_pool_view.last_iter_rotations[rotation_idx[p_idx]];
     }
-    DQuaternion& lastIterRotation(unsigned p_idx)
+    Quaternion& lastIterRotation(unsigned p_idx)
     {
         return rotation_pool_view.last_iter_rotations[rotation_idx[p_idx]];
     }
-    const DQuaternion& lastLastIterRotation(unsigned p_idx) const
+    const Quaternion& lastLastIterRotation(unsigned p_idx) const
     {
         return rotation_pool_view.last_last_iter_rotations[rotation_idx[p_idx]];
     }
-    DQuaternion& lastLastIterRotation(unsigned p_idx)
+    Quaternion& lastLastIterRotation(unsigned p_idx)
     {
         return rotation_pool_view.last_last_iter_rotations[rotation_idx[p_idx]];
     }
@@ -137,15 +135,15 @@ struct DeviceParticlePoolView : DeviceTombstonePoolView
 
 struct DeviceRotationPool : DeviceTombstonePool
 {
-    DeviceBuffer<DQuaternion> rotations;
-    DeviceBuffer<DQuaternion> buffered_rotations;
-    DeviceBuffer<DQuaternion> inertial_rotations;
-    DeviceBuffer<DQuaternion> previous_rotations;
-    DeviceBuffer<DQuaternion> last_iter_rotations;
-    DeviceBuffer<DQuaternion> last_last_iter_rotations;
-    DeviceBuffer<DVec3> angular_velocities;
-    DeviceBuffer<DVec3> previous_angular_velocities;
-    DeviceBuffer<DVec3> rotational_inertias;
+    DeviceBuffer<Quaternion> rotations;
+    DeviceBuffer<Quaternion> buffered_rotations;
+    DeviceBuffer<Quaternion> inertial_rotations;
+    DeviceBuffer<Quaternion> previous_rotations;
+    DeviceBuffer<Quaternion> last_iter_rotations;
+    DeviceBuffer<Quaternion> last_last_iter_rotations;
+    DeviceBuffer<Vec3r> angular_velocities;
+    DeviceBuffer<Vec3r> previous_angular_velocities;
+    DeviceBuffer<Vec3r> rotational_inertias;
 
     explicit DeviceRotationPool(unsigned capacity)
         : DeviceTombstonePool(capacity)
@@ -207,14 +205,14 @@ struct DeviceRotationPool : DeviceTombstonePool
 
 struct DeviceParticlePool : DeviceTombstonePool
 {
-    std::vector<DVec3> positions;                   // particle positions
-    std::vector<DVec3> buffered_positions;          // position buffer to avoid race conditions for 
-    std::vector<DVec3> inertial_positions;          // particle inertial positions ('y' in the VBD paper)
-    std::vector<DVec3> previous_positions;          // particle previous positions
-    std::vector<DVec3> last_iter_positions;         // particle position at the end of the previous iteration (useful for Chebyshev acceleration)
-    std::vector<DVec3> last_last_iter_positions;    // particle positions at the end of 2 iterations ago (useful for Chebyshev acceleration)
-    std::vector<DVec3> velocities;                  // particle velocities
-    std::vector<DVec3> previous_velocities;         // particle previous velocities
+    std::vector<Vec3r> positions;                   // particle positions
+    std::vector<Vec3r> buffered_positions;          // position buffer to avoid race conditions for 
+    std::vector<Vec3r> inertial_positions;          // particle inertial positions ('y' in the VBD paper)
+    std::vector<Vec3r> previous_positions;          // particle previous positions
+    std::vector<Vec3r> last_iter_positions;         // particle position at the end of the previous iteration (useful for Chebyshev acceleration)
+    std::vector<Vec3r> last_last_iter_positions;    // particle positions at the end of 2 iterations ago (useful for Chebyshev acceleration)
+    std::vector<Vec3r> velocities;                  // particle velocities
+    std::vector<Vec3r> previous_velocities;         // particle previous velocities
     std::vector<float> masses;                       // particle masses
     std::vector<uint8_t> fixed;                     // whether or not the particle is fixed
 

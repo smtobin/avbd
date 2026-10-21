@@ -7,32 +7,10 @@
 namespace Energy
 {
 
-struct DeviceNeoHookeanEnergyInfo
-{
-    Vec4u particle_indices;
-    float lambda;
-    float mu;
-    float kd;
-    DMat3 Q;
-    float rest_volume;
-    DMat3 E_prev;
-
-    static DeviceNeoHookeanEnergyInfo from(const NeoHookeanEnergyInfo& src)
-    {
-        DeviceNeoHookeanEnergyInfo i;
-        i.particle_indices = src.particle_indices;
-        i.lambda = src.lambda;
-        i.mu = src.mu;
-        i.kd = src.kd;
-        i.Q = DMat3::from(Q);
-        i.rest_volume = src.rest_volume;
-        i.E_prev = DMat3::from(E_prev);
-    }
-};
 
 struct DeviceNeoHookeanEnergyPoolView : DeviceTombstonePoolView
 {
-    DeviceNeoHookeanEnergyInfo* data;
+    NeoHookeanEnergyInfo* data;
 };
 
 struct DeviceNeoHookeanEnergyPool : DeviceTombstonePool
