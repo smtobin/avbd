@@ -32,7 +32,7 @@ struct DeviceCollisionConstraintEnergyPool
     void upload(const CollisionConstraintEnergyPool<CollisionEnergyInfo>& src)
     {
         DeviceTombstonePool::upload(src);
-        data.upload(src.data);
+        data.upload(src.data.data(), src.data.size());
     }
 };
 

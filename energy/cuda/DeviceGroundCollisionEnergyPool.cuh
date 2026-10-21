@@ -13,20 +13,20 @@ struct DeviceGroundCollisionEnergyPoolView : DeviceCollisionConstraintEnergyPool
 struct DeviceGroundCollisionEnergyPool : DeviceCollisionConstraintEnergyPool<GroundCollisionEnergyInfo>
 {
     explicit DeviceGroundCollisionEnergyPool(unsigned capacity)
-        :  DeviceCollisionConstraintEnergyPool(capacity)
+        :  DeviceCollisionConstraintEnergyPool<GroundCollisionEnergyInfo>(capacity)
     {
     }
 
     DeviceGroundCollisionEnergyPoolView view() const
     {
         DeviceGroundCollisionEnergyPoolView v;
-        DeviceCollisionConstraintEnergyPool::view(v);
+        DeviceCollisionConstraintEnergyPool<GroundCollisionEnergyInfo>::view(v);
         return v;
     }
 
     void upload(const GroundCollisionEnergyPool& src)
     {
-        DeviceCollisionConstraintEnergyPool::upload(src);
+        DeviceCollisionConstraintEnergyPool<GroundCollisionEnergyInfo>::upload(src);
     }
 };
 
