@@ -13,11 +13,11 @@ namespace Sim
 /** Class that manages worker threads which ultimately performs all simulation work.
  * During each step, the threads:
  *  === Collision ===
- *  - construct BVH                         TODO: (07/30/26) make parallel
- *  - traverse BVH for potential collisions TODO: (07/30/26) make parallel
- *  - narrow-phase on potential collisions  TODO: (07/30/26) make parallel
- *  - rebuild adjacency                     TODO: (07/30/26) make parallel
- *  - rebuild color list                    TODO: (07/30/26) make parallel
+ *  - construct BVH                         
+ *  - traverse BVH for potential collisions 
+ *  - narrow-phase on potential collisions  
+ *  - rebuild adjacency                     
+ *  - rebuild color list                    
  *  === Solver Step ===
  *  - particle inertial update
  *  - initialize constraints
