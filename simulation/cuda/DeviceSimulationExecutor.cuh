@@ -2,7 +2,7 @@
 
 #include "common/common.hpp"
 #include "simulation/cuda/DeviceSimulationContext.cuh"
-#include "simulation/cuda/DeviceVBDSolver.hpp"
+#include "simulation/cuda/DeviceVBDSolver.cuh"
 
 #include <thread>
 
@@ -68,7 +68,7 @@ public:
 
     void timeStep()
     {
-        
+        _solver.solve();
     }
 
 };
