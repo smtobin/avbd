@@ -100,6 +100,8 @@ using Mat2r = Mat2<Real>;//Eigen::Matrix<Real, 2, 2>;
 using Mat3r = Mat3<Real>;//Eigen::Matrix<Real, 3, 3>;
 using Mat4r = Mat4<Real>;//Eigen::Matrix<Real, 4, 4>;
 using Mat6r = Mat6<Real>;//Eigen::Matrix<Real, 6, 6>;
+template <int N>
+using MatNr = MatN<N, N, Real>;
 
 using Quaternion = QuaternionT<Real>;//Eigen::Quaternion<Real>;
 
