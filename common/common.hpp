@@ -13,6 +13,15 @@
 #include "common/math/Quaternion.hpp"
 // #include "common/VariadicVectorContainer.hpp"
 
+/** Define __host__ __device__ for CUDA */
+#ifndef HD
+    #ifdef __CUDACC__
+        #define HD __host__ __device__
+    #else
+        #define HD
+    #endif
+#endif
+
 #define STIFFNESS_BETA 10
 #define STIFFNESS_GAMMA 0.99
 #define CONSTRAINT_ALPHA 0.95
