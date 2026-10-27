@@ -74,22 +74,22 @@ constexpr void ForEachDynamicEnergy(F&& f)
 template<typename Solver>
 concept HasAccumulate4 = requires(
     unsigned e_idx[4],
-    const Solver::PoolType& energies,
-    ParticlePool& particles,
+    const typename Solver::PoolType::ViewType& energies,
+    ParticlePoolView& particles,
     unsigned local_idx[4],
-    Mat3r& particle_H,
-    Vec3r& particle_G,
+    Mat3r& H_out,
+    Vec3r& G_out,
     Real dt
 )
 {
-    Solver::accumulate4(e_idx, energies, particles, local_idx, particle_H, particle_G, dt);
+    Solver::accumulate4(e_idx, energies, particles, local_idx, H_out, G_out, dt);
 };
 
 template<typename Solver>
 concept HasUpdateContactPoints = requires(
     unsigned c_idx,
-    typename Solver::PoolType& energies,
-    ParticlePool& particles
+    typename Solver::PoolType::ViewType& energies,
+    ParticlePoolView& particles
 )
 {
     Solver::updateContactPoints(c_idx, energies, particles);

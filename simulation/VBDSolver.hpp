@@ -302,10 +302,13 @@ private:
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
         /** TODO: (10/27/26) Don't regenerate this every step. Pull it from SimulationContextView (when that exists). */
-        ParticlePoolView particle_view = _ctx->particles.view();
+        // ParticlePoolView particle_view = _ctx->particles.view();
 
         VecNr<DOF> grad = VecNr<DOF>::Zero();
         MatNr<DOF> hess = MatNr<DOF>::Zero();
+
+        VecNr<DOF> G;
+        MatNr<DOF> H;
 
         /** Process "static" energies */
         {
@@ -344,15 +347,18 @@ private:
                             entry2.local_vertex_idx,
                             entry3.local_vertex_idx,
                             entry4.local_vertex_idx};
+
                         Solver::accumulate4(
                             e_idx,
                             view,
-                            particle_view,
+                            _particle_view,
                             l_idx,
-                            hess,
-                            grad,
+                            H,
+                            G,
                             dt
                         );
+                        hess += H;
+                        grad += G;
                     }
 
                     // process remainder
@@ -362,12 +368,14 @@ private:
                         Solver::accumulate(
                             entry.energy_idx,
                             view,
-                            particle_view,
+                            _particle_view,
                             entry.local_vertex_idx,
-                            hess,
-                            grad,
+                            H,
+                            G,
                             dt
                         );
+                        hess += H;
+                        grad += G;
                     }
                 }
                 // otherwise fall back to normal 1-by-1 computation
@@ -384,12 +392,14 @@ private:
                             Solver::template accumulate<DOF>(
                                 entry.energy_idx,
                                 view,
-                                particle_view,
+                                _particle_view,
                                 entry.local_vertex_idx,
-                                hess,
-                                grad,
+                                H,
+                                G,
                                 dt
                             );
+                            hess += H;
+                            grad += G;
                         }
                         // otherwise use plain accumulate()
                         else if constexpr ( (DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional) )
@@ -397,12 +407,14 @@ private:
                             Solver::accumulate(
                                 entry.energy_idx,
                                 view,
-                                particle_view,
+                                _particle_view,
                                 entry.local_vertex_idx,
-                                hess,
-                                grad,
+                                H,
+                                G,
                                 dt
                             );
+                            hess += H;
+                            grad += G;
                         }
                     }
                 }
@@ -437,24 +449,28 @@ private:
                         Solver::template accumulate<DOF>(
                             entry.energy_idx,
                             view,
-                            particle_view,
+                            _particle_view,
                             entry.local_vertex_idx,
-                            hess,
-                            grad,
+                            H,
+                            G,
                             dt
                         );
+                        hess += H;
+                        grad += G;
                     }
                     else if constexpr ( (DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional) )
                     {
                         Solver::accumulate(
                             entry.energy_idx,
                             view,
-                            particle_view,
+                            _particle_view,
                             entry.local_vertex_idx,
-                            hess,
-                            grad,
+                            H,
+                            G,
                             dt
                         );
+                        hess += H;
+                        grad += G;
                     }
                 }
             }

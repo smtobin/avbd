@@ -13,6 +13,7 @@ struct CosseratRodEnergyPool : TombstonePool
     static constexpr EnergyType Type = EnergyType::COSSERAT_ROD;
     static constexpr StaticEnergyType StaticType = StaticEnergyType::COSSERAT_ROD;
     using SolverType = CosseratRodEnergySolver;
+    using ViewType = CosseratRodEnergyPoolView;
 
     std::vector<CosseratRodEnergyInfo> data;
 

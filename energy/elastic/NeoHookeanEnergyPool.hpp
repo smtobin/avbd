@@ -14,6 +14,7 @@ struct NeoHookeanEnergyPool : TombstonePool
     static constexpr EnergyType Type = EnergyType::NEO_HOOKEAN;   // type of energy in the EnergyType enum
     static constexpr StaticEnergyType StaticType = StaticEnergyType::NEO_HOOKEAN; // type of energy in the StaticEnergyType enum
     using SolverType = NeoHookeanEnergySolver;  // the solver struct for this pool
+    using ViewType = NeoHookeanEnergyPoolView;  // the view struct for this pool
      
     std::vector<NeoHookeanEnergyInfo> data;
 
