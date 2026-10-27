@@ -21,7 +21,7 @@ struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollision
     }
 
     /** Returns a non-owning view into the memory pool. */
-    GroundCollisionEnergyPoolView view() const
+    GroundCollisionEnergyPoolView view()
     {
         GroundCollisionEnergyPoolView v;
         CollisionConstraintEnergyPool::view(v);

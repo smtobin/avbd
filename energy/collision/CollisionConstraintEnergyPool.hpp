@@ -21,10 +21,10 @@ struct CollisionConstraintEnergyPool : TombstonePool
     {}
 
     /** Returns a non-owning view into the collision constraint energy pool */
-    void view(CollisionConstraintEnergyPoolView<CollisionEnergyInfo>& v) const
+    void view(CollisionConstraintEnergyPoolView<CollisionEnergyInfo>& v)
     {
         TombstonePool::view(v);
-        v.data() = data.data();
+        v.data = data.data();
     }
 
     /** Add an energy

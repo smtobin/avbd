@@ -25,7 +25,7 @@ struct NeoHookeanEnergyPool : TombstonePool
     }
 
     /** Returns a non-owning view into the memory pool. */
-    NeoHookeanEnergyPoolView view() const
+    NeoHookeanEnergyPoolView view()
     {
         NeoHookeanEnergyPoolView v;
         TombstonePool::view(v);

@@ -147,14 +147,14 @@ public:
         auto [start, end] = w_ctx.computeStartEnd(view);
         for (unsigned e_idx = start; e_idx < end; e_idx++)
         {
-            if (pool.active[e_idx])
+            if (view.active[e_idx])
             {
                 if constexpr (Energy::HasUpdateContactPoints<typename EnergyPoolView::PoolType::SolverType>)
                 {
-                    EnergyPool::SolverType::updateContactPoints(e_idx, view, particles);
+                    EnergyPoolView::PoolType::SolverType::updateContactPoints(e_idx, view, particles);
                 }
                     
-                EnergyPool::SolverType::updateAfterTimeStep(e_idx, view, particles);
+                EnergyPoolView::PoolType::SolverType::updateAfterTimeStep(e_idx, view, particles);
                 
             }
         }
@@ -166,7 +166,7 @@ public:
         auto [start, end] = w_ctx.computeStartEnd(view);
         for (unsigned e_idx = start; e_idx < end; e_idx++)
         {
-            if (pool.active[e_idx])
+            if (view.active[e_idx])
                 EnergyPoolView::PoolType::SolverType::updateAfterIteration(e_idx, view, particles);
         }
     }
@@ -323,12 +323,7 @@ private:
                 unsigned final_e_adj = (e_type_idx+1 == num_energies) ? adj_end : static_adj_offsets[e_type_idx+1];
 
                 using Solver = SolverFor<E>::type;
-                const auto& energy_pool = _ctx->energies.template get<E>();
-                
-                /** TODO: (10/27/26) Rather than recreating the view every time, have a SimulationContextView class that ultimately gets used everywhere.
-                 * The energy pool views will just be a part of this, therefore not needing to recreate the energy pool views each time.
-                 */
-                auto view = energy_pool.view();
+                const auto& view = _energy_view.template get<E>();
 
                 // if solver has AVX accumulate4 implemented, use that
                 // note: currently this is only implemented for homogenous 3-DOF energies (such as the Neo-Hookean tet energy)
@@ -431,12 +426,7 @@ private:
                 unsigned final_e_adj = (e_type_idx+1 == num_energies) ? adj_end : dyn_adj_offsets[e_type_idx+1];
 
                 using Solver = SolverFor<E>::type;
-                const auto& energy_pool = _ctx->energies.template get<E>();
-
-                /** TODO: (10/27/26) Rather than recreating the view every time, have a SimulationContextView class that ultimately gets used everywhere.
-                 * The energy pool views will just be a part of this, therefore not needing to recreate the energy pool views each time.
-                 */
-                auto view = energy_pool.view();
+                const auto& view = _energy_view.template get<E>();
 
                 // dynamic constraints always 1-by-1 computation
                 for (; e_adj < final_e_adj; e_adj++)

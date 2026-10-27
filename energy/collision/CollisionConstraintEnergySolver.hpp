@@ -16,7 +16,7 @@ struct CollisionConstraintEnergySolver
      */
     static void updateCollisionFrame(
         unsigned c_idx,
-        typename CollisionEnergyPool::ViewType& energies,
+        CollisionEnergyPool& energies,
         const Vec3r& new_normal
     )
     {
@@ -294,7 +294,7 @@ struct CollisionConstraintEnergySolver
         Real dt
     )
     {
-        accumulate<6>(e_idx, energies, particles, local_idx, particle_H, particle_G, dt);
+        accumulate<6>(e_idx, energies, particles, local_idx, H, G, dt);
     }
 };
 

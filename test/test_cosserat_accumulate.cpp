@@ -25,6 +25,8 @@ int main()
     /** Use finite differences to check linearizations */
     std::cout << "\n === FINITE DIFFERENCE CHECK === " << std::endl;
 
+    Energy::EnergyRegistryView energy_view = ctx.energies.view();
+    ParticlePoolView particles_view = ctx.particles.view();
     
     Vec2u indices = ctx.energies.cosserat_rod.data[e_idx].particle_indices;
     for (unsigned l_idx = 0; l_idx < 2; l_idx++)
@@ -38,7 +40,7 @@ int main()
             p_cur += dx.head<3>();
             q_cur = q_cur * Math::Exp_s3(dx.tail<3>());
 
-            Real E = Energy::CosseratRodEnergySolver::energy(e_idx, ctx.energies.cosserat_rod, ctx.particles, dt);
+            Real E = Energy::CosseratRodEnergySolver::energy(e_idx, energy_view.cosserat_rod, particles_view, dt);
 
             p_cur = p_orig;
             q_cur = q_orig;
@@ -52,8 +54,8 @@ int main()
         Mat6r H_orig = Mat6r::Zero();
         Energy::CosseratRodEnergySolver::accumulate(
             e_idx,
-            ctx.energies.cosserat_rod,
-            ctx.particles,
+            energy_view.cosserat_rod,
+            particles_view,
             l_idx,
             H_orig,
             G_orig,

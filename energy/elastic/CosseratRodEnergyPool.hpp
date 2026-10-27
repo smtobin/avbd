@@ -24,7 +24,7 @@ struct CosseratRodEnergyPool : TombstonePool
     }
 
     /** Returns a non-owning view into the memory pool. */
-    CosseratRodEnergyPoolView view() const
+    CosseratRodEnergyPoolView view()
     {
         CosseratRodEnergyPoolView v;
         TombstonePool::view(v);

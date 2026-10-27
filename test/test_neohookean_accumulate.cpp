@@ -36,10 +36,14 @@ int main()
     X.tryInverse(Q);
 
     unsigned e_idx = ctx.energies.neo_hookean.addEnergy(indices, 1e7, 1e6, 10, Q, 5);
+
+    Energy::EnergyRegistryView energy_view =  ctx.energies.view();
+    ParticlePoolView particles_view = ctx.particles.view();
+
     Energy::NeoHookeanEnergySolver::updateAfterTimeStep(
         e_idx,
-        ctx.energies.neo_hookean,
-        ctx.particles
+        energy_view.neo_hookean,
+        particles_view
     );
 
     // move the particles around a bit
@@ -55,8 +59,8 @@ int main()
         Vec3r G_single = Vec3r::Zero();
         Energy::NeoHookeanEnergySolver::accumulate(
             e_idx,
-            ctx.energies.neo_hookean,
-            ctx.particles,
+            energy_view.neo_hookean,
+            particles_view,
             l_idx,
             H_single,
             G_single,
@@ -69,8 +73,8 @@ int main()
         unsigned l_idx4[4] = {l_idx, l_idx, l_idx, l_idx};
         Energy::NeoHookeanEnergySolver::accumulate4(
             e_idx4,
-            ctx.energies.neo_hookean,
-            ctx.particles,
+            energy_view.neo_hookean,
+            particles_view,
             l_idx4,
             H4,
             G4,
@@ -92,8 +96,8 @@ int main()
         Vec3r G_orig = Vec3r::Zero();
         Energy::NeoHookeanEnergySolver::accumulate(
             e_idx,
-            ctx.energies.neo_hookean,
-            ctx.particles,
+            energy_view.neo_hookean,
+            particles_view,
             l_idx,
             H_orig,
             G_orig,
@@ -102,8 +106,8 @@ int main()
 
         Real E_orig = Energy::NeoHookeanEnergySolver::energy(
             e_idx,
-            ctx.energies.neo_hookean,
-            ctx.particles,
+            energy_view.neo_hookean,
+            particles_view,
             dt
         );
         std::cout << "E_orig: " << E_orig << std::endl;
@@ -123,8 +127,8 @@ int main()
             Vec3r G_new = Vec3r::Zero();
             Energy::NeoHookeanEnergySolver::accumulate(
                 e_idx,
-                ctx.energies.neo_hookean,
-                ctx.particles,
+                energy_view.neo_hookean,
+                particles_view,
                 l_idx,
                 H_new,
                 G_new,
@@ -132,8 +136,8 @@ int main()
             );
             Real E_new = Energy::NeoHookeanEnergySolver::energy(
                 e_idx,
-                ctx.energies.neo_hookean,
-                ctx.particles,
+                energy_view.neo_hookean,
+                particles_view,
                 dt
             );
             std::cout << "E_new: " << E_new << std::endl;

@@ -34,10 +34,13 @@ struct HardConstraintEnergyPool : TombstonePool
     {}
 
     /** Returns a non-owning view into the memory pool. */
-    void view(HardConstraintEnergyPoolView<EnergyInfo>& v) const
+    void view(HardConstraintEnergyPoolView<EnergyInfo, N>& v)
     {
         TombstonePool::view(v);
         v.data = data.data();
+        v.k_start = k_start;
+        v.lambda_min = lambda_min;
+        v.lambda_max = lambda_max;
     }
 
     /** Add an energy

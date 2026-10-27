@@ -21,7 +21,7 @@ struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidB
     }
 
     /** Returns a non-owning view into the memory pool. */
-    RigidBodyGroundCollisionEnergyPoolView view() const
+    RigidBodyGroundCollisionEnergyPoolView view()
     {
         RigidBodyGroundCollisionEnergyPoolView v;
         CollisionConstraintEnergyPool::view(v);

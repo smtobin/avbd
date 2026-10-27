@@ -26,7 +26,7 @@ struct ParticlePoolView : TombstonePoolView
     Vec3r* last_last_iter_positions;
     Vec3r* velocities;
     Vec3r* previous_velocities;
-    float* masses;
+    Real* masses;
     uint8_t* fixed;
 
     unsigned* rotation_idx;

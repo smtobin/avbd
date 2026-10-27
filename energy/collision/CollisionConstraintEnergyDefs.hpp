@@ -33,7 +33,7 @@ struct CollisionConstraintEnergyInfo
 
 /** A non-owning view into collision constraint energy pool. */
 template <typename EnergyInfo>
-struct CollisionConstraintEnergyPoolView
+struct CollisionConstraintEnergyPoolView : public TombstonePoolView
 {
     EnergyInfo* data;
 };

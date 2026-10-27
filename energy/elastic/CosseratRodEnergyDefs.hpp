@@ -18,7 +18,7 @@ struct CosseratRodEnergyInfo
 /////////////////////////////////////////////////////////////////////////////////////////
 
 /** Non-owning view into Cosserat energy pool */
-struct CosseratRodEnergyPoolView
+struct CosseratRodEnergyPoolView : public TombstonePoolView
 {
     using PoolType = CosseratRodEnergyPool;
     

@@ -13,8 +13,8 @@ struct GroundCollisionConstraintSolver
     
     static void evaluateConstraint(
         unsigned c_idx,
-        const GroundCollisionEnergyPool& energies,
-        ParticlePool& particles,
+        const GroundCollisionEnergyPoolView& energies,
+        ParticlePoolView& particles,
         Real& C_n, Real& C_t, Real& C_b
     )
     {
@@ -27,8 +27,8 @@ struct GroundCollisionConstraintSolver
     template <int DOF>
     static void constraintGradientHessian(
         unsigned c_idx,
-        const GroundCollisionEnergyPool& energies,
-        ParticlePool& particles,
+        const GroundCollisionEnergyPoolView& energies,
+        ParticlePoolView& particles,
         unsigned /* local_idx */,
         Real& C_n, Real& C_t, Real& C_b,
         VecNr<DOF>& C_grad_n, VecNr<DOF>& C_grad_t, VecNr<DOF>& C_grad_b,
@@ -80,8 +80,8 @@ struct GroundCollisionEnergySolver
      */
     static void updateContactPoints(
         unsigned c_idx,
-        GroundCollisionEnergyPool& energies,
-        ParticlePool& particles
+        GroundCollisionEnergyPoolView& energies,
+        ParticlePoolView& particles
     )
     {
         // update the contact point

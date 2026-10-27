@@ -45,7 +45,7 @@ HD inline void neoHookeanEnergyAccumulate(
 {
     // compute F for this timestep and the previous timestep
     Mat3r F;
-    computeF(p0, p1, p2, p3, Q, F);
+    computeDeformationGradient(p0, p1, p2, p3, Q, F);
 
     // hydrostatic gradient
     Vec3r c0 = F.col(1).cross(F.col(2));

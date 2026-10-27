@@ -57,7 +57,7 @@ struct TombstonePool
      * TODO: (10/27/26) This is more to align CPU with GPU - when would we use TombstonePoolView on CPU?
      * For now, PoolCounters and AllocTicket are not set in the view.
      */
-    void view(TombstonePoolView& v) const
+    void view(TombstonePoolView& v)
     {
         v.active = active.data();
         v.generation = generation.data();
@@ -68,7 +68,7 @@ struct TombstonePool
     }
 
     /** The total size of the pool, from index 0 to the highest active index */
-    unsigned totalSize() const { return highest_index+1; }
+    int totalSize() const { return counters.highest_index+1; }
 
     /** Allocates space for a new element based on the free slots.
      * @returns the index of the slot that has been allocated for the new element.
@@ -86,7 +86,7 @@ struct TombstonePool
         active[slot] = true;
         generation[slot]++;
         counters.active_count++;
-        counters.highest_index = std::max(counters.highest_index, slot);
+        counters.highest_index = std::max(counters.highest_index, static_cast<int>(slot));
 
         // std::cout << "Alloc slot..." << std::endl;
         // std::cout << "  New highest index: " << highest_index << std::endl;
@@ -107,9 +107,9 @@ struct TombstonePool
         }
 
         // update highest index if the slot being freed is the highest index
-        if (slot == counters.highest_index)
+        if (static_cast<int>(slot) == counters.highest_index)
         {
-            while (counters.highest_index > 0 &&
+            while (counters.highest_index >= 0 &&
                 !active[counters.highest_index])
             {
                 --counters.highest_index;
@@ -173,7 +173,7 @@ struct TombstonePool
     private:
         void skipInactive()
         {
-            const unsigned limit = _pool->highest_index + 1;
+            const unsigned limit = _pool->counters.highest_index + 1;
 
             while (_index < limit &&
                    !_pool->active[_index])

@@ -21,7 +21,7 @@ struct OneSidedFixedJointEnergyPool : HardConstraintEnergyPool<OneSidedFixedJoin
     }
 
     /** Returns a non-owning view into the memory pool. */
-    OneSidedFixedJointEnergyPoolView view() const
+    OneSidedFixedJointEnergyPoolView view()
     {
         OneSidedFixedJointEnergyPoolView v;
         HardConstraintEnergyPool::view(v);

@@ -20,8 +20,8 @@ struct CosseratRodEnergySolver
     /** Energy function */
     static Real energy(
         unsigned e_idx,
-        const CosseratRodEnergyPool& energies,
-        ParticlePool& particles,
+        const CosseratRodEnergyPoolView& energies,
+        ParticlePoolView& particles,
         Real /* dt */
     )
     {
@@ -62,8 +62,8 @@ struct CosseratRodEnergySolver
     /** Required - does nothing */
     static void updateAfterTimeStep(
         unsigned /* e_idx */,
-        CosseratRodEnergyPool& /* energies */,
-        ParticlePool& /* particles */
+        CosseratRodEnergyPoolView& /* energies */,
+        ParticlePoolView& /* particles */
     )
     {}
 
@@ -96,8 +96,6 @@ struct CosseratRodEnergySolver
         Real rest_length = info.rest_length;
         const Vec3r& precurvature = info.precurvature;
         const Vec6r& stiffness = info.stiffness;
-        Real s_hat = 0.5;
-        Real inv_length = 1.0/rest_length;
 
         cosseratRodEnergyAccumulate(
             p1,

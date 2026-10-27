@@ -35,7 +35,7 @@ struct RotationPool : TombstonePool
     }
 
     /** Returns a non-owning view into the rotation pool */
-    RotationPoolView view() const
+    RotationPoolView view()
     {
         RotationPoolView v;
         TombstonePool::view(v);
@@ -129,7 +129,7 @@ struct ParticlePool : TombstonePool
     }
 
     /** Returns a non-owning view into the particle pool */
-    ParticlePoolView view() const
+    ParticlePoolView view()
     {
         ParticlePoolView v;
         TombstonePool::view(v);

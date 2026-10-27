@@ -42,7 +42,7 @@ struct EnergyRegistry
     {}
 
     /** Return a non-owning view into the energy registry */
-    EnergyRegistryView view() const
+    EnergyRegistryView view()
     {
         EnergyRegistryView v;
 

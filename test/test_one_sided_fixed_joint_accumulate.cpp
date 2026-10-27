@@ -24,7 +24,9 @@ int main()
     /** Use finite differences to check linearizations */
     std::cout << "\n === FINITE DIFFERENCE CHECK === " << std::endl;
 
-    
+    Energy::EnergyRegistryView energy_view = ctx.energies.view();
+    ParticlePoolView particles_view = ctx.particles.view();
+
     Vec1u indices = ctx.energies.one_sided_fixed_joint.data[e_idx].particle_indices;
     for (unsigned l_idx = 0; l_idx < 1; l_idx++)
     {
@@ -37,7 +39,7 @@ int main()
             p_cur += dx.head<3>();
             q_cur = q_cur * Math::Exp_s3(dx.tail<3>());
 
-            Real E = Energy::OneSidedFixedJointEnergySolver::energy(e_idx, ctx.energies.one_sided_fixed_joint, ctx.particles, dt);
+            Real E = Energy::OneSidedFixedJointEnergySolver::energy(e_idx, energy_view.one_sided_fixed_joint, particles_view, dt);
 
             p_cur = p_orig;
             q_cur = q_orig;
@@ -51,8 +53,8 @@ int main()
         Mat6r H_orig = Mat6r::Zero();
         Energy::OneSidedFixedJointEnergySolver::accumulate(
             e_idx,
-            ctx.energies.one_sided_fixed_joint,
-            ctx.particles,
+            energy_view.one_sided_fixed_joint,
+            particles_view,
             l_idx,
             H_orig,
             G_orig,

@@ -12,10 +12,18 @@ struct TriangleRodCollisionEnergyPool : CollisionConstraintEnergyPool<TriangleRo
     static constexpr EnergyType Type = EnergyType::TRIANGLE_ROD_COLLISION;
     static constexpr DynamicEnergyType DynamicType = DynamicEnergyType::TRIANGLE_ROD_COLLISION;
     using SolverType = TriangleRodCollisionEnergySolver;
+    using ViewType = TriangleRodCollisionEnergyPoolView;
 
     explicit TriangleRodCollisionEnergyPool(unsigned capacity)
         : CollisionConstraintEnergyPool(capacity)
     {
+    }
+
+    TriangleRodCollisionEnergyPoolView view()
+    {
+        TriangleRodCollisionEnergyPoolView v;
+        CollisionConstraintEnergyPool::view(v);
+        return v;
     }
 
     /** Add an energy
