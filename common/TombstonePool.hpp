@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/TombstonePoolView.hpp"
 
 #include <vector>
 #include <atomic>
@@ -48,6 +49,19 @@ struct TombstonePool
     // Movable
     TombstonePool(TombstonePool&&) = default;
     TombstonePool& operator=(TombstonePool&&) = default;
+
+    /** Returns a view of the TombstonePool
+     * TODO: (10/27/26) This is more to align CPU with GPU - when would we use TombstonePoolView on CPU?
+     * For now, PoolCounters and AllocTicket are not set in the view.
+     */
+    void view(TombstonePoolView& v) const
+    {
+        v.active = active.data();
+        v.generation = generation.data();
+        v.free_list = slots.data();
+
+        v.capacity = capacity;
+    }
 
     /** The total size of the pool, from index 0 to the highest active index */
     unsigned totalSize() const { return highest_index+1; }

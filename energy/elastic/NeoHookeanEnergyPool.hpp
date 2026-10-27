@@ -1,20 +1,10 @@
 #pragma once
 
 #include "common/TombstonePool.hpp"
+#include "energy/elastic/NeoHookeanEnergyDefs.hpp"
 
 namespace Energy
 {
-
-struct NeoHookeanEnergyInfo
-{
-    Vec4u particle_indices;     // indices of particles in the element
-    Real lambda;                // first Lame parameter
-    Real mu;                    // second Lame parameter
-    Real kd;                    // strain-rate damping coefficient
-    Mat3r Q;                    // rest state matrices (F = XQ^T)
-    Real rest_volume;           // rest-state volume of the elements
-    Mat3r E_prev;               // previous Green strain (used for strain-rate damping)
-};
 
 /** Pool of memory for the Neo-Hookean energies.
  */
@@ -32,6 +22,15 @@ struct NeoHookeanEnergyPool : TombstonePool
         , data(capacity)
     {
 
+    }
+
+    /** Returns a non-owning view into the memory pool. */
+    NeoHookeanEnergyPoolView view() const
+    {
+        NeoHookeanEnergyPoolView v;
+        TombstonePool::view(v);
+        v.data = data.data();
+        return v;
     }
 
     /** Add an energy

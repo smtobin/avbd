@@ -1,45 +1,11 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/TombstonePool.hpp"
+#include "common/TombstonePoolView.hpp"
 #include "common/cuda/DeviceBuffer.cuh"
 
-/** A set of counters/flags attached to each pool.
- * One instance per pool, stored in device memory.
- */
-struct PoolCounters
-{
-    unsigned free_count;        // number of available slots on the free stack
-    unsigned high_water;        // slots [0, high_water) have been used at some point
-    unsigned active_count;      // number of live elements
-    unsigned error;             // sticky flags - host will check and clear at frame boundaries
-};
-
-////////////////////////////////////////////////////////////////////
-
-/** Represents an allocation request to the TombstonePool. */
-struct AllocTicket
-{
-    unsigned free_base;         // free_count beefore this allocation
-    unsigned hw_base;           // high_water before this allocation
-    unsigned from_free;         // ranks [0, from_free) are served from the free stack
-    unsigned total;             // total slots granted
-};
-
-/////////////////////////////////////////////////////////////////////
-
-/** Non-owning view into DeviceTombstonePool */
-struct DeviceTombstonePoolView
-{
-    uint8_t* active;
-    unsigned* generation;
-    unsigned* free_list;
-
-    PoolCounters* counters;
-    AllocTicket* ticket;
-
-    unsigned capacity;
-};
+// forward declaration of CPU pool type
+struct TombstonePool;
 
 //////////////////////////////////////////////////////////////////
 
@@ -84,7 +50,7 @@ struct DeviceTombstonePool
     DeviceTombstonePool& operator=(DeviceTombstonePool&&) = default;
 
     /** Fill out device view */
-    void view(DeviceTombstonePoolView& view) const
+    void view(TombstonePoolView& view) const
     {
         view.active = active.data();
         view.counters = counters.data();
@@ -93,22 +59,7 @@ struct DeviceTombstonePool
         view.capacity = capacity;
     }
 
-    void upload(const TombstonePool& src)
-    {
-        if (src.capacity != capacity)
-            throw std::runtime_error("Host and device pool capacities do not match");
-
-        active.upload(src.active.data(), capacity);
-        // generation.upload(src.generation.data(), capacity);
-        // free_list.upload(src.slots.data(), capacity);
-
-        // counters.data()->active_count = src.count;
-        // counters.data()->free_count = capacity - src.count;
-        // counters.data()->high_water = src.highest_index;
-
-        // ticket.data()->free_base = counters.data()->free_count;
-        // ticket.data()->hw_base = counters.data()->high_water;
-    }
+    void upload(const TombstonePool& src);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

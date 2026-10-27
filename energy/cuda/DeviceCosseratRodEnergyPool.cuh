@@ -1,17 +1,12 @@
 #pragma once
 
 #include "common/cuda/DeviceTombstonePool.cuh"
-#include "energy/elastic/CosseratRodEnergyPool.hpp"
+#include "energy/elastic/CosseratRodEnergyDefs.hpp"
 
 namespace Energy
 {
 
-struct DeviceCosseratRodEnergyPoolView : DeviceTombstonePoolView
-{
-    CosseratRodEnergyInfo* data;
-};
-
-struct DeviceCosseratRodEnergyPool
+struct DeviceCosseratRodEnergyPool : DeviceTombstonePool
 {
     DeviceBuffer<CosseratRodEnergyInfo> data;
     
@@ -22,20 +17,16 @@ struct DeviceCosseratRodEnergyPool
 
     }
 
-    DeviceCosseratRodEnergyPoolView view() const
+    CosseratRodEnergyPoolView view() const
     {
-        DeviceCosseratRodEnergyPoolView v;
-        DeviceTombstonePoolView::view(v);
+        CosseratRodEnergyPoolView v;
+        DeviceTombstonePool::view(v);
         v.data = data.data();
 
         return v;
     }
 
-    void upload(const CosseratRodEnergyPool& src)
-    {
-        DeviceTombstonePool::upload(src);
-        data.upload(src.data);
-    }
+    void upload(const CosseratRodEnergyPool& src);
 };
 
 } // namespace Energy

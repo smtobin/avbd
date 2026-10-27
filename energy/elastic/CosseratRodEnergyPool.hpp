@@ -1,17 +1,10 @@
 #pragma once
 
 #include "common/TombstonePool.hpp"
+#include "energy/elastic/CosseratRodEnergyDefs.hpp"
 
 namespace Energy
 {
-
-struct CosseratRodEnergyInfo
-{
-    Vec2u particle_indices;     // the indices of the oriented particles in the rod element
-    Vec6r stiffness;            // the diagonal of the body-frame stiffness matrix (GA, GA, EA, EI, EI, GJ)     /** TODO: (08/25/26) Move this to rod collision geometry with radius? */
-    Real rest_length;           // initial length of the element
-    Vec3r precurvature;         // initial curvature of the element
-};
 
 /** Pool of memory for the Cosserat rod elastic energies. */
 struct CosseratRodEnergyPool : TombstonePool
@@ -28,6 +21,15 @@ struct CosseratRodEnergyPool : TombstonePool
         , data(capacity)
     {
 
+    }
+
+    /** Returns a non-owning view into the memory pool. */
+    CosseratRodEnergyPoolView view() const
+    {
+        CosseratRodEnergyPoolView v;
+        TombstonePool::view(v);
+        v.data = data.data();
+        return v;
     }
 
     /** Add an energy

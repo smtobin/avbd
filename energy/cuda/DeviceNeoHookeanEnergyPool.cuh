@@ -1,17 +1,10 @@
 #pragma once
 
-#include "common/cuda/Mat3.cuh"
 #include "common/cuda/DeviceTombstonePool.cuh"
-#include "energy/elastic/NeoHookeanEnergyPool.hpp"
+#include "energy/elastic/NeoHookeanEnergyDefs.hpp"
 
 namespace Energy
 {
-
-
-struct DeviceNeoHookeanEnergyPoolView : DeviceTombstonePoolView
-{
-    NeoHookeanEnergyInfo* data;
-};
 
 struct DeviceNeoHookeanEnergyPool : DeviceTombstonePool
 {
@@ -24,20 +17,15 @@ struct DeviceNeoHookeanEnergyPool : DeviceTombstonePool
 
     }
 
-    DeviceNeoHookeanEnergyPoolView view() const
+    NeoHookeanEnergyPoolView view() const
     {
-        DeviceNeoHookeanEnergyPoolView v;
+        NeoHookeanEnergyPoolView v;
         DeviceTombstonePoolView::view(v);
         v.data = data.data();
-
         return v;
     }
 
-    void upload(const NeoHookeanEnergyPool& src)
-    {
-        DeviceTombstonePool::upload(src);
-        data.upload(src.data);
-    }
+    void upload(const NeoHookeanEnergyPool& src);
 };
 
 } // namespace Energy
