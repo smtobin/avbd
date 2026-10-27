@@ -1,17 +1,11 @@
 #pragma once
 
-#include "common/cuda/Vec3.cuh"
 #include "common/cuda/DeviceTombstonePool.cuh"
+#include "energy/collision/CollisionConstraintEnergyDefs.hpp"
 #include "energy/collision/CollisionConstraintEnergyPool.hpp"
 
 namespace Energy
 {
-
-template <typename CollisionEnergyInfo>
-struct DeviceCollisionConstraintEnergyPoolView : DeviceTombstonePoolView
-{
-    CollisionEnergyInfo* data;
-};
 
 template <typename CollisionEnergyInfo>
 struct DeviceCollisionConstraintEnergyPool
@@ -23,7 +17,7 @@ struct DeviceCollisionConstraintEnergyPool
         , data(capacity)
     {}
 
-    void view(DeviceCollisionConstraintEnergyPoolView<CollisionEnergyInfo>& v) const
+    void view(CollisionConstraintEnergyPoolView<CollisionEnergyInfo>& v) const
     {
         DeviceTombstonePoolView::view(v);
         v.data = data.data();

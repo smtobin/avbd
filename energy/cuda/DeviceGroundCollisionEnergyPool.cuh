@@ -6,10 +6,6 @@
 namespace Energy
 {
 
-struct DeviceGroundCollisionEnergyPoolView : DeviceCollisionConstraintEnergyPoolView<GroundCollisionEnergyInfo>
-{
-};
-
 struct DeviceGroundCollisionEnergyPool : DeviceCollisionConstraintEnergyPool<GroundCollisionEnergyInfo>
 {
     explicit DeviceGroundCollisionEnergyPool(unsigned capacity)
@@ -17,9 +13,9 @@ struct DeviceGroundCollisionEnergyPool : DeviceCollisionConstraintEnergyPool<Gro
     {
     }
 
-    DeviceGroundCollisionEnergyPoolView view() const
+    GroundCollisionEnergyPoolView view() const
     {
-        DeviceGroundCollisionEnergyPoolView v;
+        GroundCollisionEnergyPoolView v;
         DeviceCollisionConstraintEnergyPool<GroundCollisionEnergyInfo>::view(v);
         return v;
     }

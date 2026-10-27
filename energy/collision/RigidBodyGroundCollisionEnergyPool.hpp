@@ -1,18 +1,10 @@
 #pragma once
 
 #include "energy/collision/CollisionConstraintEnergyPool.hpp"
-#include "collision/SDF.hpp"
+#include "energy/collision/RigidBodyGroundCollisionEnergyDefs.hpp"
 
 namespace Energy
 {
-
-struct RigidBodyGroundCollisionEnergyInfo : CollisionConstraintEnergyInfo
-{
-    Vec1u particle_indices;     // particle indices for each constraint
-    Vec3r cp_rb_local;  // local vector to contact point on rigid body
-    Vec3r cp_ground;    // contact point on the ground
-    Collision::CollisionShapeParams shape_params;     // describes the rigid body shape
-};
 
 struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidBodyGroundCollisionEnergyInfo>
 {
@@ -25,6 +17,14 @@ struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidB
         : CollisionConstraintEnergyPool(capacity)
     {
 
+    }
+
+    /** Returns a non-owning view into the memory pool. */
+    RigidBodyGroundCollisionEnergyPoolView view() const
+    {
+        RigidBodyGroundCollisionEnergyPoolView v;
+        CollisionConstraintEnergyPool::view(v);
+        return v;
     }
 
     /** Add an energy

@@ -1,17 +1,10 @@
 #pragma once
 
 #include "common/TombstonePool.hpp"
+#include "energy/HardConstraintEnergyDefs.hpp"
 
 namespace Energy
 {
-
-template <int N>
-struct HardConstraintEnergyInfo
-{
-    VecNr<N> k;         // the finite stiffnesses of the quadratic energy
-    VecNr<N> lambda;    // the Lagrange multipliers enforcing the constraints
-    VecNr<N> C_prev;    // the constraint violation at the end of the previous time step
-};
 
 /** Pool of memory for HardConstraintEnergies.
  * Base class for all energies associated with hard constraints.
@@ -39,6 +32,13 @@ struct HardConstraintEnergyPool : TombstonePool
         , lambda_max(lambda_max_)
         , data(capacity)
     {}
+
+    /** Returns a non-owning view into the memory pool. */
+    void view(HardConstraintEnergyPoolView<EnergyInfo>& v) const
+    {
+        TombstonePool::view(v);
+        v.data = data.data();
+    }
 
     /** Add an energy
      * @returns the index of the new energy in the pool

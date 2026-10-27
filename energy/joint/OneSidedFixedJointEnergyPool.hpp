@@ -1,20 +1,10 @@
 #pragma once
 
 #include "energy/HardConstraintEnergyPool.hpp"
+#include "energy/joint/OneSidedFixedJointEnergyDefs.hpp"
 
 namespace Energy
 {
-
-struct OneSidedFixedJointEnergyInfo : HardConstraintEnergyInfo<6>
-{
-    Vec1u particle_indices;     // particle indices for each constraint
-
-    Vec3r position_offset;           // positional offset from particle to joint frame
-    Quaternion rotation_offset;      // rotational offset from particle to joint frame
-    
-    Vec3r ref_position;         // reference position
-    Quaternion ref_rotation;    // reference orientation
-};
 
 struct OneSidedFixedJointEnergyPool : HardConstraintEnergyPool<OneSidedFixedJointEnergyInfo, 6>
 {
@@ -27,6 +17,14 @@ struct OneSidedFixedJointEnergyPool : HardConstraintEnergyPool<OneSidedFixedJoin
         : HardConstraintEnergyPool<OneSidedFixedJointEnergyInfo, 6>(capacity, Vec6r(1e4))
     {
 
+    }
+
+    /** Returns a non-owning view into the memory pool. */
+    OneSidedFixedJointEnergyPoolView view() const
+    {
+        OneSidedFixedJointEnergyPoolView v;
+        HardConstraintEnergyPool::view(v);
+        return v;
     }
 
     /** Add an energy

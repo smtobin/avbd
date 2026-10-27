@@ -6,10 +6,6 @@
 namespace Energy
 {
 
-struct DeviceOneSidedFixedJointEnergyPoolView : DeviceHardConstraintEnergyPoolView<OneSidedFixedJointEnergyInfo, 6>
-{
-};
-
 struct DeviceOneSidedFixedJointEnergyPool : DeviceHardConstraintEnergyPool<OneSidedFixedJointEnergyInfo, 6>
 {
     explicit DeviceOneSidedFixedJointEnergyPool(unsigned capacity)
@@ -18,9 +14,9 @@ struct DeviceOneSidedFixedJointEnergyPool : DeviceHardConstraintEnergyPool<OneSi
 
     } 
 
-    DeviceOneSidedFixedJointEnergyPoolView view() const
+    OneSidedFixedJointEnergyPoolView view() const
     {
-        DeviceOneSidedFixedJointEnergyPoolView v;
+        OneSidedFixedJointEnergyPoolView v;
         DeviceHardConstraintEnergyPool<OneSidedFixedJointEnergyInfo>::view(v);
         return v;
     }

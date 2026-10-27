@@ -1,16 +1,10 @@
 #pragma once
 
 #include "energy/collision/CollisionConstraintEnergyPool.hpp"
+#include "energy/collision/GroundCollisionEnergyDefs.hpp"
 
 namespace Energy
 {
-
-struct GroundCollisionEnergyInfo : CollisionConstraintEnergyInfo
-{
-    Vec1u particle_indices;     // particle indices for each constraint
-    Real cp_x;
-    Real cp_z;
-};
 
 struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollisionEnergyInfo>
 {
@@ -23,6 +17,14 @@ struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollision
         : CollisionConstraintEnergyPool(capacity)
     {
 
+    }
+
+    /** Returns a non-owning view into the memory pool. */
+    GroundCollisionEnergyPoolView view() const
+    {
+        GroundCollisionEnergyPoolView v;
+        CollisionConstraintEnergyPool::view(v);
+        return v;
     }
 
     /** Add an energy
