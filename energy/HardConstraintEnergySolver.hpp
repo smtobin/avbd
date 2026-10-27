@@ -16,8 +16,8 @@ struct HardConstraintEnergySolver
     /** Energy function */
     static Real energy(
         unsigned e_idx,
-        const EnergyPool& energies,
-        ParticlePool& particles,
+        const typename EnergyPool::ViewType& energies,
+        ParticlePoolView& particles,
         Real /* dt */
     )
     {
@@ -41,8 +41,8 @@ struct HardConstraintEnergySolver
      */
     static void updateAfterIteration(
         unsigned c_idx,
-        EnergyPool& energies,
-        ParticlePool& particles
+        typename EnergyPool::ViewType& energies,
+        ParticlePoolView& particles
     )
     {
         // evaluate the constraint
@@ -78,8 +78,8 @@ struct HardConstraintEnergySolver
      */
     static void updateAfterTimeStep(
         unsigned c_idx,
-        EnergyPool& energies,
-        ParticlePool& particles
+        typename EnergyPool::ViewType& energies,
+        ParticlePoolView& particles
     )
     {
         energies.data[c_idx].lambda = CONSTRAINT_ALPHA * STIFFNESS_GAMMA * energies.data[c_idx].lambda;
@@ -93,25 +93,25 @@ struct HardConstraintEnergySolver
      * @param energies : the memory pool for the energies
      * @param particles : the memory pool for the particles
      * @param local_idx : the "local" index of the particle in the energy
-     * @param particle_H : the current accumulated particle Hessian - this is updated by this function
-     * @param particle_G : the current accumulated particle gradient - this is updated by this function
+     * @param H : (output) the Hessian of the energy
+     * @param G : (output) the gradient of the energy
      * @param dt : the time step
      */
     template <int DOF>
     static void accumulate(
         unsigned e_idx,
-        const EnergyPool& energies,
-        ParticlePool& particles,
+        const typename EnergyPool::ViewType& energies,
+        ParticlePoolView& particles,
         unsigned local_idx,
-        Mat3r_or_Mat6r<DOF>& particle_H,
-        Vec3r_or_Vec6r<DOF>& particle_G,
+        MatNr<DOF>& H,
+        VecNr<DOF>& G,
         Real /* dt */
     )
     {
         std::cout << "HardconstraintEnergy accumulate! DOF=" << DOF << std::endl;
         // evaluate the constraint, gradients, and Hessians for the constraint for each particle involved
-        std::array<Vec3r_or_Vec6r<DOF>, EnergyPool::Dim> C_grad;
-        std::array<Mat3r_or_Mat6r<DOF>, EnergyPool::Dim> C_hess;       // constraint Hessian is 3rd order tensor
+        std::array<VecNr<DOF>, EnergyPool::Dim> C_grad;
+        std::array<MatNr<DOF>, EnergyPool::Dim> C_hess;       // constraint Hessian is 3rd order tensor
         Vec C_raw;
         ConstraintSolver::template constraintGradientHessian<DOF>(
             e_idx, energies, particles, local_idx, // inputs
@@ -136,7 +136,7 @@ struct HardConstraintEnergySolver
                 k_scaled[ci] = std::abs( (energies.lambda_max[ci] - lambda[ci]) / C[ci] );
 
             // gradient
-            particle_G += C_grad[ci] * lambda_p[ci];
+            G = C_grad[ci] * lambda_p[ci];
 
                 // Hessian
                 /** TODO: do diagonalization of Hessian component
@@ -147,37 +147,35 @@ struct HardConstraintEnergySolver
                  */
                 
 
-            Mat3r_or_Mat6r<DOF> hess = (k_scaled[ci] * C[ci] + lambda[ci]) * C_hess[ci] +
+            H = (k_scaled[ci] * C[ci] + lambda[ci]) * C_hess[ci] +
                 k_scaled[ci] * outerProduct(C_grad[ci], C_grad[ci]);
-
-            particle_H += hess;
         }
     }
 
     static void accumulate(
         unsigned e_idx,
-        const EnergyPool& energies,
-        ParticlePool& particles,
+        const typename EnergyPool::ViewType& energies,
+        ParticlePoolView& particles,
         unsigned local_idx,
-        Mat3r& particle_H,
-        Vec3r& particle_G,
+        Mat3r& H,
+        Vec3r& G,
         Real dt
     )
     {
-        accumulate<3>(e_idx, energies, particles, local_idx, particle_H, particle_G, dt);
+        accumulate<3>(e_idx, energies, particles, local_idx, H, G, dt);
     }
 
     static void accumulate(
         unsigned e_idx,
-        const EnergyPool& energies,
-        ParticlePool& particles,
+        const typename EnergyPool::ViewType& energies,
+        ParticlePoolView& particles,
         unsigned local_idx,
-        Mat6r& particle_H,
-        Vec6r& particle_G,
+        Mat6r& H,
+        Vec6r& G,
         Real dt
     )
     {
-        accumulate<6>(e_idx, energies, particles, local_idx, particle_H, particle_G, dt);
+        accumulate<6>(e_idx, energies, particles, local_idx, H, G, dt);
     }
 };
 

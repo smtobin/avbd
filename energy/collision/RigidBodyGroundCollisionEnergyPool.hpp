@@ -12,6 +12,7 @@ struct RigidBodyGroundCollisionEnergyPool : CollisionConstraintEnergyPool<RigidB
     static constexpr EnergyType Type = EnergyType::RIGID_BODY_GROUND_COLLISION; // type of energy in the EnergyType enum
     static constexpr StaticEnergyType StaticType = StaticEnergyType::RIGID_BODY_GROUND_COLLISION; // type of energy in the StaticEnergyType enum
     using SolverType = RigidBodyGroundCollisionEnergySolver;     // solver class type
+    using ViewType = RigidBodyGroundCollisionEnergyPoolView;     // view class type
 
     explicit RigidBodyGroundCollisionEnergyPool(unsigned capacity)
         : CollisionConstraintEnergyPool(capacity)

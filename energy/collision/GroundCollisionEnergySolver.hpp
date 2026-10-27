@@ -31,8 +31,8 @@ struct GroundCollisionConstraintSolver
         ParticlePool& particles,
         unsigned /* local_idx */,
         Real& C_n, Real& C_t, Real& C_b,
-        Vec3r_or_Vec6r<DOF>& C_grad_n, Vec3r_or_Vec6r<DOF>& C_grad_t, Vec3r_or_Vec6r<DOF>& C_grad_b,
-        Mat3r_or_Mat6r<DOF>& C_hess_n, Mat3r_or_Mat6r<DOF>& C_hess_t, Mat3r_or_Mat6r<DOF>& C_hess_b
+        VecNr<DOF>& C_grad_n, VecNr<DOF>& C_grad_t, VecNr<DOF>& C_grad_b,
+        MatNr<DOF>& C_hess_n, MatNr<DOF>& C_hess_t, MatNr<DOF>& C_hess_b
     )
     {
         unsigned p_idx = energies.data[c_idx].particle_indices[0];
@@ -56,7 +56,7 @@ struct GroundCollisionConstraintSolver
         
 
 
-        C_hess_n = C_hess_t = C_hess_b = Mat3r_or_Mat6r<DOF>::Zero();
+        C_hess_n = C_hess_t = C_hess_b = MatNr<DOF>::Zero();
     }
 };
 

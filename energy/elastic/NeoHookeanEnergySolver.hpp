@@ -20,8 +20,8 @@ struct NeoHookeanEnergySolver
     /** Energy functional */
     static Real energy(
         unsigned e_idx,
-        const NeoHookeanEnergyPool& energies,
-        ParticlePool& particles,
+        const NeoHookeanEnergyPoolView& energies,
+        ParticlePoolView& particles,
         Real dt
     )
     {
@@ -56,8 +56,8 @@ struct NeoHookeanEnergySolver
     /** Required - does nothing */
     static void updateAfterIteration(
         unsigned /* e_idx */,
-        const NeoHookeanEnergyPool& /* energies */,
-        ParticlePool& /* particles */
+        const NeoHookeanEnergyPoolView& /* energies */,
+        ParticlePoolView& /* particles */
     )
     {
 
@@ -70,8 +70,8 @@ struct NeoHookeanEnergySolver
      */
     static void updateAfterTimeStep(
         unsigned e_idx,
-        NeoHookeanEnergyPool& energies,
-        ParticlePool& particles
+        NeoHookeanEnergyPoolView& energies,
+        ParticlePoolView& particles
     )
     {
         const Vec4u& indices = energies.data[e_idx].particle_indices;
@@ -96,17 +96,17 @@ struct NeoHookeanEnergySolver
      * @param energies : the memory pool for the energies
      * @param particles : the memory pool for the particles
      * @param local_idx : the "local" index of the particle in the energy
-     * @param particle_H : the current accumulated particle Hessian - this is updated by this function
-     * @param particle_G : the current accumulated particle gradient - this is updated by this function
+     * @param H : (output) the Hessian of this energy
+     * @param G : (output) the gradient of this energy
      * @param dt : the time step
      */
     static void accumulate(
         unsigned e_idx,
-        const NeoHookeanEnergyPool& energies,
-        ParticlePool& particles,
+        const NeoHookeanEnergyPoolView& energies,
+        ParticlePoolView& particles,
         unsigned local_idx,
-        Mat3r& particle_H,
-        Vec3r& particle_G,
+        Mat3r& H,
+        Vec3r& G,
         Real dt
     )
     {
@@ -126,8 +126,6 @@ struct NeoHookeanEnergySolver
         Real kd = energies.data[e_idx].kd;
         const Mat3r& E_prev = energies.data[e_idx].E_prev;
 
-        Mat3r H;
-        Vec3r G;
         neoHookeanEnergyAccumulate(
             particles.positions[indices[0]],
             particles.positions[indices[1]],
@@ -144,9 +142,6 @@ struct NeoHookeanEnergySolver
             H,
             G
         );
-
-        particle_H += H;
-        particle_G += G;
     }
 
     struct Batch4
@@ -252,11 +247,11 @@ struct NeoHookeanEnergySolver
 
     static void accumulate4(
         unsigned e_idx[4],
-        const NeoHookeanEnergyPool& energies,
-        ParticlePool& particles,
+        const NeoHookeanEnergyPoolView& energies,
+        ParticlePoolView& particles,
         unsigned local_idx[4],
-        Mat3r& particle_H,
-        Vec3r& particle_G,
+        Mat3r& H_out,
+        Vec3r& G_out,
         Real dt
     )
     {
@@ -491,8 +486,10 @@ struct NeoHookeanEnergySolver
 
         // particle_H += (damp_mult_factor/dt) * (FFt * qi_norm2 + Fqi * Fqi.transpose());
 
-        AVX::accumulate_Vector3Packet(particle_G, G);
-        AVX::accumulate_Mat3x3Packet(particle_H, H);
+        H_out = Mat3r::Zero();
+        G_out = Vec3r::Zero();
+        AVX::accumulate_Vector3Packet(G_out, G);
+        AVX::accumulate_Mat3x3Packet(H_out, H);
     }
 
     /** Computes the Hessian and gradient for all of the particles affected by this constraint.

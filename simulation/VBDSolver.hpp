@@ -290,8 +290,8 @@ private:
 
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
-        Vec3r_or_Vec6r<DOF> grad = Vec3r_or_Vec6r<DOF>::Zero();
-        Mat3r_or_Mat6r<DOF> hess = Mat3r_or_Mat6r<DOF>::Zero();
+        VecNr<DOF> grad = VecNr<DOF>::Zero();
+        MatNr<DOF> hess = MatNr<DOF>::Zero();
 
         /** Process "static" energies */
         {

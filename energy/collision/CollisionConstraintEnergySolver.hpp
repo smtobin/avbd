@@ -16,7 +16,7 @@ struct CollisionConstraintEnergySolver
      */
     static void updateCollisionFrame(
         unsigned c_idx,
-        CollisionEnergyPool& energies,
+        typename CollisionEnergyPool::ViewType& energies,
         const Vec3r& new_normal
     )
     {
@@ -59,8 +59,8 @@ struct CollisionConstraintEnergySolver
      */
     static void updateAfterIteration(
         unsigned c_idx,
-        CollisionEnergyPool& energies,
-        ParticlePool& particles
+        typename CollisionEnergyPool::ViewType& energies,
+        ParticlePoolView& particles
     )
     {
         // evaluate the constraint
@@ -140,8 +140,8 @@ struct CollisionConstraintEnergySolver
      */
     static void updateAfterTimeStep(
         unsigned c_idx,
-        CollisionEnergyPool& energies,
-        ParticlePool& particles
+        typename CollisionEnergyPool::ViewType& energies,
+        ParticlePoolView& particles
     )
     {
         // store the current constraint violation
@@ -172,18 +172,18 @@ struct CollisionConstraintEnergySolver
      * @param energies : the memory pool for the energies
      * @param particles : the memory pool for the particles
      * @param local_idx : the "local" index of the particle in the energy
-     * @param particle_H : the current accumulated particle Hessian - this is updated by this function
-     * @param particle_G : the current accumulated particle gradient - this is updated by this function
+     * @param H : (output) the Hessian of this energy
+     * @param G : (output) the gradient of this energy
      * @param dt : the time step
      */
     template <int DOF>
     static void accumulate(
         unsigned e_idx,
-        const CollisionEnergyPool& energies,
-        ParticlePool& particles,
+        const typename CollisionEnergyPool::ViewType& energies,
+        ParticlePoolView& particles,
         unsigned local_idx,
-        Mat3r_or_Mat6r<DOF>& particle_H,
-        Vec3r_or_Vec6r<DOF>& particle_G,
+        MatNr<DOF>& H,
+        VecNr<DOF>& G,
         Real /* dt */
     )
     {
@@ -192,8 +192,8 @@ struct CollisionConstraintEnergySolver
         
         // evaluate the constraint, gradients, and Hessians for the constraint for each particle involved
         Real C_n, C_t, C_b;
-        Vec3r_or_Vec6r<DOF> C_grad_n, C_grad_t, C_grad_b;
-        Mat3r_or_Mat6r<DOF> C_hess_n, C_hess_t, C_hess_b;
+        VecNr<DOF> C_grad_n, C_grad_t, C_grad_b;
+        MatNr<DOF> C_hess_n, C_hess_t, C_hess_b;
         CollisionConstraintSolver::template constraintGradientHessian<DOF>(
             e_idx, energies, particles, local_idx, // inputs
             C_n, C_t, C_b, 
@@ -255,9 +255,9 @@ struct CollisionConstraintEnergySolver
         //     k_scaled_tb = k_scaled_tb / k_scaled_tb.norm() * std::abs(lambda_tb_max - lambda_tb.norm()) / C_tb.norm();
         // }
         // gradient
-        Vec3r_or_Vec6r<DOF> grad_n = lambda_n_plus * C_grad_n;
-        Vec3r_or_Vec6r<DOF> grad_t = lambda_tb_plus[0] * C_grad_t;
-        Vec3r_or_Vec6r<DOF> grad_b = lambda_tb_plus[1] * C_grad_b;
+        VecNr<DOF> grad_n = lambda_n_plus * C_grad_n;
+        VecNr<DOF> grad_t = lambda_tb_plus[0] * C_grad_t;
+        VecNr<DOF> grad_b = lambda_tb_plus[1] * C_grad_b;
 
         // if constexpr (std::is_same_v<CollisionEnergyPool, RigidBodyGroundCollisionEnergyPool>)
         // {
@@ -273,24 +273,24 @@ struct CollisionConstraintEnergySolver
              */
             
 
-        Mat3r_or_Mat6r<DOF> hess_n = (k_scaled_n * C_corr_n + lambda_n) * C_hess_n +
+        MatNr<DOF> hess_n = (k_scaled_n * C_corr_n + lambda_n) * C_hess_n +
             k_scaled_n * outerProduct(C_grad_n, C_grad_n);
-        Mat3r_or_Mat6r<DOF> hess_t = (k_scaled_tb[0] * C_t + lambda_t) * C_hess_t +
+        MatNr<DOF> hess_t = (k_scaled_tb[0] * C_t + lambda_t) * C_hess_t +
             k_scaled_tb[0] * outerProduct(C_grad_t, C_grad_t);
-        Mat3r_or_Mat6r<DOF> hess_b = (k_scaled_tb[1] * C_b + lambda_b) * C_hess_b +
+        MatNr<DOF> hess_b = (k_scaled_tb[1] * C_b + lambda_b) * C_hess_b +
             k_scaled_tb[1] * outerProduct(C_grad_b, C_grad_b);
 
-        particle_H += hess_n + hess_t + hess_b;
-        particle_G += grad_n + grad_t + grad_b;
+        H = hess_n + hess_t + hess_b;
+        G = grad_n + grad_t + grad_b;
     }
 
     static void accumulate(
         unsigned e_idx,
-        const CollisionEnergyPool& energies,
-        ParticlePool& particles,
+        const typename CollisionEnergyPool::ViewType& energies,
+        ParticlePoolView& particles,
         unsigned local_idx,
-        Mat6r& particle_H,
-        Vec6r& particle_G,
+        Mat6r& H,
+        Vec6r& G,
         Real dt
     )
     {

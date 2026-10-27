@@ -73,17 +73,17 @@ struct CosseratRodEnergySolver
      * @param energies : the memory pool for the energies
      * @param particles : the memory pool for the particles
      * @param local_idx : the "local" index of the particle in the energy
-     * @param particle_H : the current accumulated particle Hessian - this is updated by this function
-     * @param particle_G : the current accumulated particle gradient - this is updated by this function
+     * @param H : (output) the Hessian for this energy
+     * @param G : (output) the gradient for this energy
      * @param dt : the time step
     */
     static void accumulate(
         unsigned e_idx,
-        const CosseratRodEnergyPool& energies,
-        ParticlePool& particles,
+        const CosseratRodEnergyPoolView& energies,
+        ParticlePoolView& particles,
         unsigned local_idx,
-        Mat6r& particle_H,
-        Vec6r& particle_G,
+        Mat6r& H,
+        Vec6r& G,
         Real /* dt */
     )
     {
@@ -99,8 +99,6 @@ struct CosseratRodEnergySolver
         Real s_hat = 0.5;
         Real inv_length = 1.0/rest_length;
 
-        Mat6r H;
-        Vec6r G;
         cosseratRodEnergyAccumulate(
             p1,
             p2,
@@ -113,8 +111,6 @@ struct CosseratRodEnergySolver
             H,
             G
         );
-        particle_H += H;
-        particle_G += G;
     }
 
 

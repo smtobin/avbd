@@ -12,6 +12,7 @@ struct OneSidedFixedJointEnergyPool : HardConstraintEnergyPool<OneSidedFixedJoin
     static constexpr EnergyType Type = EnergyType::ONE_SIDED_FIXED_JOINT; // type of energy in the EnergyType enum
     static constexpr StaticEnergyType StaticType = StaticEnergyType::ONE_SIDED_FIXED_JOINT; // type of energy in the StaticEnergyType enum
     using SolverType = OneSidedFixedJointEnergySolver;     // solver class type
+    using ViewType = OneSidedFixedJointEnergyPoolView;     // view class type
 
     explicit OneSidedFixedJointEnergyPool(unsigned capacity)
         : HardConstraintEnergyPool<OneSidedFixedJointEnergyInfo, 6>(capacity, Vec6r(1e4))

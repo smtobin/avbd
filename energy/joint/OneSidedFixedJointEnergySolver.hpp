@@ -15,8 +15,8 @@ struct OneSidedFixedJointConstraintSolver
 
     static Vec6r evaluateConstraint(
         unsigned c_idx,
-        const OneSidedFixedJointEnergyPool& energies,
-        ParticlePool& particles
+        const OneSidedFixedJointEnergyPoolView& energies,
+        ParticlePoolView& particles
     )
     {
         const OneSidedFixedJointEnergyInfo& info = energies.data[c_idx];
@@ -36,8 +36,8 @@ struct OneSidedFixedJointConstraintSolver
     template <int>
     static void constraintGradientHessian(
         unsigned c_idx,
-        const OneSidedFixedJointEnergyPool& energies,
-        ParticlePool& particles,
+        const OneSidedFixedJointEnergyPoolView& energies,
+        ParticlePoolView& particles,
         unsigned /* local_idx */,
         Vec6r& C,
         std::array<Vec6r, 6>& C_grad,

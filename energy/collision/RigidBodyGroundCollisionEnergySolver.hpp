@@ -10,11 +10,12 @@ struct RigidBodyGroundCollisionConstraintSolver
 {
     /** Public typedefs */
     using PoolType = RigidBodyGroundCollisionEnergyPool;
+    using PoolViewType = RigidBodyGroundCollisionEnergyPool::ViewType;
     
     static void evaluateConstraint(
         unsigned c_idx,
-        const PoolType& energies,
-        ParticlePool& particles,
+        const PoolViewType& energies,
+        ParticlePoolView& particles,
         Real& C_n, Real& C_t, Real& C_b
     )
     {
@@ -56,8 +57,8 @@ struct RigidBodyGroundCollisionConstraintSolver
     template <int>
     static void constraintGradientHessian(
         unsigned c_idx,
-        const PoolType& energies,
-        ParticlePool& particles,
+        const PoolViewType& energies,
+        ParticlePoolView& particles,
         unsigned /* local_idx */,
         Real& C_n, Real& C_t, Real& C_b,
         Vec6r& C_grad_n, Vec6r& C_grad_t, Vec6r& C_grad_b,
@@ -160,8 +161,8 @@ struct RigidBodyGroundCollisionEnergySolver
      */
     static void updateContactPoints(
         unsigned c_idx,
-        RigidBodyGroundCollisionEnergyPool& energies,
-        ParticlePool& particles
+        RigidBodyGroundCollisionEnergyPoolView& energies,
+        ParticlePoolView& particles
     )
     {
         // update the contact point
