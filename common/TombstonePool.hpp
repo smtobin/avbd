@@ -16,8 +16,10 @@ struct TombstonePool
     
     std::vector<uint8_t> active;   // whether elements are valid
     unsigned capacity;          // total capacity (allocated memory)
-    unsigned count;             // current number of active elements
-    unsigned highest_index;     // highest active index
+    // unsigned count;             // current number of active elements
+    // unsigned highest_index;     // highest active index
+
+    PoolCounters counters;
 
     /** Empty slot management as a stack */
     std::vector<unsigned> slots;    // stack of empty slots in the pool
@@ -32,8 +34,9 @@ struct TombstonePool
     explicit TombstonePool(unsigned capacity)
         : active(capacity, false)
         , capacity(capacity)
-        , count(0)
-        , highest_index(0)
+        // , count(0)
+        // , highest_index(0)
+        , counters({capacity, 0, 0, 0, -1})
         , slots(capacity)
         , top(0)
         , generation(capacity)
@@ -59,6 +62,7 @@ struct TombstonePool
         v.active = active.data();
         v.generation = generation.data();
         v.free_list = slots.data();
+        v.counters = &counters;
 
         v.capacity = capacity;
     }
@@ -81,8 +85,8 @@ struct TombstonePool
         unsigned slot = slots[idx];
         active[slot] = true;
         generation[slot]++;
-        count++;
-        highest_index = std::max(highest_index, slot);
+        counters.active_count++;
+        counters.highest_index = std::max(counters.highest_index, slot);
 
         // std::cout << "Alloc slot..." << std::endl;
         // std::cout << "  New highest index: " << highest_index << std::endl;
@@ -103,17 +107,17 @@ struct TombstonePool
         }
 
         // update highest index if the slot being freed is the highest index
-        if (slot == highest_index)
+        if (slot == counters.highest_index)
         {
-            while (highest_index > 0 &&
-                !active[highest_index])
+            while (counters.highest_index > 0 &&
+                !active[counters.highest_index])
             {
-                --highest_index;
+                --counters.highest_index;
             }
         }
 
         active[slot] = false;
-        count--;
+        counters.active_count--;
 
         int idx = top.fetch_sub(1) - 1;
         slots[idx] = slot;
@@ -189,7 +193,7 @@ struct TombstonePool
 
     iterator end() const
     {
-        return iterator(this, highest_index + 1);
+        return iterator(this, counters.highest_index + 1);
     }
 };
 

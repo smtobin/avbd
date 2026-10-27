@@ -8,6 +8,8 @@
 #include "energy/collision/TriangleRodCollisionEnergyPool.hpp"
 #include "energy/joint/OneSidedFixedJointEnergyPool.hpp"
 
+#include "energy/EnergyRegistryView.hpp"
+
 namespace Energy
 {
 
@@ -38,6 +40,27 @@ struct EnergyRegistry
         , triangle_rod_collision(capacity)
         , one_sided_fixed_joint(capacity)
     {}
+
+    /** Return a non-owning view into the energy registry */
+    EnergyRegistryView view() const
+    {
+        EnergyRegistryView v;
+
+        // elastic
+        v.neo_hookean = neo_hookean.view();
+        v.cosserat_rod = cosserat_rod.view();
+
+        // collision
+        v.ground_collision = ground_collision.view();
+        v.rigid_body_ground_collision = rigid_body_ground_collision.view();
+        v.triangle_rigid_collision = triangle_rigid_collision.view();
+        v.triangle_rod_collision = triangle_rod_collision.view();
+
+        // joints
+        v.one_sided_fixed_joint = one_sided_fixed_joint.view();
+
+        return v;
+    }
 
     /** Statically-typed getter for a specific energy type */
     template<EnergyType E>

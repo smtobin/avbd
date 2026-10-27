@@ -20,6 +20,7 @@ struct TriangleRigidCollisionEnergyInfo : CollisionConstraintEnergyInfo
 /** A non-owning view into the triangle-rigid collision energy storage */
 struct TriangleRigidCollisionEnergyPoolView : CollisionConstraintEnergyPoolView<TriangleRigidCollisionEnergyInfo>
 {
+    using PoolType = TriangleRigidCollisionEnergyPool;
 };
 
 } // namespace Energy

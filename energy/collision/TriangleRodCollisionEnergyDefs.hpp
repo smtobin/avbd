@@ -19,6 +19,7 @@ struct TriangleRodCollisionEnergyInfo : CollisionConstraintEnergyInfo
 /** A non-owning view into the triangle-rod collision energy storage */
 struct TriangleRodCollisionEnergyPoolView : CollisionConstraintEnergyPoolView<TriangleRodCollisionEnergyInfo>
 {
+    using PoolType = TriangleRodCollisionEnergyPool;
 };
 
 } // namespace Energy

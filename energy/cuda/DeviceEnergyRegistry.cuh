@@ -1,6 +1,7 @@
 #pragma once
 
 #include "energy/EnergyRegistry.hpp"
+#include "energy/EnergyRegistryView.hpp"
 #include "energy/cuda/DeviceNeoHookeanEnergyPool.cuh"
 #include "energy/cuda/DeviceCosseratRodEnergyPool.cuh"
 #include "energy/cuda/DeviceGroundCollisionEnergyPool.cuh"
@@ -37,6 +38,27 @@ struct DeviceEnergyRegistry
         , one_sided_fixed_joint(capacity)
     {}
 
+    /** Return a non-owning view into the energy registry */
+    EnergyRegistryView view() const
+    {
+        EnergyRegistryView v;
+
+        // elastic
+        v.neo_hookean = neo_hookean.view();
+        v.cosserat_rod = cosserat_rod.view();
+
+        // collision
+        v.ground_collision = ground_collision.view();
+        v.rigid_body_ground_collision = rigid_body_ground_collision.view();
+        // v.triangle_rigid_collision = triangle_rigid_collision.view();
+        // v.triangle_rod_collision = triangle_rod_collision.view();
+
+        // joints
+        v.one_sided_fixed_joint = one_sided_fixed_joint.view();
+
+        return v;
+    }
+
     void upload(const EnergyRegistry& src)
     {
         neo_hookean.upload(src.neo_hookean);
@@ -58,10 +80,10 @@ struct DeviceEnergyRegistry
             return ground_collision;
         else if constexpr (E == EnergyType::RIGID_BODY_GROUND_COLLISION)
             return rigid_body_ground_collision;
-        else if constexpr (E == EnergyType::TRIANGLE_RIGID_COLLISION)
-            return triangle_rigid_collision;
-        else if constexpr (E == EnergyType::TRIANGLE_ROD_COLLISION)
-            return triangle_rod_collision;
+        // else if constexpr (E == EnergyType::TRIANGLE_RIGID_COLLISION)
+        //     return triangle_rigid_collision;
+        // else if constexpr (E == EnergyType::TRIANGLE_ROD_COLLISION)
+        //     return triangle_rod_collision;
         else if constexpr (E == EnergyType::ONE_SIDED_FIXED_JOINT)
             return one_sided_fixed_joint;
     }

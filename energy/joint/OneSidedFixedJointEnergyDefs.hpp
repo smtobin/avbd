@@ -22,6 +22,7 @@ struct OneSidedFixedJointEnergyInfo : HardConstraintEnergyInfo<6>
 /** A non-owning view into the one-sided fixed joint energy storage. */
 struct OneSidedFixedJointEnergyPoolView : HardConstraintEnergyPoolView<OneSidedFixedJointEnergyInfo>
 {
+    using PoolType = OneSidedFixedJointEnergyPool;
 };
 
 } // namespace Energy

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/ParticlePoolView.hpp"
 #include "common/TombstonePool.hpp"
 
 /** Extra information required for oriented particles */
@@ -31,6 +32,23 @@ struct RotationPool : TombstonePool
         , previous_angular_velocities(capacity)
         , rotational_inertias(capacity)
     {
+    }
+
+    /** Returns a non-owning view into the rotation pool */
+    RotationPoolView view() const
+    {
+        RotationPoolView v;
+        TombstonePool::view(v);
+        v.rotations = rotations.data();
+        v.buffered_rotations = buffered_rotations.data();
+        v.inertial_rotations = inertial_rotations.data();
+        v.previous_rotations = previous_rotations.data();
+        v.last_iter_rotations = last_iter_rotations.data();
+        v.last_last_iter_rotations = last_last_iter_rotations.data();
+        v.angular_velocities = angular_velocities.data();
+        v.previous_angular_velocities = previous_angular_velocities.data();
+        v.rotational_inertias = rotational_inertias.data();
+        return v;
     }
 
     /** Adds new rotational information to the pool. */
@@ -108,6 +126,26 @@ struct ParticlePool : TombstonePool
         , rotation_pool(oriented_capacity)
     {
 
+    }
+
+    /** Returns a non-owning view into the particle pool */
+    ParticlePoolView view() const
+    {
+        ParticlePoolView v;
+        TombstonePool::view(v);
+        v.positions = positions.data();
+        v.buffered_positions = buffered_positions.data();
+        v.inertial_positions = inertial_positions.data();
+        v.previous_positions = previous_positions.data();
+        v.last_iter_positions = last_iter_positions.data();
+        v.last_last_iter_positions = last_last_iter_positions.data();
+        v.velocities = velocities.data();
+        v.previous_velocities = previous_velocities.data();
+        v.masses = masses.data();
+        v.fixed = fixed.data();
+        v.rotation_idx = rotation_idx.data();
+        v.rotation_pool_view = rotation_pool.view();
+        return v;
     }
 
     /** Queries if particle is oriented or not

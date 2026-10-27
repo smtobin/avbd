@@ -20,6 +20,7 @@ struct RigidBodyGroundCollisionEnergyInfo : CollisionConstraintEnergyInfo
 /** A non-owning view into the rigid body ground collision energy storage. */
 struct RigidBodyGroundCollisionEnergyPoolView : CollisionConstraintEnergyPoolView<RigidBodyGroundCollisionEnergyInfo>
 {
+    using PoolType = RigidBodyGroundCollisionEnergyPool;
 };
 
 } // namespace Energy

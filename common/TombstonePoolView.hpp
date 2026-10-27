@@ -11,6 +11,9 @@ struct PoolCounters
     unsigned high_water;        // slots [0, high_water) have been used at some point
     unsigned active_count;      // number of live elements
     unsigned error;             // sticky flags - host will check and clear at frame boundaries
+
+    int highest_index;          // adding this for synergy with CPU TombstonePool
+    /** TODO: (10/27/26) Reconcile this difference and align CPU and GPU versions of TombstonePool. */
 };
 
 ////////////////////////////////////////////////////////////////////

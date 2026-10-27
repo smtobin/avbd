@@ -57,4 +57,11 @@ struct alignas(64) WorkerThreadContext
     {
         return computeStartEnd(pool.totalSize());
     }
+
+    /** Compute start and end indices for worker thread when iterating over a TombstonePoolView. */
+    std::pair<unsigned, unsigned> computeStartEnd(const TombstonePoolView& view) const
+    {
+        /** TODO: (10/27/26) Resolve the discrepancy between high_water and highest_index! */
+        return computeStartEnd(view.counters->highest_index+1);
+    }
 };

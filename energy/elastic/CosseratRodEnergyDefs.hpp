@@ -20,6 +20,8 @@ struct CosseratRodEnergyInfo
 /** Non-owning view into Cosserat energy pool */
 struct CosseratRodEnergyPoolView
 {
+    using PoolType = CosseratRodEnergyPool;
+    
     CosseratRodEnergyInfo* data;
 };
 

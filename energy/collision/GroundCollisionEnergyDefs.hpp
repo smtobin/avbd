@@ -18,6 +18,7 @@ struct GroundCollisionEnergyInfo : CollisionConstraintEnergyInfo
 /** A non-owning view into ground collision energy storage */
 struct GroundCollisionEnergyPoolView : CollisionConstraintEnergyPoolView<GroundCollisionEnergyInfo>
 {
+    using PoolType = GroundCollisionEnergyPool;
 };
 
 } // namespace Energy

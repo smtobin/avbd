@@ -24,6 +24,8 @@ struct NeoHookeanEnergyInfo
 /** A non-owning view into NeoHookean energy storage */
 struct NeoHookeanEnergyPoolView : TombstonePoolView
 {
+    using PoolType = NeoHookeanEnergyPool;
+
     NeoHookeanEnergyInfo* data;
 };
 

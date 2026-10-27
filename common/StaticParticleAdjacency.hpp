@@ -41,7 +41,7 @@ struct StaticParticleAdjacency {
     /** Build vertex-energy adjacency and vertex-vertex adjacency. */
     void buildAdjacency(const ParticlePool& particle_pool, const Energy::EnergyRegistry& energy_registry)
     {
-        unsigned num_particles = particle_pool.highest_index + 1;
+        unsigned num_particles = particle_pool.counters.highest_index + 1;
         e_valences.resize(num_particles);
         e_valences.assign(num_particles, {});
 

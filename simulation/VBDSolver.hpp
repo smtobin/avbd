@@ -23,7 +23,16 @@ class VBDSolver
 {
 private:
     /** Simulation context */
-    SimulationContext* _ctx;  
+    SimulationContext* _ctx;
+    
+    /** TODO: (10/27/26) Probably replace these with SimulationContextView which owns both of these.
+     * We will see if this is needed on the GPU and transition the CPU code accordingly.
+     */
+    /** View into the energy registry (so we don't have to recreate it each frame) */
+    Energy::EnergyRegistryView _energy_view;
+
+    /** View into the particle pool (so we don't ahve to recreate it each frame) */
+    ParticlePoolView _particle_view;
 
     /** Number of solver iterations per time step */
     unsigned _solver_iters;
@@ -36,6 +45,8 @@ public:
 
     VBDSolver(SimulationContext* ctx, unsigned solver_iters, Real iter_acceleration)
         : _ctx(ctx)
+        , _energy_view(ctx->energies.view())
+        , _particle_view(ctx->particles.view())
         , _solver_iters(solver_iters)
         , _iter_acceleration(iter_acceleration)
     {
@@ -52,8 +63,8 @@ public:
         Real dt = _ctx->params.dt;
 
         // update all energies after time step
-        _ctx->energies.forEachEnergyType([&] (auto& pool) {
-            _updateRangeAfterTimeStep(w_ctx, pool, _ctx->particles);
+        _energy_view.forEachEnergyType([&] (auto& view) {
+            _updateRangeAfterTimeStep(w_ctx, view, _particle_view);
             w_ctx.barrier->arrive_and_wait();
         });
 
@@ -92,8 +103,8 @@ public:
             w_ctx.barrier->arrive_and_wait();
 
             // update Lagrange multipliers
-            _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
-                _updateRangeAfterIteration(w_ctx, pool, _ctx->particles);
+            _energy_view.forEachHardConstraintEnergyType([&] (auto& view) {
+                _updateRangeAfterIteration(w_ctx, view, _particle_view);
                 w_ctx.barrier->arrive_and_wait();
             });
         }
@@ -130,33 +141,33 @@ public:
         }
     }
 
-    template <typename EnergyPool>
-    void _updateRangeAfterTimeStep(WorkerThreadContext& w_ctx, EnergyPool& pool, ParticlePool& particles)
+    template <typename EnergyPoolView>
+    void _updateRangeAfterTimeStep(WorkerThreadContext& w_ctx, EnergyPoolView& view, ParticlePoolView& particles)
     {
-        auto [start, end] = w_ctx.computeStartEnd(pool);
+        auto [start, end] = w_ctx.computeStartEnd(view);
         for (unsigned e_idx = start; e_idx < end; e_idx++)
         {
             if (pool.active[e_idx])
             {
-                if constexpr (Energy::HasUpdateContactPoints<typename EnergyPool::SolverType>)
+                if constexpr (Energy::HasUpdateContactPoints<typename EnergyPoolView::PoolType::SolverType>)
                 {
-                    EnergyPool::SolverType::updateContactPoints(e_idx, pool, particles);
+                    EnergyPool::SolverType::updateContactPoints(e_idx, view, particles);
                 }
                     
-                EnergyPool::SolverType::updateAfterTimeStep(e_idx, pool, particles);
+                EnergyPool::SolverType::updateAfterTimeStep(e_idx, view, particles);
                 
             }
         }
     }
 
-    template <typename EnergyPool>
-    void _updateRangeAfterIteration(WorkerThreadContext& w_ctx, EnergyPool& pool, ParticlePool& particles)
+    template <typename EnergyPoolView>
+    void _updateRangeAfterIteration(WorkerThreadContext& w_ctx, EnergyPoolView& view, ParticlePoolView& particles)
     {
-        auto [start, end] = w_ctx.computeStartEnd(pool);
+        auto [start, end] = w_ctx.computeStartEnd(view);
         for (unsigned e_idx = start; e_idx < end; e_idx++)
         {
             if (pool.active[e_idx])
-                EnergyPool::SolverType::updateAfterIteration(e_idx, pool, particles);
+                EnergyPoolView::PoolType::SolverType::updateAfterIteration(e_idx, view, particles);
         }
     }
 
@@ -290,6 +301,9 @@ private:
 
         // std::cout << "\n=== Particle " << p_idx << " solve" << std::endl;
 
+        /** TODO: (10/27/26) Don't regenerate this every step. Pull it from SimulationContextView (when that exists). */
+        ParticlePoolView particle_view = _ctx->particles.view();
+
         VecNr<DOF> grad = VecNr<DOF>::Zero();
         MatNr<DOF> hess = MatNr<DOF>::Zero();
 
@@ -310,6 +324,11 @@ private:
 
                 using Solver = SolverFor<E>::type;
                 const auto& energy_pool = _ctx->energies.template get<E>();
+                
+                /** TODO: (10/27/26) Rather than recreating the view every time, have a SimulationContextView class that ultimately gets used everywhere.
+                 * The energy pool views will just be a part of this, therefore not needing to recreate the energy pool views each time.
+                 */
+                auto view = energy_pool.view();
 
                 // if solver has AVX accumulate4 implemented, use that
                 // note: currently this is only implemented for homogenous 3-DOF energies (such as the Neo-Hookean tet energy)
@@ -332,8 +351,8 @@ private:
                             entry4.local_vertex_idx};
                         Solver::accumulate4(
                             e_idx,
-                            energy_pool,
-                            _ctx->particles,
+                            view,
+                            particle_view,
                             l_idx,
                             hess,
                             grad,
@@ -347,8 +366,8 @@ private:
                         const StaticParticleAdjacency::Entry& entry = _ctx->static_adjacency.e_entries[e_adj];
                         Solver::accumulate(
                             entry.energy_idx,
-                            energy_pool,
-                            _ctx->particles,
+                            view,
+                            particle_view,
                             entry.local_vertex_idx,
                             hess,
                             grad,
@@ -369,8 +388,8 @@ private:
                         {
                             Solver::template accumulate<DOF>(
                                 entry.energy_idx,
-                                energy_pool,
-                                _ctx->particles,
+                                view,
+                                particle_view,
                                 entry.local_vertex_idx,
                                 hess,
                                 grad,
@@ -382,8 +401,8 @@ private:
                         {
                             Solver::accumulate(
                                 entry.energy_idx,
-                                energy_pool,
-                                _ctx->particles,
+                                view,
+                                particle_view,
                                 entry.local_vertex_idx,
                                 hess,
                                 grad,
@@ -413,6 +432,12 @@ private:
 
                 using Solver = SolverFor<E>::type;
                 const auto& energy_pool = _ctx->energies.template get<E>();
+
+                /** TODO: (10/27/26) Rather than recreating the view every time, have a SimulationContextView class that ultimately gets used everywhere.
+                 * The energy pool views will just be a part of this, therefore not needing to recreate the energy pool views each time.
+                 */
+                auto view = energy_pool.view();
+
                 // dynamic constraints always 1-by-1 computation
                 for (; e_adj < final_e_adj; e_adj++)
                 {
@@ -421,8 +446,8 @@ private:
                     {
                         Solver::template accumulate<DOF>(
                             entry.energy_idx,
-                            energy_pool,
-                            _ctx->particles,
+                            view,
+                            particle_view,
                             entry.local_vertex_idx,
                             hess,
                             grad,
@@ -433,8 +458,8 @@ private:
                     {
                         Solver::accumulate(
                             entry.energy_idx,
-                            energy_pool,
-                            _ctx->particles,
+                            view,
+                            particle_view,
                             entry.local_vertex_idx,
                             hess,
                             grad,
