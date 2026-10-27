@@ -13,8 +13,8 @@ struct TriangleRodCollisionConstraintSolver
 
     static void evaluateConstraint(
         unsigned c_idx,
-        const TriangleRodCollisionEnergyPool& energies,
-        ParticlePool& particles,
+        const TriangleRodCollisionEnergyPoolView& energies,
+        ParticlePoolView& particles,
         Real& C_n, Real& C_t, Real& C_b
     )
     {
@@ -51,8 +51,8 @@ struct TriangleRodCollisionConstraintSolver
     template <int DOF>
     static void constraintGradientHessian(
         unsigned c_idx,
-        const TriangleRodCollisionEnergyPool& energies,
-        ParticlePool& particles,
+        const TriangleRodCollisionEnergyPoolView& energies,
+        ParticlePoolView& particles,
         unsigned local_idx,
         Real& C_n, Real& C_t, Real& C_b,
         VecNr<DOF>& C_grad_n, VecNr<DOF>& C_grad_t, VecNr<DOF>& C_grad_b,

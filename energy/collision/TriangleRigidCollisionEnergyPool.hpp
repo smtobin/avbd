@@ -1,19 +1,11 @@
 #pragma once
 
-// #include "energy/HardConstraintEnergyPool.hpp"
 #include "energy/collision/CollisionConstraintEnergyPool.hpp"
+#include "energy/collision/TriangleRigidCollisionEnergyDefs.hpp"
 #include "collision/SDF.hpp"
 
 namespace Energy
 {
-
-struct TriangleRigidCollisionEnergyInfo : CollisionConstraintEnergyInfo
-{
-    Vec4u particle_indices;     // particle indices - first 3 indices are the triangle vertices, last index is the rigid body
-    Collision::CollisionShapeParams* sdf_params;  // pointer to SDF parameters - will be used to reevaluate the constraint
-    Vec3r barys;    // barycentric coordinates of the contact point on the face
-    Vec3r cp_rb_local;  // contact point on the rigid body, in the rigid body's local frame
-};
 
 struct TriangleRigidCollisionEnergyPool : CollisionConstraintEnergyPool<TriangleRigidCollisionEnergyInfo>
 {
