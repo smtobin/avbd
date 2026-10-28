@@ -1,4 +1,5 @@
 #include "simulation/cuda/DeviceVBDSolver.cuh"
+#include "common/EnergyUtils.hpp"
 
 namespace Sim
 {
@@ -7,6 +8,36 @@ namespace
 {
 
 // Kernel definitions private to this implementation file.
+
+template <typename PoolView>
+__global__ void updateAfterTimeStepKernel(PoolView view, ParticlePoolView particles)
+{
+    unsigned e_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (e_idx >= view.counters->highest_index+1)
+        return;
+
+    if (!view.active[e_idx])
+        return;
+
+    if constexpr (Energy::HasUpdateContactPoints<typename EnergyPoolView::PoolType::SolverType>)
+    {
+        EnergyPoolView::PoolType::SolverType::updateContactPoints(e_idx, view, particles);
+    }
+    PoolView::PoolType::SolverType::updateAfterTimeStep(e_idx, view, particles);
+}
+
+template <typename PoolView>
+__global__ void updateAfterIterationKernel(PoolView view, ParticlePoolView particles)
+{
+    unsigned e_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (e_idx >= view.counters->highest_index+1)
+        return;
+
+    if (!view.active[e_idx])
+        return;
+
+    EnergyPoolView::PoolType::SolverType::updateAfterIteration(e_idx, view, particles);
+}
 
 __global__ void particleInertialUpdateKernel(DeviceParticlePoolView v, unsigned count, Vec3r a_ext, Real dt)
 {
@@ -145,23 +176,30 @@ __global__ void particleVelocityUpdateKernel(DeviceParticlePoolView v, unsigned 
     }
 }
 
-/** WARNING: Copied from Claude */
-__global__ void solveColorKernel(SolverCtx ctx, const unsigned* __restrict__ color_particles,
-                                 unsigned n, Real dt)
+__global__ void solveColorKernel(
+    SimulationContextView ctx,
+    unsigned c_idx,
+    Real dt
+)
 {
+    const unsigned color_start = ctx.coloring.color_offsets[c_idx];
+
     const unsigned warp = (blockIdx.x * blockDim.x + threadIdx.x) >> 5;
     const unsigned lane = threadIdx.x & 31;
     if (warp >= n) return;                    // warp-uniform, safe
-    const unsigned p = color_particles[warp];
+    const unsigned p = ctx.coloring.work_list[color_start + warp];
     if (ctx.particles.fixed[p]) return;       // also warp-uniform, safe
 
     if (ctx.particles.isOriented(p))
     {
         Vec6r grad = Vec6r::Zero();
         Mat6r hess = Mat6r::Zero();
-
         accumulateStatic<6>(ctx, p, lane, hess, grad, dt);
         // accumulateDynamic<6>()
+
+        warpReduceSym<6>(hess, grad);
+        if (lane == 0)
+            assembleSolveWriteOriented(ctx, p, hess, grad, dt);
     }
     else
     {
@@ -172,22 +210,24 @@ __global__ void solveColorKernel(SolverCtx ctx, const unsigned* __restrict__ col
 
         warpReduceSym<3>(hess, grad);           // every lane now holds the totals
         if (lane == 0)
-            assembleSolveWrite<3>(ctx, p, hess, grad, dt);   // your existing tail
+            assembleSolveWrite(ctx, p, hess, grad, dt);   // your existing tail
     }
-
-    /** TODO: (10/26/26) write/understand this function */
-    
-
     
 }
 
-/** WARNING: Copied from Claude */
 template<int DOF>
-__device__ void accumulateStatic(const SolverCtx& ctx, unsigned p, unsigned lane,
-                                 Mat<DOF>& hess, Vec<DOF>& grad, Real dt)
+__device__ void accumulateStatic(
+    const SimulationContextView& ctx,
+    unsigned p,
+    unsigned lane,
+    MatNr<DOF>& hess,
+    VecNr<DOF>& grad,
+    Real dt
+)
 {
     const auto& offs = ctx.static_adjacency.e_offsets[p];
     const unsigned adj_end = ctx.static_adjacency.e_offsets[p+1][0];
+    unsigned num_energies = static_cast<unsigned>(StaticEnergyType::count);
 
     Energy::ForEachStaticEnergy([&]<StaticEnergyType E>() {
         constexpr unsigned t = static_cast<unsigned>(E);
@@ -195,17 +235,127 @@ __device__ void accumulateStatic(const SolverCtx& ctx, unsigned p, unsigned lane
         if constexpr ((DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional))
         {
             const unsigned begin = offs[t];
-            const unsigned end   = (t + 1 == kNumStatic) ? adj_end : offs[t + 1];
-            const auto& pool = ctx.energies.template get<E>();
+            const unsigned end   = (t + 1 == num_energies) ? adj_end : offs[t + 1];
+            const auto& pool_view = ctx.energies.template get<E>();
 
             for (unsigned e = begin + lane; e < end; e += 32)
             {
                 const auto& entry = ctx.static_adjacency.e_entries[e];
-                Solver::template accumulate<DOF>(entry.energy_idx, pool, ctx.particles,
+                Solver::template accumulate<DOF>(entry.energy_idx, pool_view, ctx.particles,
                                                  entry.local_vertex_idx, hess, grad, dt);
             }
         }
     });
+}
+
+__device__ void assembleSolveWrite(
+    const SimulationContextView& ctx,
+    unsigned p, 
+    const Mat3r& hess, 
+    const Vec3r& grad, 
+    Real dt
+)
+{
+    Real mass = _ctx->particles.masses[p_idx];
+    const Vec3r& p = _ctx->particles.positions[p_idx];
+    const Vec3r& y = _ctx->particles.inertial_positions[p_idx];
+
+    Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
+    Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
+
+    
+
+    Vec3r dx = Vec3r::Zero();
+    bool success = LHS.solve(RHS, dx);
+    if (!success)
+        throw std::runtime_error("Failed to solve 3x3 particle system!");
+        
+    // std::cout << "Particle " << p_idx << ": " << "\n  LHS:\n" << LHS << "\n  RHS: " << RHS.transpose() << "\n  dx: " << dx.transpose() << std::endl;
+    // Vec3r dx = LHS.inverse() * RHS;
+
+    // std::cout << "dx: " << dx.transpose() << std::endl;
+
+    // if this particle has an intra-color conflict, buffer its update
+    if (_ctx->coloring.is_conflicted[p_idx])
+        _ctx->particles.buffered_positions[p_idx] = _ctx->particles.positions[p_idx] + dx;
+    // otherwise handle it normally
+    else
+        _ctx->particles.positions[p_idx] += dx;
+}
+
+__device__ void assembleSolveWriteOriented(
+    const SolverCtx& ctx,
+    unsigned p,
+    const Mat6r& hess,
+    const Vec3r& grad,
+    Real dt
+)
+{
+    // extract quantities from pool
+    Real mass = _ctx->particles.masses[p_idx];
+    const Vec3r& I = _ctx->particles.rotationalInertia(p_idx);
+    Vec3r& p = _ctx->particles.positions[p_idx];
+    const Vec3r& p_inertial = _ctx->particles.inertial_positions[p_idx];
+    Quaternion& q = _ctx->particles.rotation(p_idx);
+    const Quaternion& q_inertial = _ctx->particles.inertialRotation(p_idx);
+
+    // form RHS
+    Vec6r RHS;
+    RHS.head<3>() = -1/(dt*dt) * mass * (p - p_inertial);
+    RHS.tail<3>() = -1/(dt*dt) * I.cwiseProduct( Math::Minus_S3(q, q_inertial) );
+    RHS -= grad;
+
+    // form LHS
+    Mat6r LHS = Mat6r::Zero();
+    Vec3r diag1( mass / (dt*dt) );
+    LHS(0,0) = diag1[0]; LHS(1,1) = diag1[1]; LHS(2,2) = diag1[2];
+    Vec3r diag2 = I / (dt*dt);
+    LHS(3,3) = diag2[0]; LHS(4,4) = diag2[1]; LHS(5,5) = diag2[2];
+    LHS += hess;
+
+    Vec6r dx = Vec6r::Zero();
+    bool success = LHS.solve(RHS, dx);
+    if (!success)
+        throw std::runtime_error("Failed to solve 6x6 particle system!");
+
+    Vec3r dp = dx.head<3>();
+    Vec3r dq = dx.tail<3>();
+
+    // if this particle has an intra-color conflict, buffer its update
+    if (_ctx->coloring.is_conflicted[p_idx])
+    {
+        _ctx->particles.buffered_positions[p_idx] = p + dp;
+        _ctx->particles.bufferedRotation(p_idx) = Math::Plus_S3(q, dq);
+    }
+    // otherwise update normally
+    else
+    {
+        p += dp;
+        q = Math::Plus_S3(q, dq);
+    }
+}
+
+template<typename T>
+__device__ __forceinline__ T warpSum(T v) {
+    #pragma unroll
+    for (int o = 16; o > 0; o >>= 1)
+        v += __shfl_xor_sync(0xffffffffu, v, o);
+    return v;
+}
+
+template<int DOF>
+__device__ __forceinline__ void warpReduceSym(MatNr<DOF>& H, VecNr<DOF>& g)
+{
+    #pragma unroll
+    for (int i = 0; i < DOF; ++i) {
+        #pragma unroll
+        for (int j = i; j < DOF; ++j) H(i, j) = warpSum(H(i, j));
+        g[i] = warpSum(g[i]);
+    }
+    #pragma unroll
+    for (int i = 0; i < DOF; ++i)
+        #pragma unroll
+        for (int j = 0; j < i; ++j) H(i, j) = H(j, i);
 }
 
 } // anonymous namespace
@@ -214,7 +364,8 @@ DeviceVBDSolver::DeviceVBDSolver(
     DeviceSimulationContext* ctx,
     unsigned solver_iters,
     Real iter_acceleration)
-    : _ctx(ctx)
+    : _ctx(ctx.view())
+    , _params(&ctx.params)
     , _solver_iters(solver_iters)
     , _iter_acceleration(iter_acceleration)
 {
@@ -222,14 +373,21 @@ DeviceVBDSolver::DeviceVBDSolver(
 
 void DeviceVBDSolver::solve()
 {
+    int num_particles = _ctx.particles.counters->highest_index + 1;
+
     // update all energies after time step
-    _ctx->energies.forEachEnergyType([&] (auto& pool) {
-        // updateAfterTimeStep
+    _ctx->energies.forEachEnergyType([&] (auto& view) {
+        int threads = 256;
+        /** TODO: (10/28/26) for now, using the pool capacity as upper bound on energies */
+        int e_blocks = (view.capacity + threads - 1) / threads;
+        updateAfterTimeStepKernel<<<e_blocks, threads>>>(view, _ctx.particles);
     });
     
     
     // compute inertial update and initialization for each particle
-    // particleInertialUpdate
+    int threads = 256;
+    int p_blocks = (num_particles + threads - 1) / threads;
+    particleInertialUpdateKernel<<<p_blocks, threads>>>(_ctx.particles, num_particles, Vec3r(0,-9.81,0), _params->dt);
 
     // solve each individual vertex block
     Real omega = 1;
@@ -244,22 +402,26 @@ void DeviceVBDSolver::solve()
 
         // iterate through colors and parallelize within the color
         /** TODO: (10/23/26) num_colors currently lives on the device. Move it to host?  */
-        for (unsigned c = 0; c < _ctx->coloring.num_colors; c++)
+        for (unsigned c = 0; c < _ctx->num_colors; c++)
         {
-            // solveParticleRangeinColor
+            /** TODO: (10/28/26) for now, using upper bound on particles in this color */
+            solveColorKernel<<<p_blocks, threads>>>(_ctx, c, _params->dt);
         }
 
         // Chebyshev acceleration
-        // particleChebyshevAcceleration
+        particleChebyshevAccelerationKernel<<<p_blocks, threads>>>(_ctx.particles, num_particles, omega);
 
         // update Lagrange multipliers
-        _ctx->energies.forEachHardConstraintEnergyType([&] (auto& pool) {
-            // updateAfterIteration
+        _ctx->energies.forEachHardConstraintEnergyType([&] (auto& view) {
+            int threads = 256;
+            /** TODO: (10/28/26) for now, using the pool capacity as upper bound on energies */
+            int e_blocks = (view.capacity + threads - 1) / threads;
+            updateAfterIterationKernel<<<e_blocks, threads>>>(view, _ctx.particles);
         });
     }
 
     // velocity update
-    // particleVelocityUpdate
+    particleVelocityUpdateKernel<<<p_blocks, threads>>>(_ctx.particles, num_particles, _params->dt);
 }
 
 } // namespace Sim

@@ -8,8 +8,11 @@ namespace Sim
 class DeviceVBDSolver
 {
 private:
-    /** Device simulation context */
-    DeviceSimulationContext* _ctx;
+    /** View of the device simulation context */
+    SimulationContextView* _ctx;
+
+    /** Reference to simulation parameters (these are not copied over into the simulation context view) */
+    const SimulationParams* _params;
 
     /** Number of solver iterations per time step */
     unsigned _solver_iters;
