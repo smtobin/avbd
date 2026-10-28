@@ -307,9 +307,6 @@ private:
         VecNr<DOF> grad = VecNr<DOF>::Zero();
         MatNr<DOF> hess = MatNr<DOF>::Zero();
 
-        VecNr<DOF> G;
-        MatNr<DOF> H;
-
         /** Process "static" energies */
         {
             const PerStaticEnergy<unsigned>& static_adj_offsets = _ctx->static_adjacency.e_offsets[p_idx];
@@ -353,12 +350,10 @@ private:
                             view,
                             _particle_view,
                             l_idx,
-                            H,
-                            G,
+                            hess,
+                            grad,
                             dt
                         );
-                        hess += H;
-                        grad += G;
                     }
 
                     // process remainder
@@ -370,12 +365,10 @@ private:
                             view,
                             _particle_view,
                             entry.local_vertex_idx,
-                            H,
-                            G,
+                            hess,
+                            grad,
                             dt
                         );
-                        hess += H;
-                        grad += G;
                     }
                 }
                 // otherwise fall back to normal 1-by-1 computation
@@ -394,12 +387,10 @@ private:
                                 view,
                                 _particle_view,
                                 entry.local_vertex_idx,
-                                H,
-                                G,
+                                hess,
+                                grad,
                                 dt
                             );
-                            hess += H;
-                            grad += G;
                         }
                         // otherwise use plain accumulate()
                         else if constexpr ( (DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional) )
@@ -409,12 +400,10 @@ private:
                                 view,
                                 _particle_view,
                                 entry.local_vertex_idx,
-                                H,
-                                G,
+                                hess,
+                                grad,
                                 dt
                             );
-                            hess += H;
-                            grad += G;
                         }
                     }
                 }
@@ -451,12 +440,10 @@ private:
                             view,
                             _particle_view,
                             entry.local_vertex_idx,
-                            H,
-                            G,
+                            hess,
+                            grad,
                             dt
                         );
-                        hess += H;
-                        grad += G;
                     }
                     else if constexpr ( (DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional) )
                     {
@@ -465,12 +452,10 @@ private:
                             view,
                             _particle_view,
                             entry.local_vertex_idx,
-                            H,
-                            G,
+                            hess,
+                            grad,
                             dt
                         );
-                        hess += H;
-                        grad += G;
                     }
                 }
             }

@@ -75,12 +75,12 @@ HD inline void cosseratRodEnergyAccumulate(
     // std::cout << "Strain gradient: \n" << strain_grad << std::endl;
     // std::cout << "Stiffness: " << stiffness.transpose() << std::endl;
 
-    G = rest_length * strain_grad.transpose() * stiffness.cwiseProduct(strain);
+    G += rest_length * strain_grad.transpose() * stiffness.cwiseProduct(strain);
     /** TODO: (08/23/26) Is Gauss-Newton approximation good enough? */
     Mat6r weighted_strain_grad = strain_grad.scaleRows(stiffness);
     Mat6r hess_an = rest_length * strain_grad.transpose() * weighted_strain_grad;
     // std::cout << "Hess diff: \n" << hess_fd - hess_an << std::endl;
-    H = hess_an;
+    H += hess_an;
 }
 
 } // namespace Energy

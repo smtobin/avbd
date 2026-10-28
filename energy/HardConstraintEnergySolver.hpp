@@ -93,8 +93,8 @@ struct HardConstraintEnergySolver
      * @param energies : the memory pool for the energies
      * @param particles : the memory pool for the particles
      * @param local_idx : the "local" index of the particle in the energy
-     * @param H : (output) the Hessian of the energy
-     * @param G : (output) the gradient of the energy
+     * @param H : the current accumulated Hessian - added to by this function
+     * @param G : the current accumulated gradient - added to by this function
      * @param dt : the time step
      */
     template <int DOF>
@@ -136,7 +136,7 @@ struct HardConstraintEnergySolver
                 k_scaled[ci] = std::abs( (energies.lambda_max[ci] - lambda[ci]) / C[ci] );
 
             // gradient
-            G = C_grad[ci] * lambda_p[ci];
+            G += C_grad[ci] * lambda_p[ci];
 
                 // Hessian
                 /** TODO: do diagonalization of Hessian component
@@ -147,7 +147,7 @@ struct HardConstraintEnergySolver
                  */
                 
 
-            H = (k_scaled[ci] * C[ci] + lambda[ci]) * C_hess[ci] +
+            H += (k_scaled[ci] * C[ci] + lambda[ci]) * C_hess[ci] +
                 k_scaled[ci] * outerProduct(C_grad[ci], C_grad[ci]);
         }
     }

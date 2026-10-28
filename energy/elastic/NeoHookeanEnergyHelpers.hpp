@@ -81,7 +81,7 @@ HD inline void neoHookeanEnergyAccumulate(
 
     // gradient
     Real damp_mult_factor = (2/dt * V * kd);
-    G = sign * hyd_mult * Fcross_qi;
+    G += sign * hyd_mult * Fcross_qi;
     G += sign * dev_mult * Fqi;
 
     Mat3r E_dot = 0.5 * FtF;
@@ -93,7 +93,7 @@ HD inline void neoHookeanEnergyAccumulate(
 
     // Hessian
     // hydrostatic
-    H = (V * lambda) * outerProduct(Fcross_qi, Fcross_qi);
+    H += (V * lambda) * outerProduct(Fcross_qi, Fcross_qi);
     // deviatoric
     Real t1 = V * mu * qi_norm2;
     H(0,0) += t1; H(1,1) += t1; H(2,2) += t1;

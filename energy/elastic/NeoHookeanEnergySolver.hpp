@@ -96,8 +96,8 @@ struct NeoHookeanEnergySolver
      * @param energies : the memory pool for the energies
      * @param particles : the memory pool for the particles
      * @param local_idx : the "local" index of the particle in the energy
-     * @param H : (output) the Hessian of this energy
-     * @param G : (output) the gradient of this energy
+     * @param H : the current accumulated Hessian - added to by this function
+     * @param G : the current accumulated gradient - added to by this function
      * @param dt : the time step
      */
     static void accumulate(
@@ -250,8 +250,8 @@ struct NeoHookeanEnergySolver
         const NeoHookeanEnergyPoolView& energies,
         ParticlePoolView& particles,
         unsigned local_idx[4],
-        Mat3r& H_out,
-        Vec3r& G_out,
+        Mat3r& H_acc,
+        Vec3r& G_acc,
         Real dt
     )
     {
@@ -486,10 +486,8 @@ struct NeoHookeanEnergySolver
 
         // particle_H += (damp_mult_factor/dt) * (FFt * qi_norm2 + Fqi * Fqi.transpose());
 
-        H_out = Mat3r::Zero();
-        G_out = Vec3r::Zero();
-        AVX::accumulate_Vector3Packet(G_out, G);
-        AVX::accumulate_Mat3x3Packet(H_out, H);
+        AVX::accumulate_Vector3Packet(G_acc, G);
+        AVX::accumulate_Mat3x3Packet(H_acc, H);
     }
 
     /** Computes the Hessian and gradient for all of the particles affected by this constraint.

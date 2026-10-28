@@ -73,8 +73,8 @@ struct CosseratRodEnergySolver
      * @param energies : the memory pool for the energies
      * @param particles : the memory pool for the particles
      * @param local_idx : the "local" index of the particle in the energy
-     * @param H : (output) the Hessian for this energy
-     * @param G : (output) the gradient for this energy
+     * @param H : the current accumulated Hessian - added to by this function
+     * @param G : the current accumulated gradient - added to by this function
      * @param dt : the time step
     */
     static void accumulate(

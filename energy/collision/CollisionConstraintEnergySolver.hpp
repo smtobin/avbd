@@ -172,8 +172,8 @@ struct CollisionConstraintEnergySolver
      * @param energies : the memory pool for the energies
      * @param particles : the memory pool for the particles
      * @param local_idx : the "local" index of the particle in the energy
-     * @param H : (output) the Hessian of this energy
-     * @param G : (output) the gradient of this energy
+     * @param H : the current accumulated Hessian - added to by this function
+     * @param G : the current accumulated gradient - added to by this function
      * @param dt : the time step
      */
     template <int DOF>
@@ -280,8 +280,8 @@ struct CollisionConstraintEnergySolver
         MatNr<DOF> hess_b = (k_scaled_tb[1] * C_b + lambda_b) * C_hess_b +
             k_scaled_tb[1] * outerProduct(C_grad_b, C_grad_b);
 
-        H = hess_n + hess_t + hess_b;
-        G = grad_n + grad_t + grad_b;
+        H += hess_n + hess_t + hess_b;
+        G += grad_n + grad_t + grad_b;
     }
 
     static void accumulate(

@@ -2,7 +2,7 @@ name: "MeshSim"
 # sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
 time-step: 5e-3 # s
-end-time: 3
+end-time: 10
 g-accel: 9.81 # m/s^2
 solver-iters: 15
 iter-acceleration: 0.95
@@ -33,7 +33,7 @@ objects:
     velocity: [1, 0, 0]
     position-by-com: true
     # material parameters
-    E: 0.35e6 # Pa (0.35 MPa = roughly chicken breast: https://academic.oup.com/mt/article/31/2/21/7116012)
+    E: 0.35e5 # Pa (0.35 MPa = roughly chicken breast: https://academic.oup.com/mt/article/31/2/21/7116012)
     nu: 0.45
     density: 1000 # kg / m^3
     # damping-coeff: 1e-6 # ?
@@ -44,21 +44,23 @@ objects:
     draw-faces: True
     color: [1.0, 0.5, 0]
 
-  # - 
-  #   type: "Rod"
-  #   name: "rod"
-  #   position: [0,20,0]
-  #   base-fixed: false
-  #   E: 50
-  #   nu: 0.4
-  #   diameter: 1
-  #   length: 10
-  #   density: 1e-5
-  #   elements: 20
+  - 
+    type: "Rod"
+    name: "rod"
+    position: [0.3,2,-0.75]
+    base-fixed: false
+    E: 5e4
+    nu: 0.4
+    diameter: 0.2
+    length: 1.5
+    density: 1000
+    elements: 20
+    color: [1.0, 0.0, 0]
 
-  # - 
-  #   type: "RigidSphere"
-  #   fixed: true
-  #   position: [0, 20, 0]
-  #   radius: 3
-  #   density: 10e-6 # kg / mm^3
+  - 
+    type: "RigidSphere"
+    fixed: false
+    position: [0.5, 15, 0]
+    radius: 0.3
+    density: 1000 # kg / mm^3
+    color: [0.0, 0.0, 1.0]

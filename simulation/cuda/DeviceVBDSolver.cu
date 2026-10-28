@@ -146,7 +146,6 @@ __global__ void particleVelocityUpdateKernel(DeviceParticlePoolView v, unsigned 
 }
 
 /** WARNING: Copied from Claude */
-template<int DOF>
 __global__ void solveColorKernel(SolverCtx ctx, const unsigned* __restrict__ color_particles,
                                  unsigned n, Real dt)
 {
@@ -156,17 +155,30 @@ __global__ void solveColorKernel(SolverCtx ctx, const unsigned* __restrict__ col
     const unsigned p = color_particles[warp];
     if (ctx.particles.fixed[p]) return;       // also warp-uniform, safe
 
-    VecNr<DOF> grad = Vec<DOF>::Zero();
-    MatNr<DOF> hess = Mat<DOF>::Zero();
+    if (ctx.particles.isOriented(p))
+    {
+        Vec6r grad = Vec6r::Zero();
+        Mat6r hess = Mat6r::Zero();
 
-    accumulateStatic<DOF>(ctx, p, lane, hess, grad, dt);
-    accumulateDynamic<DOF>(ctx, p, lane, hess, grad, dt);
+        accumulateStatic<6>(ctx, p, lane, hess, grad, dt);
+        // accumulateDynamic<6>()
+    }
+    else
+    {
+        Vec3r grad = Vec3r::Zero();
+        Mat3r hess = Mat3r::Zero();
+        accumulateStatic<3>(ctx, p, lane, hess, grad, dt);
+        // accumulateDynamic<3>()
+
+        warpReduceSym<3>(hess, grad);           // every lane now holds the totals
+        if (lane == 0)
+            assembleSolveWrite<3>(ctx, p, hess, grad, dt);   // your existing tail
+    }
 
     /** TODO: (10/26/26) write/understand this function */
-    warpReduceSym<DOF>(hess, grad);           // every lane now holds the totals
+    
 
-    if (lane == 0)
-        assembleSolveWrite<DOF>(ctx, p, hess, grad, dt);   // your existing tail
+    
 }
 
 /** WARNING: Copied from Claude */
@@ -186,7 +198,8 @@ __device__ void accumulateStatic(const SolverCtx& ctx, unsigned p, unsigned lane
             const unsigned end   = (t + 1 == kNumStatic) ? adj_end : offs[t + 1];
             const auto& pool = ctx.energies.template get<E>();
 
-            for (unsigned e = begin + lane; e < end; e += 32) {
+            for (unsigned e = begin + lane; e < end; e += 32)
+            {
                 const auto& entry = ctx.static_adjacency.e_entries[e];
                 Solver::template accumulate<DOF>(entry.energy_idx, pool, ctx.particles,
                                                  entry.local_vertex_idx, hess, grad, dt);
