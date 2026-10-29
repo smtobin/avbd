@@ -14,16 +14,16 @@ struct DeviceOneSidedFixedJointEnergyPool : DeviceHardConstraintEnergyPool<OneSi
 
     } 
 
-    OneSidedFixedJointEnergyPoolView view() const
+    OneSidedFixedJointEnergyPoolView view()
     {
         OneSidedFixedJointEnergyPoolView v;
-        DeviceHardConstraintEnergyPool<OneSidedFixedJointEnergyInfo>::view(v);
+        DeviceHardConstraintEnergyPool<OneSidedFixedJointEnergyInfo, 6>::view(v);
         return v;
     }
 
     void upload(const OneSidedFixedJointEnergyPool& src)
     {
-        DeviceHardConstraintEnergyPool<OneSidedFixedJointEnergyInfo>::upload(src);
+        DeviceHardConstraintEnergyPool<OneSidedFixedJointEnergyInfo, 6>::upload(src);
     }
 };
 

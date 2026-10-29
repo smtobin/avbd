@@ -9,7 +9,7 @@ class DeviceVBDSolver
 {
 private:
     /** View of the device simulation context */
-    SimulationContextView* _ctx;
+    SimulationContextView _ctx;
 
     /** Reference to simulation parameters (these are not copied over into the simulation context view) */
     const SimulationParams* _params;

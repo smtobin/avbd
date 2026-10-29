@@ -2,6 +2,7 @@
 
 #include "common/cuda/DeviceTombstonePool.cuh"
 #include "energy/elastic/CosseratRodEnergyDefs.hpp"
+#include "energy/elastic/CosseratRodEnergyPool.hpp"
 
 namespace Energy
 {
@@ -17,7 +18,7 @@ struct DeviceCosseratRodEnergyPool : DeviceTombstonePool
 
     }
 
-    CosseratRodEnergyPoolView view() const
+    CosseratRodEnergyPoolView view()
     {
         CosseratRodEnergyPoolView v;
         DeviceTombstonePool::view(v);
@@ -26,7 +27,11 @@ struct DeviceCosseratRodEnergyPool : DeviceTombstonePool
         return v;
     }
 
-    void upload(const CosseratRodEnergyPool& src);
+    void upload(const CosseratRodEnergyPool& src)
+    {
+        DeviceTombstonePool::upload(src);
+        data.upload(src.data.data(), src.data.size());
+    }
 };
 
 } // namespace Energy

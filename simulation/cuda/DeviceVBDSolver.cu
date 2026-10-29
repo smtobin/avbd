@@ -1,6 +1,14 @@
 #include "simulation/cuda/DeviceVBDSolver.cuh"
 #include "common/EnergyUtils.hpp"
 
+#include "energy/elastic/NeoHookeanEnergySolver.hpp"
+#include "energy/elastic/CosseratRodEnergySolver.hpp"
+#include "energy/collision/GroundCollisionEnergySolver.hpp"
+#include "energy/collision/RigidBodyGroundCollisionEnergySolver.hpp"
+#include "energy/collision/TriangleRigidCollisionEnergySolver.hpp"
+#include "energy/collision/TriangleRodCollisionEnergySolver.hpp"
+#include "energy/joint/OneSidedFixedJointEnergySolver.hpp"
+
 namespace Sim
 {
 
@@ -19,9 +27,9 @@ __global__ void updateAfterTimeStepKernel(PoolView view, ParticlePoolView partic
     if (!view.active[e_idx])
         return;
 
-    if constexpr (Energy::HasUpdateContactPoints<typename EnergyPoolView::PoolType::SolverType>)
+    if constexpr (Energy::HasUpdateContactPoints<typename PoolView::PoolType::SolverType>)
     {
-        EnergyPoolView::PoolType::SolverType::updateContactPoints(e_idx, view, particles);
+        PoolView::PoolType::SolverType::updateContactPoints(e_idx, view, particles);
     }
     PoolView::PoolType::SolverType::updateAfterTimeStep(e_idx, view, particles);
 }
@@ -36,27 +44,24 @@ __global__ void updateAfterIterationKernel(PoolView view, ParticlePoolView parti
     if (!view.active[e_idx])
         return;
 
-    EnergyPoolView::PoolType::SolverType::updateAfterIteration(e_idx, view, particles);
+    PoolView::PoolType::SolverType::updateAfterIteration(e_idx, view, particles);
 }
 
-__global__ void particleInertialUpdateKernel(DeviceParticlePoolView v, unsigned count, Vec3r a_ext, Real dt)
+__global__ void particleInertialUpdateKernel(ParticlePoolView view, unsigned count, Vec3r a_ext, Real dt)
 {
     unsigned p_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (p_idx >= count)
         return;
 
     // skip fixed particles
-    if (v.fixed[p_idx])
+    if (view.fixed[p_idx])
         return;
     
     // === Positional update ===
-    // assumed gravity
-    Vec3r a_ext(0, -9.81, 0);
-
-    Vec3r& p = v.positions[p_idx];
-    Vec3r& y = v.inertial_positions[p_idx];
-    const Vec3r& v = v.velocities[p_idx];
-    const Vec3r& v_prev = v.previous_velocities[p_idx];
+    Vec3r& p = view.positions[p_idx];
+    Vec3r& y = view.inertial_positions[p_idx];
+    const Vec3r& v = view.velocities[p_idx];
+    const Vec3r& v_prev = view.previous_velocities[p_idx];
 
     // use adaptive initialization (Sec 3.7 in VBD paper)
     Vec3r a = (v - v_prev) / dt;
@@ -85,18 +90,18 @@ __global__ void particleInertialUpdateKernel(DeviceParticlePoolView v, unsigned 
     p += dt*v + dt*dt*a_tilde_vec;
 
     // initialize the previous iteration positions
-    v.last_iter_positions[p_idx] = p;
-    v.last_last_iter_positions[p_idx] = p;
+    view.last_iter_positions[p_idx] = p;
+    view.last_last_iter_positions[p_idx] = p;
 
     // === Rotational update ===
     // skip if particle is not rotational
-    if (!v.isOriented(p_idx))
+    if (!view.isOriented(p_idx))
         return;
     
-    Quaternion& q = v.rotation(p_idx);
-    Quaternion& q_inertial = v.inertialRotation(p_idx);
-    const Vec3r& w = v.angularVelocity(p_idx);
-    const Vec3r& I = v.rotationalInertia(p_idx);
+    Quaternion& q = view.rotation(p_idx);
+    Quaternion& q_inertial = view.inertialRotation(p_idx);
+    const Vec3r& w = view.angularVelocity(p_idx);
+    const Vec3r& I = view.rotationalInertia(p_idx);
     Vec3r I_inv(1.0/I[0], 1.0/I[1], 1.0/I[2]);
 
 
@@ -116,11 +121,11 @@ __global__ void particleInertialUpdateKernel(DeviceParticlePoolView v, unsigned 
     q = Math::Plus_S3(q, dq);
 
     // initialize previous iteration rotations
-    v.lastIterRotation(p_idx) = q;
-    v.lastLastIterRotation(p_idx) = q;
+    view.lastIterRotation(p_idx) = q;
+    view.lastLastIterRotation(p_idx) = q;
 }
 
-__global__ void particleChebyshevAccelerationKernel(DeviceParticlePoolView v, unsigned count, Real omega)
+__global__ void particleChebyshevAccelerationKernel(ParticlePoolView v, unsigned count, Real omega)
 {
     unsigned p_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (p_idx >= count)
@@ -149,7 +154,7 @@ __global__ void particleChebyshevAccelerationKernel(DeviceParticlePoolView v, un
     }
 }
 
-__global__ void particleVelocityUpdateKernel(DeviceParticlePoolView v, unsigned count, Real dt)
+__global__ void particleVelocityUpdateKernel(ParticlePoolView v, unsigned count, Real dt)
 {
     unsigned p_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (p_idx >= count)
@@ -176,44 +181,6 @@ __global__ void particleVelocityUpdateKernel(DeviceParticlePoolView v, unsigned 
     }
 }
 
-__global__ void solveColorKernel(
-    SimulationContextView ctx,
-    unsigned c_idx,
-    Real dt
-)
-{
-    const unsigned color_start = ctx.coloring.color_offsets[c_idx];
-
-    const unsigned warp = (blockIdx.x * blockDim.x + threadIdx.x) >> 5;
-    const unsigned lane = threadIdx.x & 31;
-    if (warp >= n) return;                    // warp-uniform, safe
-    const unsigned p = ctx.coloring.work_list[color_start + warp];
-    if (ctx.particles.fixed[p]) return;       // also warp-uniform, safe
-
-    if (ctx.particles.isOriented(p))
-    {
-        Vec6r grad = Vec6r::Zero();
-        Mat6r hess = Mat6r::Zero();
-        accumulateStatic<6>(ctx, p, lane, hess, grad, dt);
-        // accumulateDynamic<6>()
-
-        warpReduceSym<6>(hess, grad);
-        if (lane == 0)
-            assembleSolveWriteOriented(ctx, p, hess, grad, dt);
-    }
-    else
-    {
-        Vec3r grad = Vec3r::Zero();
-        Mat3r hess = Mat3r::Zero();
-        accumulateStatic<3>(ctx, p, lane, hess, grad, dt);
-        // accumulateDynamic<3>()
-
-        warpReduceSym<3>(hess, grad);           // every lane now holds the totals
-        if (lane == 0)
-            assembleSolveWrite(ctx, p, hess, grad, dt);   // your existing tail
-    }
-    
-}
 
 template<int DOF>
 __device__ void accumulateStatic(
@@ -249,16 +216,16 @@ __device__ void accumulateStatic(
 }
 
 __device__ void assembleSolveWrite(
-    const SimulationContextView& ctx,
-    unsigned p, 
+    SimulationContextView& ctx,
+    unsigned p_idx, 
     const Mat3r& hess, 
     const Vec3r& grad, 
     Real dt
 )
 {
-    Real mass = _ctx->particles.masses[p_idx];
-    const Vec3r& p = _ctx->particles.positions[p_idx];
-    const Vec3r& y = _ctx->particles.inertial_positions[p_idx];
+    Real mass = ctx.particles.masses[p_idx];
+    const Vec3r& p = ctx.particles.positions[p_idx];
+    const Vec3r& y = ctx.particles.inertial_positions[p_idx];
 
     Vec3r RHS = -mass / (dt*dt) * (p - y) - grad;
     Mat3r LHS = mass / (dt*dt) * Mat3r::Identity() + hess;
@@ -267,37 +234,39 @@ __device__ void assembleSolveWrite(
 
     Vec3r dx = Vec3r::Zero();
     bool success = LHS.solve(RHS, dx);
-    if (!success)
-        throw std::runtime_error("Failed to solve 3x3 particle system!");
+    /** TODO: (10/29/26) Set error flags when solver fails. */
+    // if (!success)
+    //     throw std::runtime_error("Failed to solve 3x3 particle system!");
         
     // std::cout << "Particle " << p_idx << ": " << "\n  LHS:\n" << LHS << "\n  RHS: " << RHS.transpose() << "\n  dx: " << dx.transpose() << std::endl;
     // Vec3r dx = LHS.inverse() * RHS;
 
     // std::cout << "dx: " << dx.transpose() << std::endl;
 
+    /** TODO: (10/29/26) Handle intra-color conflicts. */
     // if this particle has an intra-color conflict, buffer its update
-    if (_ctx->coloring.is_conflicted[p_idx])
-        _ctx->particles.buffered_positions[p_idx] = _ctx->particles.positions[p_idx] + dx;
+    // if (ctx.coloring.is_conflicted[p_idx])
+    //     ctx.particles.buffered_positions[p_idx] = _ctx.particles.positions[p_idx] + dx;
     // otherwise handle it normally
-    else
-        _ctx->particles.positions[p_idx] += dx;
+    // else
+        ctx.particles.positions[p_idx] += dx;
 }
 
 __device__ void assembleSolveWriteOriented(
-    const SolverCtx& ctx,
-    unsigned p,
+    SimulationContextView& ctx,
+    unsigned p_idx,
     const Mat6r& hess,
-    const Vec3r& grad,
+    const Vec6r& grad,
     Real dt
 )
 {
     // extract quantities from pool
-    Real mass = _ctx->particles.masses[p_idx];
-    const Vec3r& I = _ctx->particles.rotationalInertia(p_idx);
-    Vec3r& p = _ctx->particles.positions[p_idx];
-    const Vec3r& p_inertial = _ctx->particles.inertial_positions[p_idx];
-    Quaternion& q = _ctx->particles.rotation(p_idx);
-    const Quaternion& q_inertial = _ctx->particles.inertialRotation(p_idx);
+    Real mass = ctx.particles.masses[p_idx];
+    const Vec3r& I = ctx.particles.rotationalInertia(p_idx);
+    Vec3r& p = ctx.particles.positions[p_idx];
+    const Vec3r& p_inertial = ctx.particles.inertial_positions[p_idx];
+    Quaternion& q = ctx.particles.rotation(p_idx);
+    const Quaternion& q_inertial = ctx.particles.inertialRotation(p_idx);
 
     // form RHS
     Vec6r RHS;
@@ -315,24 +284,26 @@ __device__ void assembleSolveWriteOriented(
 
     Vec6r dx = Vec6r::Zero();
     bool success = LHS.solve(RHS, dx);
-    if (!success)
-        throw std::runtime_error("Failed to solve 6x6 particle system!");
+    /** TODO: (10/29/26) Set error flags if solver fails. */
+    // if (!success)
+    //     throw std::runtime_error("Failed to solve 6x6 particle system!");
 
     Vec3r dp = dx.head<3>();
     Vec3r dq = dx.tail<3>();
 
+    /** TODO: (10/29/26) Handle intra-color conflicts. */
     // if this particle has an intra-color conflict, buffer its update
-    if (_ctx->coloring.is_conflicted[p_idx])
-    {
-        _ctx->particles.buffered_positions[p_idx] = p + dp;
-        _ctx->particles.bufferedRotation(p_idx) = Math::Plus_S3(q, dq);
-    }
-    // otherwise update normally
-    else
-    {
+    // if (ctx.coloring.is_conflicted[p_idx])
+    // {
+    //     ctx.particles.buffered_positions[p_idx] = p + dp;
+    //     ctx.particles.bufferedRotation(p_idx) = Math::Plus_S3(q, dq);
+    // }
+    // // otherwise update normally
+    // else
+    // {
         p += dp;
         q = Math::Plus_S3(q, dq);
-    }
+    // }
 }
 
 template<typename T>
@@ -358,14 +329,53 @@ __device__ __forceinline__ void warpReduceSym(MatNr<DOF>& H, VecNr<DOF>& g)
         for (int j = 0; j < i; ++j) H(i, j) = H(j, i);
 }
 
+
+__global__ void solveColorKernel(
+    SimulationContextView ctx,
+    unsigned c_idx,
+    Real dt
+)
+{
+    const unsigned color_start = ctx.coloring.color_offsets[c_idx];
+
+    const unsigned warp = (blockIdx.x * blockDim.x + threadIdx.x) >> 5;
+    const unsigned lane = threadIdx.x & 31;
+    if (warp >= ctx.coloring.color_counts[c_idx]) return;                    // warp-uniform, safe
+    const unsigned p = ctx.coloring.work_list[color_start + warp];
+    if (ctx.particles.fixed[p]) return;       // also warp-uniform, safe
+
+    if (ctx.particles.isOriented(p))
+    {
+        Vec6r grad = Vec6r::Zero();
+        Mat6r hess = Mat6r::Zero();
+        accumulateStatic<6>(ctx, p, lane, hess, grad, dt);
+        // accumulateDynamic<6>()
+
+        warpReduceSym<6>(hess, grad);
+        if (lane == 0)
+            assembleSolveWriteOriented(ctx, p, hess, grad, dt);
+    }
+    else
+    {
+        Vec3r grad = Vec3r::Zero();
+        Mat3r hess = Mat3r::Zero();
+        accumulateStatic<3>(ctx, p, lane, hess, grad, dt);
+        // accumulateDynamic<3>()
+
+        warpReduceSym<3>(hess, grad);           // every lane now holds the totals
+        if (lane == 0)
+            assembleSolveWrite(ctx, p, hess, grad, dt);   // your existing tail
+    }
+    
+}
 } // anonymous namespace
 
 DeviceVBDSolver::DeviceVBDSolver(
     DeviceSimulationContext* ctx,
     unsigned solver_iters,
     Real iter_acceleration)
-    : _ctx(ctx.view())
-    , _params(&ctx.params)
+    : _ctx(ctx->view())
+    , _params(&ctx->params)
     , _solver_iters(solver_iters)
     , _iter_acceleration(iter_acceleration)
 {
@@ -376,7 +386,7 @@ void DeviceVBDSolver::solve()
     int num_particles = _ctx.particles.counters->highest_index + 1;
 
     // update all energies after time step
-    _ctx->energies.forEachEnergyType([&] (auto& view) {
+    _ctx.energies.forEachEnergyType([&] (auto& view) {
         int threads = 256;
         /** TODO: (10/28/26) for now, using the pool capacity as upper bound on energies */
         int e_blocks = (view.capacity + threads - 1) / threads;
@@ -402,7 +412,7 @@ void DeviceVBDSolver::solve()
 
         // iterate through colors and parallelize within the color
         /** TODO: (10/23/26) num_colors currently lives on the device. Move it to host?  */
-        for (unsigned c = 0; c < _ctx->num_colors; c++)
+        for (unsigned c = 0; c < _ctx.num_colors; c++)
         {
             /** TODO: (10/28/26) for now, using upper bound on particles in this color */
             solveColorKernel<<<p_blocks, threads>>>(_ctx, c, _params->dt);
@@ -412,7 +422,7 @@ void DeviceVBDSolver::solve()
         particleChebyshevAccelerationKernel<<<p_blocks, threads>>>(_ctx.particles, num_particles, omega);
 
         // update Lagrange multipliers
-        _ctx->energies.forEachHardConstraintEnergyType([&] (auto& view) {
+        _ctx.energies.forEachHardConstraintEnergyType([&] (auto& view) {
             int threads = 256;
             /** TODO: (10/28/26) for now, using the pool capacity as upper bound on energies */
             int e_blocks = (view.capacity + threads - 1) / threads;

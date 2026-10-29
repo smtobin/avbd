@@ -61,18 +61,18 @@ public:
 
     HD constexpr QuaternionT operator-() const
     {
-        return QuaternionT(-w, -x, -y, -z);
+        return QuaternionT(-_w, -_x, -_y, -_z);
     }
 
     // Addition and subtraction are coefficient-wise
     HD constexpr QuaternionT operator+(const QuaternionT& b) const
     {
-        return QuaternionT(_w + b.w, _x + b.x, _y + b.y, _z + b.z);
+        return QuaternionT(_w + b._w, _x + b._x, _y + b._y, _z + b._z);
     }
 
     HD constexpr QuaternionT operator-(const QuaternionT& b) const
     {
-        return QuaternionT(_w - b.w, _x - b.x, _y - b.y, _z - b.z);
+        return QuaternionT(_w - b._w, _x - b._x, _y - b._y, _z - b._z);
     }
 
     // Scalar multiplication/division
@@ -88,13 +88,13 @@ public:
 
     HD constexpr QuaternionT& operator+=(const QuaternionT& b)
     {
-        _x += b.x; _y += b.y; _z += b.z; _w += b.w;
+        _x += b._x; _y += b._y; _z += b._z; _w += b._w;
         return *this;
     }
 
     HD constexpr QuaternionT& operator-=(const QuaternionT& b)
     {
-        _x -= b.x; _y -= b.y; _z -= b.z; _w -= b.w;
+        _x -= b._x; _y -= b._y; _z -= b._z; _w -= b._w;
         return *this;
     }
 

@@ -13,7 +13,7 @@ struct DeviceRigidBodyGroundCollisionEnergyPool : DeviceCollisionConstraintEnerg
     {
     }
 
-    RigidBodyGroundCollisionEnergyPoolView view() const
+    RigidBodyGroundCollisionEnergyPoolView view()
     {
         RigidBodyGroundCollisionEnergyPoolView v;
         DeviceCollisionConstraintEnergyPool<RigidBodyGroundCollisionEnergyInfo>::view(v);

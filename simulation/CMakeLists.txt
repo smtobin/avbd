@@ -21,15 +21,14 @@ target_sources(Simulation
 )
 
 if (ENABLE_CUDA)
-    # Example
-    # set(SIMULATION_CUDA_SOURCES
-    #     ${SIMULATION_DIR}/cuda/CudaSolver.cu
-    # )
+    set(SIMULATION_CUDA_SOURCES
+        ${SIMULATION_DIR}/cuda/DeviceVBDSolver.cu
+    )
 
-    # target_sources(Simulation
-    #     PRIVATE
-    #         ${SIMULATION_CUDA_SOURCES}
-    # )
+    target_sources(Simulation
+        PRIVATE
+            ${SIMULATION_CUDA_SOURCES}
+    )
 
     target_link_libraries(Simulation CUDA::cudart)
     target_compile_definitions(Simulation PUBLIC HAS_CUDA=1)

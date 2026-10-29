@@ -2,10 +2,6 @@
 
 #include "cuda_runtime.h"
 
-#include "common/common.hpp"
-#include "common/cuda/Vec3.cuh"
-#include "common/cuda/Quaternion.cuh"
-
 #include <vector>
 
 template <typename T>

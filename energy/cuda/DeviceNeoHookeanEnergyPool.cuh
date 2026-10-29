@@ -2,6 +2,7 @@
 
 #include "common/cuda/DeviceTombstonePool.cuh"
 #include "energy/elastic/NeoHookeanEnergyDefs.hpp"
+#include "energy/elastic/NeoHookeanEnergyPool.hpp"
 
 namespace Energy
 {
@@ -17,15 +18,19 @@ struct DeviceNeoHookeanEnergyPool : DeviceTombstonePool
 
     }
 
-    NeoHookeanEnergyPoolView view() const
+    NeoHookeanEnergyPoolView view()
     {
         NeoHookeanEnergyPoolView v;
-        DeviceTombstonePoolView::view(v);
+        DeviceTombstonePool::view(v);
         v.data = data.data();
         return v;
     }
 
-    void upload(const NeoHookeanEnergyPool& src);
+    void upload(const NeoHookeanEnergyPool& src)
+    {
+        DeviceTombstonePool::upload(src);
+        data.upload(src.data.data(), src.data.size());
+    }
 };
 
 } // namespace Energy

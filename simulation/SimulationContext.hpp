@@ -8,7 +8,6 @@
 #include "energy/EnergyRegistry.hpp"
 #include "collision/CollisionPrimitivePool.hpp"
 #include "collision/LBVH.hpp"
-#include "collision/CollisionDetector.hpp"
 #include "simulation/SimulationParams.hpp"
 
 namespace Sim

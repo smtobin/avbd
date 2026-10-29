@@ -7,7 +7,7 @@ namespace Energy
 {
 
 template <typename EnergyInfo, int N>
-struct DeviceHardConstraintEnergyPool : DeviceTombstonePool
+struct DeviceHardConstraintEnergyPool : public DeviceTombstonePool
 {
     DeviceBuffer<EnergyInfo> data;
 
@@ -16,7 +16,7 @@ struct DeviceHardConstraintEnergyPool : DeviceTombstonePool
         , data(capacity)
     {}
 
-    void view(eHardConstraintEnergyPoolView<EnergyInfo, N>& v) const
+    void view(HardConstraintEnergyPoolView<EnergyInfo, N>& v)
     {
         DeviceTombstonePool::view(v);
         v.data = data.data();

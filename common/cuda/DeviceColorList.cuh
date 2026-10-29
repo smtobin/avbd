@@ -36,7 +36,7 @@ struct DeviceColorList
 
     }
 
-    DeviceColorListView view() const
+    DeviceColorListView view()
     {
         DeviceColorListView v;
         v.num_colors = num_colors.data();
@@ -44,6 +44,7 @@ struct DeviceColorList
         v.color_counts = color_counts.data();
         v.color_offsets = color_offsets.data();
         v.work_list = color.data();
+        return v;
     }
 
     void upload(const ColorList& src)

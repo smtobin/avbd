@@ -3,6 +3,7 @@
 #include "common/common.hpp"
 #include "common/TombstonePoolView.hpp"
 #include "common/cuda/DeviceBuffer.cuh"
+#include "common/cuda/DeviceValue.cuh"
 
 // forward declaration of CPU pool type
 struct TombstonePool;
@@ -22,8 +23,8 @@ struct DeviceTombstonePool
      */
     DeviceBuffer<unsigned> generation;
     DeviceBuffer<unsigned> free_list;
-    DeviceBuffer<PoolCounters> counters;
-    DeviceBuffer<AllocTicket> ticket;
+    DeviceValue<PoolCounters> counters;
+    DeviceValue<AllocTicket> ticket;
 
     unsigned capacity;              // total capacity (allocated memory)
 
@@ -34,8 +35,8 @@ struct DeviceTombstonePool
         : active(capacity)
         , generation(capacity)
         , free_list(capacity)
-        , counters(1)
-        , ticket(1)
+        , counters()
+        , ticket()
         , capacity(capacity)
     {
         // nothing here
@@ -50,7 +51,7 @@ struct DeviceTombstonePool
     DeviceTombstonePool& operator=(DeviceTombstonePool&&) = default;
 
     /** Fill out device view */
-    void view(TombstonePoolView& view) const
+    void view(TombstonePoolView& view)
     {
         view.active = active.data();
         view.counters = counters.data();
@@ -59,7 +60,16 @@ struct DeviceTombstonePool
         view.capacity = capacity;
     }
 
-    void upload(const TombstonePool& src);
+    void upload(const TombstonePool& src)
+    {
+        if (src.capacity != capacity)
+        throw std::runtime_error("Host and device pool capacities do not match");
+
+        active.upload(src.active.data(), capacity);
+        counters.set(src.counters);
+
+        /** TODO: (10/28/26) Copy other stuff when necessary to do so (and when device tombstone pool behavior is set) */
+    }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

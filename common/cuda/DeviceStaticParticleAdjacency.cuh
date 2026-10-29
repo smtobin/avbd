@@ -32,7 +32,7 @@ struct DeviceStaticParticleAdjacency
     DeviceBuffer<unsigned> p_neighbors;
     DeviceBuffer<unsigned> p_descending_valence;
 
-    DeviceStaticParticleAdjacencyView view() const
+    DeviceStaticParticleAdjacencyView view()
     {
         DeviceStaticParticleAdjacencyView v;
 

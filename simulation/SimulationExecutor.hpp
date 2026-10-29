@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "collision/CollisionDetector.hpp"
 #include "common/WorkerThreadContext.hpp"
 #include "simulation/SimulationContext.hpp"
 #include "simulation/VBDSolver.hpp"

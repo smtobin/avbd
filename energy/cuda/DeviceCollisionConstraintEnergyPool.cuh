@@ -8,7 +8,7 @@ namespace Energy
 {
 
 template <typename CollisionEnergyInfo>
-struct DeviceCollisionConstraintEnergyPool
+struct DeviceCollisionConstraintEnergyPool : public DeviceTombstonePool
 {
     DeviceBuffer<CollisionEnergyInfo> data;
 
@@ -17,9 +17,9 @@ struct DeviceCollisionConstraintEnergyPool
         , data(capacity)
     {}
 
-    void view(CollisionConstraintEnergyPoolView<CollisionEnergyInfo>& v) const
+    void view(CollisionConstraintEnergyPoolView<CollisionEnergyInfo>& v)
     {
-        DeviceTombstonePoolView::view(v);
+        DeviceTombstonePool::view(v);
         v.data = data.data();
     }
 
