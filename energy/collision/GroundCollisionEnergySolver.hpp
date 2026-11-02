@@ -11,7 +11,7 @@ struct GroundCollisionConstraintSolver
     /** Public typedefs */
     using PoolType = GroundCollisionEnergyPool;
     
-    static void evaluateConstraint(
+    HD static void evaluateConstraint(
         unsigned c_idx,
         const GroundCollisionEnergyPoolView& energies,
         ParticlePoolView& particles,
@@ -25,7 +25,7 @@ struct GroundCollisionConstraintSolver
     }
 
     template <int DOF>
-    static void constraintGradientHessian(
+    HD static void constraintGradientHessian(
         unsigned c_idx,
         const GroundCollisionEnergyPoolView& energies,
         ParticlePoolView& particles,
@@ -78,7 +78,7 @@ struct GroundCollisionEnergySolver
      * @param particles : the particle pool
      * @param sdf_pool : the SDF primitive pool
      */
-    static void updateContactPoints(
+    HD static void updateContactPoints(
         unsigned c_idx,
         GroundCollisionEnergyPoolView& energies,
         ParticlePoolView& particles

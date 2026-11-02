@@ -12,6 +12,7 @@ if (ENABLE_CUDA)
 
     set(CMAKE_CUDA_STANDARD 20)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 
     message(STATUS "CUDA support enabled")
 

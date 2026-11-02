@@ -184,7 +184,7 @@ __global__ void particleVelocityUpdateKernel(ParticlePoolView v, unsigned count,
 
 template<int DOF>
 __device__ void accumulateStatic(
-    const SimulationContextView& ctx,
+    SimulationContextView& ctx,
     unsigned p,
     unsigned lane,
     MatNr<DOF>& hess,
@@ -199,17 +199,31 @@ __device__ void accumulateStatic(
     Energy::ForEachStaticEnergy([&]<StaticEnergyType E>() {
         constexpr unsigned t = static_cast<unsigned>(E);
         using Solver = SolverFor<E>::type;
-        if constexpr ((DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional))
-        {
-            const unsigned begin = offs[t];
-            const unsigned end   = (t + 1 == num_energies) ? adj_end : offs[t + 1];
-            const auto& pool_view = ctx.energies.template get<E>();
+        
+        
+        const unsigned begin = offs[t];
+        const unsigned end   = (t + 1 == num_energies) ? adj_end : offs[t + 1];
+        const auto& pool_view = ctx.energies.template get<E>();
 
-            for (unsigned e = begin + lane; e < end; e += 32)
+        for (unsigned e = begin + lane; e < end; e += 32)
+        {
+            const auto& entry = ctx.static_adjacency.e_entries[e];
+            if constexpr (Solver::SupportsPositional && Solver::SupportsOriented)
             {
-                const auto& entry = ctx.static_adjacency.e_entries[e];
-                Solver::template accumulate<DOF>(entry.energy_idx, pool_view, ctx.particles,
-                                                 entry.local_vertex_idx, hess, grad, dt);
+                Solver::template accumulate<DOF>(
+                            entry.energy_idx,
+                            pool_view,
+                            ctx.particles,
+                            entry.local_vertex_idx,
+                            hess,
+                            grad,
+                            dt
+                        );
+            }
+            else if constexpr ((DOF == 6 && Solver::SupportsOriented) || (DOF == 3 && Solver::SupportsPositional))
+            {   
+                Solver::accumulate(entry.energy_idx, pool_view, ctx.particles,
+                                    entry.local_vertex_idx, hess, grad, dt);
             }
         }
     });

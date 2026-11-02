@@ -11,7 +11,7 @@ struct TriangleRigidCollisionConstraintSolver
     /** Public typedefs */
     using PoolType = TriangleRigidCollisionEnergyPool;
 
-    static void evaluateConstraint(
+    HD static void evaluateConstraint(
         unsigned c_idx,
         const TriangleRigidCollisionEnergyPoolView& energies,
         ParticlePoolView& particles,
@@ -42,7 +42,7 @@ struct TriangleRigidCollisionConstraintSolver
     }
 
     template <int DOF>
-    static void constraintGradientHessian(
+    HD static void constraintGradientHessian(
         unsigned c_idx,
         const TriangleRigidCollisionEnergyPoolView& energies,
         ParticlePoolView& particles,

@@ -14,7 +14,7 @@ struct CollisionConstraintEnergySolver
     /** Updates the collision normal, which causes an update to the collision tangent and binormal.
      * The Lagrange multipliers associated with the tangent and binormal are updated so that the total force remains the same.
      */
-    static void updateCollisionFrame(
+    HD static void updateCollisionFrame(
         unsigned c_idx,
         CollisionEnergyPool& energies,
         const Vec3r& new_normal
@@ -57,7 +57,7 @@ struct CollisionConstraintEnergySolver
      * @param energies : the memory pool for the energy
      * @param particles : the simulation particle memory pool
      */
-    static void updateAfterIteration(
+    HD static void updateAfterIteration(
         unsigned c_idx,
         typename CollisionEnergyPool::ViewType& energies,
         ParticlePoolView& particles
@@ -138,7 +138,7 @@ struct CollisionConstraintEnergySolver
      * @param c_idx : the constraint index
      * @param energies : the memory pool for the energy
      */
-    static void updateAfterTimeStep(
+    HD static void updateAfterTimeStep(
         unsigned c_idx,
         typename CollisionEnergyPool::ViewType& energies,
         ParticlePoolView& particles
@@ -177,7 +177,7 @@ struct CollisionConstraintEnergySolver
      * @param dt : the time step
      */
     template <int DOF>
-    static void accumulate(
+    HD static void accumulate(
         unsigned e_idx,
         const typename CollisionEnergyPool::ViewType& energies,
         ParticlePoolView& particles,
@@ -284,7 +284,7 @@ struct CollisionConstraintEnergySolver
         G += grad_n + grad_t + grad_b;
     }
 
-    static void accumulate(
+    HD static void accumulate(
         unsigned e_idx,
         const typename CollisionEnergyPool::ViewType& energies,
         ParticlePoolView& particles,

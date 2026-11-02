@@ -9,7 +9,7 @@ class Math
 
 public:
 
-static Mat3r Skew3(const Vec3r& vec)
+HD static Mat3r Skew3(const Vec3r& vec)
 {
     Mat3r mat;
     mat << 0,       -vec(2),    vec(1),
@@ -18,13 +18,13 @@ static Mat3r Skew3(const Vec3r& vec)
     return mat;
 }
 
-static Vec3r Vee3(const Mat3r& mat)
+HD static Vec3r Vee3(const Mat3r& mat)
 {
     return Vec3r(mat(2,1), mat(0,2), mat(1,0));
 }
 
 // Computes right Jacobian of SO(3) exponential map
-static Mat3r ExpMap_RightJacobian(const Vec3r& theta)
+HD static Mat3r ExpMap_RightJacobian(const Vec3r& theta)
 {
     Real theta_norm = theta.norm();
     const Mat3r skew = Skew3(theta);
@@ -37,7 +37,7 @@ static Mat3r ExpMap_RightJacobian(const Vec3r& theta)
 }
 
 // Computes derivative of right Jacobian of SO(3) exponential map (at theta), multiplied by some perturbation xi
-static Mat3r DExpMap_RightJacobian_Contract_k(const Vec3r& theta, const Vec3r& xi)
+HD static Mat3r DExpMap_RightJacobian_Contract_k(const Vec3r& theta, const Vec3r& xi)
 {
     Real theta_norm = theta.norm();
 
@@ -69,7 +69,7 @@ static Mat3r DExpMap_RightJacobian_Contract_k(const Vec3r& theta, const Vec3r& x
     
 }
 
-static Mat3r DExpMap_RightJacobian_Contract_j(const Vec3r& theta, const Vec3r& xi)
+HD static Mat3r DExpMap_RightJacobian_Contract_j(const Vec3r& theta, const Vec3r& xi)
 {
     Real theta_norm = theta.norm();
 
@@ -113,7 +113,7 @@ static Mat3r DExpMap_RightJacobian_Contract_j(const Vec3r& theta, const Vec3r& x
 
 }
 
-static Mat3r DExpMap_RightJacobian_Contract_j_approx(const Vec3r& theta, const Vec3r& xi)
+HD static Mat3r DExpMap_RightJacobian_Contract_j_approx(const Vec3r& theta, const Vec3r& xi)
 {
     Vec3r skew_xi = theta.cross(xi);
 
@@ -132,7 +132,7 @@ static Mat3r DExpMap_RightJacobian_Contract_j_approx(const Vec3r& theta, const V
 }
 
 // Computes the inverse of the right Jacobian of SO(3) exponential map
-static Mat3r ExpMap_InvRightJacobian(const Vec3r& theta)
+HD static Mat3r ExpMap_InvRightJacobian(const Vec3r& theta)
 {
     Real theta_norm = theta.norm();
     const Mat3r skew = Skew3(theta);
@@ -145,7 +145,7 @@ static Mat3r ExpMap_InvRightJacobian(const Vec3r& theta)
     return Mat3r::Identity() + 0.5*skew + (1/(theta_norm*theta_norm) - (1+std::cos(theta_norm)) / (2*theta_norm*std::sin(theta_norm)) ) * skew * skew;
 }
 
-static Mat3r Exp_so3(const Vec3r& vec)
+HD static Mat3r Exp_so3(const Vec3r& vec)
 {
     const Mat3r skew = Skew3(vec);
     Real mag = vec.norm();
@@ -156,7 +156,7 @@ static Mat3r Exp_so3(const Vec3r& vec)
     return Mat3r::Identity() + std::sin(mag) / mag * skew + (1 - std::cos(mag)) / (mag * mag) * skew * skew;
 }
 
-static Vec3r Log_SO3(const Mat3r& mat)
+HD static Vec3r Log_SO3(const Mat3r& mat)
 {
     // std::cout << "\n===Log_SO3===" << std::endl;
     // std::cout << "  mat:\n" << mat << std::endl;
@@ -181,19 +181,19 @@ static Vec3r Log_SO3(const Mat3r& mat)
     return theta / ( 2*std::sin(theta)) * skew_vec3;
 }
 
-static Vec3r Minus_SO3(const Mat3r& mat1, const Mat3r& mat2)
+HD static Vec3r Minus_SO3(const Mat3r& mat1, const Mat3r& mat2)
 {
     return Log_SO3(mat2.transpose() * mat1);
 }
 
-static Mat3r Plus_SO3(const Mat3r& SO3_mat, const Vec3r& so3_vec)
+HD static Mat3r Plus_SO3(const Mat3r& SO3_mat, const Vec3r& so3_vec)
 {
     return SO3_mat * Exp_so3(so3_vec);
 }
 
 
 /** === Quaternions === */
-static Quaternion Exp_s3(const Vec3r& vec)
+HD static Quaternion Exp_s3(const Vec3r& vec)
 {
     Real theta = vec.norm();
     Quaternion q;
@@ -220,7 +220,7 @@ static Quaternion Exp_s3(const Vec3r& vec)
     return q;
 }
 
-static Vec3r Log_S3(const Quaternion& q)
+HD static Vec3r Log_S3(const Quaternion& q)
 {
     Vec3r v(q.x(), q.y(), q.z());
     Real v_mag = v.norm();
@@ -234,17 +234,17 @@ static Vec3r Log_S3(const Quaternion& q)
     
 }
 
-static Vec3r Minus_S3(const Quaternion& q1, const Quaternion& q2)
+HD static Vec3r Minus_S3(const Quaternion& q1, const Quaternion& q2)
 {
     return Log_S3(q2.conjugate() * q1);
 }
 
-static Quaternion Plus_S3(const Quaternion& q, const Vec3r& rot_vec)
+HD static Quaternion Plus_S3(const Quaternion& q, const Vec3r& rot_vec)
 {
     return q * Exp_s3(rot_vec);
 }
 
-static Mat3r RotMatFromXYZEulerAngles(const Vec3r& euler_xyz)
+HD static Mat3r RotMatFromXYZEulerAngles(const Vec3r& euler_xyz)
 {
     const Real x = euler_xyz(0) * M_PI / 180.0;
     const Real y = euler_xyz(1) * M_PI / 180.0;
@@ -267,7 +267,7 @@ static Mat3r RotMatFromXYZEulerAngles(const Vec3r& euler_xyz)
     return rot_mat;
 }
 
-static Vec3r XYZEulerAnglesFromRotMat(const Mat3r& R)
+HD static Vec3r XYZEulerAnglesFromRotMat(const Mat3r& R)
 {
     Real theta_y = std::asin(-R(2,0));
     Real theta_x, theta_z;
@@ -294,7 +294,7 @@ static Vec3r XYZEulerAnglesFromRotMat(const Mat3r& R)
     return 180/M_PI * Vec3r(theta_x, theta_y, theta_z);
 }
 
-static Quaternion QuaternionFromXYZEulerAngles(const Vec3r& eul_xyz)
+HD static Quaternion QuaternionFromXYZEulerAngles(const Vec3r& eul_xyz)
 {
     Real x = eul_xyz[0] * M_PI / 180.0;
     Real y = eul_xyz[1] * M_PI / 180.0;
@@ -319,7 +319,7 @@ static Quaternion QuaternionFromXYZEulerAngles(const Vec3r& eul_xyz)
 /** Given a unit normal vector, completes an orthonormal basis.
  * Uses Eigen's unitOrthogonal().
  */
-static void completeOrthonormalBasisGivenNormal(const Vec3r& n, Vec3r& t, Vec3r& b)
+HD static void completeOrthonormalBasisGivenNormal(const Vec3r& n, Vec3r& t, Vec3r& b)
 {
     t = n.unitOrthogonal();
     b = n.cross(t);
@@ -329,13 +329,13 @@ static void completeOrthonormalBasisGivenNormal(const Vec3r& n, Vec3r& t, Vec3r&
  * Returns the interpolation factor - i.e. if in [0,1] the projected point is between a and b.
  * To get the projected point: p_proj = a + projectPointOnLine(p, a, b) * (b-a);
  */
-static Real projectPointOntoLine(const Vec3r& p, const Vec3r& a, const Vec3r& b)
+HD static Real projectPointOntoLine(const Vec3r& p, const Vec3r& a, const Vec3r& b)
 {
     return (p-a).dot(b-a) / (b-a).squaredNorm();
 }
 
 /** Find closest points on two line segments defined by (p1, p2) and (p3, p4) */
-static std::pair<Real, Real> findClosestPointsOnLineSegments(const Vec3r& p1, const Vec3r& p2, const Vec3r& p3, const Vec3r& p4)
+HD static std::pair<Real, Real> findClosestPointsOnLineSegments(const Vec3r& p1, const Vec3r& p2, const Vec3r& p3, const Vec3r& p4)
 {
     const Vec3r d1 = p2 - p1;
     const Vec3r d2 = p4 - p3;
@@ -417,7 +417,7 @@ static std::pair<Real, Real> findClosestPointsOnLineSegments(const Vec3r& p1, co
 
 /** Geometry subroutines */
 
-inline static Vec3r barycentricCoordinates(const Vec3r& p, const Vec3r& a, const Vec3r& b, const Vec3r& c)
+HD inline static Vec3r barycentricCoordinates(const Vec3r& p, const Vec3r& a, const Vec3r& b, const Vec3r& c)
 {
     // from https://ceng2.ktu.edu.tr/~cakir/files/grafikler/Texture_Mapping.pdf
     const Vec3r v0 = b - a;
@@ -442,7 +442,7 @@ inline static Vec3r barycentricCoordinates(const Vec3r& p, const Vec3r& a, const
  * 
  * adapted from: https://github.com/RenderKit/embree/blob/master/tutorials/common/math/closest_point.h
  */
-inline static Vec3r closestPoint_PointTriangle(const Vec3r& p, const Vec3r& a, const Vec3r& b, const Vec3r& c)
+HD inline static Vec3r closestPoint_PointTriangle(const Vec3r& p, const Vec3r& a, const Vec3r& b, const Vec3r& c)
 {
     const Vec3r ab = b - a;
     const Vec3r ac = c - a;
@@ -504,7 +504,7 @@ inline static Vec3r closestPoint_PointTriangle(const Vec3r& p, const Vec3r& a, c
  * @param p2,q2 : line segment 2
  * @param s,t (output) the interpolation parameters for the closest points on segment 1 and segment 2, respectively
  */
-inline static void closestPoint_SegmentSegment(const Vec3r& p1, const Vec3r& q1, const Vec3r& p2, const Vec3r& q2, Real& s, Real& t)
+HD inline static void closestPoint_SegmentSegment(const Vec3r& p1, const Vec3r& q1, const Vec3r& p2, const Vec3r& q2, Real& s, Real& t)
 {
     Vec3r d1 = q1 - p1; // Direction vector of segment S1
     Vec3r d2 = q2 - p2; // Direction vector of segment S2
@@ -558,7 +558,7 @@ inline static void closestPoint_SegmentSegment(const Vec3r& p1, const Vec3r& q1,
     }
 }
 
-inline static bool pointInTriangle(
+HD inline static bool pointInTriangle(
     const Vec3r& p,
     const Vec3r& a,
     const Vec3r& b,
@@ -589,7 +589,7 @@ inline static bool pointInTriangle(
            w >= -EPS;
 }
 
-inline static void closestPoint_SegmentTriangle(
+HD inline static void closestPoint_SegmentTriangle(
     const Vec3r& p0, 
     const Vec3r& p1, 
     const Vec3r& a, 

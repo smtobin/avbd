@@ -14,7 +14,7 @@ struct HardConstraintEnergySolver
     using Vec = VecNr<EnergyPool::Dim>;
 
     /** Energy function */
-    static Real energy(
+    HD static Real energy(
         unsigned e_idx,
         const typename EnergyPool::ViewType& energies,
         ParticlePoolView& particles,
@@ -39,7 +39,7 @@ struct HardConstraintEnergySolver
      * @param energies : the memory pool for the energy
      * @param particles : the simulation particle memory pool
      */
-    static void updateAfterIteration(
+    HD static void updateAfterIteration(
         unsigned c_idx,
         typename EnergyPool::ViewType& energies,
         ParticlePoolView& particles
@@ -76,7 +76,7 @@ struct HardConstraintEnergySolver
      * @param c_idx : the constraint index
      * @param energies : the memory pool for the energy
      */
-    static void updateAfterTimeStep(
+    HD static void updateAfterTimeStep(
         unsigned c_idx,
         typename EnergyPool::ViewType& energies,
         ParticlePoolView& particles
@@ -98,7 +98,7 @@ struct HardConstraintEnergySolver
      * @param dt : the time step
      */
     template <int DOF>
-    static void accumulate(
+    HD static void accumulate(
         unsigned e_idx,
         const typename EnergyPool::ViewType& energies,
         ParticlePoolView& particles,
@@ -108,7 +108,6 @@ struct HardConstraintEnergySolver
         Real /* dt */
     )
     {
-        std::cout << "HardconstraintEnergy accumulate! DOF=" << DOF << std::endl;
         // evaluate the constraint, gradients, and Hessians for the constraint for each particle involved
         std::array<VecNr<DOF>, EnergyPool::Dim> C_grad;
         std::array<MatNr<DOF>, EnergyPool::Dim> C_hess;       // constraint Hessian is 3rd order tensor
@@ -152,7 +151,7 @@ struct HardConstraintEnergySolver
         }
     }
 
-    static void accumulate(
+    HD static void accumulate(
         unsigned e_idx,
         const typename EnergyPool::ViewType& energies,
         ParticlePoolView& particles,
@@ -165,7 +164,7 @@ struct HardConstraintEnergySolver
         accumulate<3>(e_idx, energies, particles, local_idx, H, G, dt);
     }
 
-    static void accumulate(
+    HD static void accumulate(
         unsigned e_idx,
         const typename EnergyPool::ViewType& energies,
         ParticlePoolView& particles,

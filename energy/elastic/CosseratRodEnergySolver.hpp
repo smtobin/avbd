@@ -18,7 +18,7 @@ struct CosseratRodEnergySolver
     static constexpr bool SupportsOriented = true;
 
     /** Energy function */
-    static Real energy(
+    HD static Real energy(
         unsigned e_idx,
         const CosseratRodEnergyPoolView& energies,
         ParticlePoolView& particles,
@@ -50,7 +50,7 @@ struct CosseratRodEnergySolver
     }
 
     /** Required - does nothing */
-    static void updateAfterIteration(
+    HD static void updateAfterIteration(
         unsigned /* e_idx */,
         const CosseratRodEnergyPool& /* energies */,
         ParticlePool& /* particles */
@@ -60,7 +60,7 @@ struct CosseratRodEnergySolver
     }
 
     /** Required - does nothing */
-    static void updateAfterTimeStep(
+    HD static void updateAfterTimeStep(
         unsigned /* e_idx */,
         CosseratRodEnergyPoolView& /* energies */,
         ParticlePoolView& /* particles */
@@ -77,7 +77,7 @@ struct CosseratRodEnergySolver
      * @param G : the current accumulated gradient - added to by this function
      * @param dt : the time step
     */
-    static void accumulate(
+    HD static void accumulate(
         unsigned e_idx,
         const CosseratRodEnergyPoolView& energies,
         ParticlePoolView& particles,

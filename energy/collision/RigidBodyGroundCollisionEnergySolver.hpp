@@ -12,7 +12,7 @@ struct RigidBodyGroundCollisionConstraintSolver
     using PoolType = RigidBodyGroundCollisionEnergyPool;
     using PoolViewType = RigidBodyGroundCollisionEnergyPool::ViewType;
     
-    static void evaluateConstraint(
+    HD static void evaluateConstraint(
         unsigned c_idx,
         const PoolViewType& energies,
         ParticlePoolView& particles,
@@ -55,7 +55,7 @@ struct RigidBodyGroundCollisionConstraintSolver
     }
 
     template <int>
-    static void constraintGradientHessian(
+    HD static void constraintGradientHessian(
         unsigned c_idx,
         const PoolViewType& energies,
         ParticlePoolView& particles,
@@ -159,7 +159,7 @@ struct RigidBodyGroundCollisionEnergySolver
      * @param particles : the particle pool
      * @param sdf_pool : the SDF primitive pool
      */
-    static void updateContactPoints(
+    HD static void updateContactPoints(
         unsigned c_idx,
         RigidBodyGroundCollisionEnergyPoolView& energies,
         ParticlePoolView& particles

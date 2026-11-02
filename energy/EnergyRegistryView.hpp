@@ -31,7 +31,7 @@ struct EnergyRegistryView
 
     /** Statically-typed getter for a specific energy type */
     template<EnergyType E>
-    auto& get()
+    HD auto& get()
     {
         if constexpr (E == EnergyType::NEO_HOOKEAN)
             return neo_hookean;
@@ -50,7 +50,7 @@ struct EnergyRegistryView
     }
 
     template<StaticEnergyType E>
-    auto& get()
+    HD auto& get()
     {
         if constexpr (E == StaticEnergyType::NEO_HOOKEAN)
             return neo_hookean;
@@ -65,7 +65,7 @@ struct EnergyRegistryView
     }
 
     template<DynamicEnergyType E>
-    auto& get()
+    HD auto& get()
     {
         if constexpr (E == DynamicEnergyType::TRIANGLE_RIGID_COLLISION)
             return triangle_rigid_collision;
@@ -75,7 +75,7 @@ struct EnergyRegistryView
 
     /** Apply a function to each set of energies. */
     template <typename Func>
-    void forEachEnergyType(Func&& f)
+    HD void forEachEnergyType(Func&& f)
     {
         f(neo_hookean);
         f(cosserat_rod);
@@ -86,7 +86,7 @@ struct EnergyRegistryView
         f(one_sided_fixed_joint);
     }
     template <typename Func>
-    void forEachEnergyType(Func&& f) const
+    HD void forEachEnergyType(Func&& f) const
     {
         f(neo_hookean);
         f(cosserat_rod);
@@ -99,7 +99,7 @@ struct EnergyRegistryView
 
     /** Apply a function only to energies derived from a hard constraint */
     template <typename Func>
-    void forEachHardConstraintEnergyType(Func&& f)
+    HD void forEachHardConstraintEnergyType(Func&& f)
     {
         f(ground_collision);
         f(rigid_body_ground_collision);
@@ -108,7 +108,7 @@ struct EnergyRegistryView
         f(one_sided_fixed_joint);
     }
     template <typename Func>
-    void forEachHardConstraintEnergyType(Func&& f) const
+    HD void forEachHardConstraintEnergyType(Func&& f) const
     {
         f(ground_collision);
         f(rigid_body_ground_collision);
@@ -124,7 +124,7 @@ struct EnergyRegistryView
      * struct vs. those that are handled by the CollisionParticleAdjacency struct (which is rebuilt every frame)
      */
     template <typename Func>
-    void forEachStaticEnergyType(Func&& f) 
+    HD void forEachStaticEnergyType(Func&& f) 
     {
         f(neo_hookean);
         f(cosserat_rod);
@@ -133,7 +133,7 @@ struct EnergyRegistryView
         f(one_sided_fixed_joint);
     }
     template <typename Func>
-    void forEachStaticEnergyType(Func&& f) const
+    HD void forEachStaticEnergyType(Func&& f) const
     {
         f(neo_hookean);
         f(cosserat_rod);
@@ -149,13 +149,13 @@ struct EnergyRegistryView
      * struct vs. those that are handled by the CollisionParticleAdjacency struct (which is rebuilt every frame)
      */
     template <typename Func>
-    void forEachDynamicEnergyType(Func&& f)
+    HD void forEachDynamicEnergyType(Func&& f)
     {
         f(triangle_rigid_collision);
         f(triangle_rod_collision);
     }
     template <typename Func>
-    void forEachDynamicEnergyType(Func&& f) const
+    HD void forEachDynamicEnergyType(Func&& f) const
     {
         f(triangle_rigid_collision);
         f(triangle_rod_collision);
