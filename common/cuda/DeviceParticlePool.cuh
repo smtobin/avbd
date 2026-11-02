@@ -74,6 +74,25 @@ struct DeviceRotationPool : DeviceTombstonePool
         previous_angular_velocities.upload(src.previous_angular_velocities.data(), capacity);
         rotational_inertias.upload(src.rotational_inertias.data(), capacity);
     }
+
+    /** Synchronous download from device to host */
+    void download(RotationPool& dst) const
+    {
+        if (dst.capacity != capacity)
+            throw std::runtime_error("Host and device pool capacities do not match");
+        
+        DeviceTombstonePool::download(dst);
+
+        rotations.download(dst.rotations.data(), capacity);
+        buffered_rotations.download(dst.buffered_rotations.data(), capacity);
+        inertial_rotations.download(dst.inertial_rotations.data(), capacity);
+        previous_rotations.download(dst.previous_rotations.data(), capacity);
+        last_iter_rotations.download(dst.last_iter_rotations.data(), capacity);
+        last_last_iter_rotations.download(dst.last_last_iter_rotations.data(), capacity);
+        angular_velocities.download(dst.angular_velocities.data(), capacity);
+        previous_angular_velocities.download(dst.previous_angular_velocities.data(), capacity);
+        rotational_inertias.download(dst.rotational_inertias.data(), capacity);
+    }
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -146,6 +165,8 @@ struct DeviceParticlePool : DeviceTombstonePool
         if (src.capacity != capacity)
             throw std::runtime_error("Host and device pool capacities do not match");
 
+        DeviceTombstonePool::upload(src);
+
         positions.upload(src.positions.data(), capacity);
         buffered_positions.upload(src.buffered_positions.data(), capacity);
         inertial_positions.upload(src.inertial_positions.data(), capacity);
@@ -159,5 +180,28 @@ struct DeviceParticlePool : DeviceTombstonePool
         rotation_idx.upload(src.rotation_idx.data(), capacity);
 
         rotation_pool.upload(src.rotation_pool);
+    }
+
+    /** Synchronous download from device to host */
+    void download(ParticlePool& dst) const
+    {
+        if (dst.capacity != capacity)
+            throw std::runtime_error("Host and device pool capacities do not match");
+
+        DeviceTombstonePool::download(dst);
+
+        positions.download(dst.positions.data(), capacity);
+        buffered_positions.download(dst.buffered_positions.data(), capacity);
+        inertial_positions.download(dst.inertial_positions.data(), capacity);
+        previous_positions.download(dst.previous_positions.data(), capacity);
+        last_iter_positions.download(dst.last_iter_positions.data(), capacity);
+        last_last_iter_positions.download(dst.last_last_iter_positions.data(), capacity);
+        velocities.download(dst.velocities.data(), capacity);
+        previous_velocities.download(dst.previous_velocities.data(), capacity);
+        masses.download(dst.masses.data(), capacity);
+        fixed.download(dst.fixed.data(), capacity);
+        rotation_idx.download(dst.rotation_idx.data(), capacity);
+        
+        rotation_pool.download(dst.rotation_pool);
     }
 };

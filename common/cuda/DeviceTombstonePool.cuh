@@ -63,12 +63,22 @@ struct DeviceTombstonePool
     void upload(const TombstonePool& src)
     {
         if (src.capacity != capacity)
-        throw std::runtime_error("Host and device pool capacities do not match");
+            throw std::runtime_error("Host and device pool capacities do not match");
 
         active.upload(src.active.data(), capacity);
         counters.set(src.counters);
 
         /** TODO: (10/28/26) Copy other stuff when necessary to do so (and when device tombstone pool behavior is set) */
+    }
+
+    /** Synchronous download from device to host */
+    void download(TombstonePool& dst) const
+    {
+        if (dst.capacity != capacity)
+            throw std::runtime_error("Host and device pool capacities do not match");
+        
+        active.download(dst.active.data(), capacity);
+        counters.get(dst.counters);
     }
 };
 
