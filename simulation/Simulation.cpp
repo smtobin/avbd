@@ -35,6 +35,14 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     )
     , _graphics_scene(sim_config.renderConfig())
     , _config(sim_config)
+#ifdef HAS_CUDA
+    , _device_ctx(10000, 1000, 100000, 20000, 1000)
+    , _device_executor(
+        &_device_ctx,
+        sim_config.solverIters(),
+        sim_config.iterAcceleration()
+    )
+#endif
 {
     _ctx.params.dt = sim_config.timeStep();
     _ctx.params.end_time = sim_config.endTime();
@@ -88,7 +96,9 @@ void Simulation::setup()
     _ctx.dynamic_adjacency.buildAdjacency(_ctx.particles, _ctx.energies);
     _ctx.coloring.buildInitialColorList(_ctx.static_adjacency, _ctx.dynamic_adjacency, _ctx.particles.totalSize());
     
-    
+#ifdef HAS_CUDA
+    _device_ctx.upload(_ctx);
+#endif
 }
 
 void Simulation::update()
@@ -213,7 +223,15 @@ void Simulation::_timeStep()
     //     _logger->logToFile(_time);
     // }
 
+#ifdef HAS_CUDA
+    _device_executor.timeStep();
+    _device_ctx.particles.download(_ctx.particles);
+
+    std::cout << "Particle 0 position: " << _ctx.particles.positions[0] << std::endl;
+    std::cout << "Particle 0 inertial position: " << _ctx.particles.inertial_positions[0] << std::endl;
+#else
     _executor.timeStep();
+#endif
     _time += _ctx.params.dt;
 
 

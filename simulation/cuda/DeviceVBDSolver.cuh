@@ -8,6 +8,9 @@ namespace Sim
 class DeviceVBDSolver
 {
 private:
+    /** Pointer to device simulation context */
+    DeviceSimulationContext* _device_ctx;
+
     /** View of the device simulation context */
     SimulationContextView _ctx;
 

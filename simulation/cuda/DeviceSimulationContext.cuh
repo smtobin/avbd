@@ -47,6 +47,14 @@ struct DeviceSimulationContext
     // simulation parameters
     SimulationParams params;
 
+    DeviceSimulationContext()
+        : particles(1000, 1000)
+        , energies(1000)
+        , coloring(1000)
+    {
+        
+    }
+
     DeviceSimulationContext(
         unsigned particles_capacity,
         unsigned oriented_particles_capacity,
@@ -81,6 +89,8 @@ struct DeviceSimulationContext
         coloring.upload(src.coloring);
 
         num_colors = src.coloring.num_colors;  // remove
+
+        std::cout << "DeviceSimulationContext::upload num_colors = " << num_colors << std::endl;
 
         params = src.params;
     }

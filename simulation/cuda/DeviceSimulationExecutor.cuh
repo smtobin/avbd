@@ -43,9 +43,6 @@ private:
     /** Responsible for implementing the AVBD algorithm */
     DeviceVBDSolver _solver;
 
-    /** Number of threads */
-    unsigned _num_threads;
-
 public:
     DeviceSimulationExecutor() = default;
 
@@ -53,13 +50,11 @@ public:
     DeviceSimulationExecutor(
         DeviceSimulationContext* ctx,
         unsigned solver_iters,
-        Real iter_acceleration,
-        unsigned num_threads
+        Real iter_acceleration
     )
         : _ctx(ctx)
         // , _collision_detector(1000)
         , _solver(ctx, solver_iters, iter_acceleration)
-        , _num_threads(num_threads)
     {
     }
 

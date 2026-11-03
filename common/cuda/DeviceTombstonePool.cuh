@@ -66,6 +66,7 @@ struct DeviceTombstonePool
             throw std::runtime_error("Host and device pool capacities do not match");
 
         active.upload(src.active.data(), capacity);
+        counters.allocate();
         counters.set(src.counters);
 
         /** TODO: (10/28/26) Copy other stuff when necessary to do so (and when device tombstone pool behavior is set) */
@@ -78,7 +79,7 @@ struct DeviceTombstonePool
             throw std::runtime_error("Host and device pool capacities do not match");
         
         active.download(dst.active.data(), capacity);
-        counters.get(dst.counters);
+        dst.counters = counters.get();
     }
 };
 

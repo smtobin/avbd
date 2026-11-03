@@ -22,6 +22,12 @@
     #endif
 #endif
 
+/** Define CUDA error checking */
+#ifdef __CUDACC__
+    #define CUDA_CHECK(x) do { cudaError_t e = (x); if (e != cudaSuccess) \
+        throw std::runtime_error(cudaGetErrorString(e)); } while (0)
+#endif
+
 #define STIFFNESS_BETA 10
 #define STIFFNESS_GAMMA 0.99
 #define CONSTRAINT_ALPHA 0.95

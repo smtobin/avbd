@@ -21,6 +21,11 @@
 #include <deque>
 #include <unordered_map>
 
+#ifdef HAS_CUDA
+#include "simulation/cuda/DeviceSimulationExecutor.cuh"
+#include "simulation/cuda/DeviceSimulationContext.cuh"
+#endif
+
 
 namespace Sim
 {
@@ -166,7 +171,7 @@ class Simulation
      */
     SimulationContext _ctx;
 
-    /** Responsible for executing the simulation */
+    /** Responsible for executing the simulation on CPU */
     SimulationExecutor _executor;
 
     /** Simulation objects
@@ -183,6 +188,12 @@ class Simulation
 
     /** Simulation params */
     Config::SimulationConfig _config;
+
+    /** Responsible for executing the simulation on GPU */
+#ifdef HAS_CUDA
+    DeviceSimulationContext _device_ctx;
+    DeviceSimulationExecutor _device_executor;
+#endif
 };
 
 } // namespace Sim
