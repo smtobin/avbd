@@ -229,6 +229,8 @@ void Simulation::_timeStep()
 
     std::cout << "Particle 0 position: " << _ctx.particles.positions[0] << std::endl;
     std::cout << "Particle 0 inertial position: " << _ctx.particles.inertial_positions[0] << std::endl;
+    std::cout << "Particle 1 position: " << _ctx.particles.positions[1] << std::endl;
+    std::cout << "Particle 1 inertial position: " << _ctx.particles.inertial_positions[1] << std::endl;
 #else
     _executor.timeStep();
 #endif

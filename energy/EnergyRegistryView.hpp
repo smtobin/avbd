@@ -117,6 +117,22 @@ struct EnergyRegistryView
         f(one_sided_fixed_joint);
     }
 
+    /** TODO: (11/04/26) Remove this once the distinction is no longer necessary (i.e. dynamic energies implemented on the GPU) */
+    template <typename Func>
+    HD void forEachStaticHardConstraintEnergyType(Func&& f)
+    {
+        f(ground_collision);
+        f(rigid_body_ground_collision);
+        f(one_sided_fixed_joint);
+    }
+    template <typename Func>
+    HD void forEachStaticHardConstraintEnergyType(Func&& f) const
+    {
+        f(ground_collision);
+        f(rigid_body_ground_collision);
+        f(one_sided_fixed_joint);
+    }
+
     /** Apply a function only to "static" energies which are generally constant throughout the simulation.
      * Examples: constitutive energies (NeoHookean, Corotational, etc.), Cosserat rod energies, etc.
      * 

@@ -41,6 +41,7 @@ struct DeviceSimulationContext
      * We can get away with keeping a static value for now because the scene is static
      */
     unsigned num_colors;
+    unsigned num_particles;
 
     /** TODO: (10/23/26) Collision detection things */
 
@@ -89,8 +90,7 @@ struct DeviceSimulationContext
         coloring.upload(src.coloring);
 
         num_colors = src.coloring.num_colors;  // remove
-
-        std::cout << "DeviceSimulationContext::upload num_colors = " << num_colors << std::endl;
+        num_particles = src.particles.counters.highest_index + 1; // remove
 
         params = src.params;
     }

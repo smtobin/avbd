@@ -1,8 +1,8 @@
 name: "MeshSim"
-# sim-mode: "Frame-by-frame"
+sim-mode: "Frame-by-frame"
 # sim-mode: "AFAP"
 time-step: 1e-3 # s
-end-time: 2e-3
+end-time: 1
 g-accel: 9.81 # m/s^2
 solver-iters: 1
 iter-acceleration: 0.95

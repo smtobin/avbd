@@ -297,10 +297,6 @@ __device__ void assembleSolveWriteOriented(
     Vec6r dx = Vec6r::Zero();
     bool success = LHS.solve(RHS, dx);
 
-    printf("mass = %f\n", mass);
-    printf("dt = %f\n", dt);
-    printf("success = %i\n", success);
-
     /** TODO: (10/29/26) Set error flags if solver fails. */
     // if (!success)
     //     throw std::runtime_error("Failed to solve 6x6 particle system!");
@@ -353,7 +349,6 @@ __global__ void solveColorKernel(
     Real dt
 )
 {
-    printf("solveColorKernel c_idx=%u\n", c_idx);
     const unsigned color_start = ctx.coloring.color_offsets[c_idx];
     const unsigned warp = (blockIdx.x * blockDim.x + threadIdx.x) >> 5;
     const unsigned lane = threadIdx.x & 31;
@@ -365,25 +360,23 @@ __global__ void solveColorKernel(
     {
         Vec6r grad = Vec6r::Zero();
         Mat6r hess = Mat6r::Zero();
-        printf("Oriented particle!\n");
-        // accumulateStatic<6>(ctx, p, lane, hess, grad, dt);
+        accumulateStatic<6>(ctx, p, lane, hess, grad, dt);
         // accumulateDynamic<6>()
 
-        // warpReduceSym<6>(hess, grad);
-        // if (lane == 0)
-        //     assembleSolveWriteOriented(ctx, p, hess, grad, dt);
+        warpReduceSym<6>(hess, grad);
+        if (lane == 0)
+            assembleSolveWriteOriented(ctx, p, hess, grad, dt);
     }
     else
     {
-        printf("Non-oriented particle!\n");
-        // Vec3r grad = Vec3r::Zero();
-        // Mat3r hess = Mat3r::Zero();
-        // accumulateStatic<3>(ctx, p, lane, hess, grad, dt);
-        // // accumulateDynamic<3>()
+        Vec3r grad = Vec3r::Zero();
+        Mat3r hess = Mat3r::Zero();
+        accumulateStatic<3>(ctx, p, lane, hess, grad, dt);
+        // accumulateDynamic<3>()
 
-        // warpReduceSym<3>(hess, grad);           // every lane now holds the totals
-        // if (lane == 0)
-        //     assembleSolveWrite(ctx, p, hess, grad, dt);   // your existing tail
+        warpReduceSym<3>(hess, grad);           // every lane now holds the totals
+        if (lane == 0)
+            assembleSolveWrite(ctx, p, hess, grad, dt);   // your existing tail
     }
     
 }
@@ -393,7 +386,7 @@ DeviceVBDSolver::DeviceVBDSolver(
     DeviceSimulationContext* ctx,
     unsigned solver_iters,
     Real iter_acceleration)
-    : _ctx(ctx->view())
+    : _device_ctx(ctx)
     , _params(&ctx->params)
     , _solver_iters(solver_iters)
     , _iter_acceleration(iter_acceleration)
@@ -403,22 +396,25 @@ DeviceVBDSolver::DeviceVBDSolver(
 void DeviceVBDSolver::solve()
 {
     /** TODO: (11/03/26) HACK! Remove when able */
-    int num_particles = 10;
-    _ctx.num_colors = 2;
+    _ctx = _device_ctx->view();
+    int num_particles = _device_ctx->num_particles;
 
     // update all energies after time step
-    _ctx.energies.forEachEnergyType([&] (auto& view) {
+    /** TODO: (11/04/26) Change this to all energies when dynamic energies are implemented on the GPU. */
+    _ctx.energies.forEachStaticEnergyType([&] (auto& view) {
         int threads = 256;
         /** TODO: (10/28/26) for now, using the pool capacity as upper bound on energies */
         int e_blocks = (view.capacity + threads - 1) / threads;
-        // updateAfterTimeStepKernel<<<e_blocks, threads>>>(view, _ctx.particles);
+        updateAfterTimeStepKernel<<<e_blocks, threads>>>(view, _ctx.particles);
+        CUDA_CHECK(cudaPeekAtLastError());
     });
     
     
     // compute inertial update and initialization for each particle
-    int threads = 32;
+    int threads = 256;
     int p_blocks = (num_particles + threads - 1) / threads;
     particleInertialUpdateKernel<<<p_blocks, threads>>>(_ctx.particles, num_particles, Vec3r(0,-9.81,0), _params->dt);
+    CUDA_CHECK(cudaPeekAtLastError());
 
     // solve each individual vertex block
     Real omega = 1;
@@ -433,28 +429,30 @@ void DeviceVBDSolver::solve()
 
         // iterate through colors and parallelize within the color
         /** TODO: (10/23/26) num_colors currently lives on the device. Move it to host?  */
-        std::cout << "Num colors: " << _ctx.num_colors << std::endl;
         for (unsigned c = 0; c < _ctx.num_colors; c++)
         {
             /** TODO: (10/28/26) for now, using upper bound on particles in this color */
-            std::cout << "Calling solveColorKernel, c=" << c << std::endl;
-            solveColorKernel<<<p_blocks, threads>>>(_ctx, c, _params->dt);
+            solveColorKernel<<<num_particles*threads, threads>>>(_ctx, c, _params->dt);
+            CUDA_CHECK(cudaPeekAtLastError());
         }
 
         // Chebyshev acceleration
-        // particleChebyshevAccelerationKernel<<<p_blocks, threads>>>(_ctx.particles, num_particles, omega);
+        particleChebyshevAccelerationKernel<<<p_blocks, threads>>>(_ctx.particles, num_particles, omega);
+        CUDA_CHECK(cudaPeekAtLastError());
 
         // update Lagrange multipliers
-        _ctx.energies.forEachHardConstraintEnergyType([&] (auto& view) {
+        _ctx.energies.forEachStaticHardConstraintEnergyType([&] (auto& view) {
             int threads = 256;
             /** TODO: (10/28/26) for now, using the pool capacity as upper bound on energies */
             int e_blocks = (view.capacity + threads - 1) / threads;
-            // updateAfterIterationKernel<<<e_blocks, threads>>>(view, _ctx.particles);
+            updateAfterIterationKernel<<<e_blocks, threads>>>(view, _ctx.particles);
+            CUDA_CHECK(cudaPeekAtLastError());
         });
     }
 
     // velocity update
     particleVelocityUpdateKernel<<<p_blocks, threads>>>(_ctx.particles, num_particles, _params->dt);
+    CUDA_CHECK(cudaPeekAtLastError());
 }
 
 } // namespace Sim

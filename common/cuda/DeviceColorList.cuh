@@ -43,7 +43,7 @@ struct DeviceColorList
         v.color = color.data();
         v.color_counts = color_counts.data();
         v.color_offsets = color_offsets.data();
-        v.work_list = color.data();
+        v.work_list = work_list.data();
         return v;
     }
 
@@ -60,5 +60,12 @@ struct DeviceColorList
         color_counts.upload(src.color_counts.data(), src.color_counts.size());
         color_offsets.upload(src.color_offsets.data(), src.color_offsets.size());
         work_list.upload(src.work_list.data(), src.work_list.size());
+
+        std::cout << "Uploaded ColorList." << std::endl;
+        std::cout << "Work list:" << std::endl;
+        for (unsigned i = 0; i < src.work_list.size(); i++)
+        {
+            std::cout << src.work_list[i] << ", ";
+        }
     }
 };
