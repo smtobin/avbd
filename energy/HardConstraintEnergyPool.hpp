@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/TombstonePool.hpp"
+#include "common/PoolBase.hpp"
 #include "energy/HardConstraintEnergyDefs.hpp"
 
 namespace Energy
@@ -11,7 +11,7 @@ namespace Energy
  * Really just has k (finite stiffness) and lambda (lagrange multipliers)
  */
 template <typename EnergyInfo, int N>
-struct HardConstraintEnergyPool : TombstonePool
+struct HardConstraintEnergyPool : PoolBase
 {
     static constexpr int Dim = N;
     
@@ -26,7 +26,7 @@ struct HardConstraintEnergyPool : TombstonePool
         VecNr<N> lambda_min_= VecNr<N>(std::numeric_limits<Real>::lowest()),
         VecNr<N> lambda_max_= VecNr<N>(std::numeric_limits<Real>::max())
     )
-        : TombstonePool(capacity)
+        : PoolBase(capacity)
         , k_start(k_start_)
         , lambda_min(lambda_min_)
         , lambda_max(lambda_max_)
@@ -36,7 +36,7 @@ struct HardConstraintEnergyPool : TombstonePool
     /** Returns a non-owning view into the memory pool. */
     void view(HardConstraintEnergyPoolView<EnergyInfo, N>& v)
     {
-        TombstonePool::view(v);
+        PoolBase::view(v);
         v.data = data.data();
         v.k_start = k_start;
         v.lambda_min = lambda_min;
@@ -48,7 +48,7 @@ struct HardConstraintEnergyPool : TombstonePool
      */
     unsigned addEnergy()
     {
-        unsigned slot = allocSlot();
+        unsigned slot = allocate();
 
         // initialize lambda and k
         data[slot].lambda = VecNr<N>::Zero();
@@ -56,14 +56,6 @@ struct HardConstraintEnergyPool : TombstonePool
         data[slot].C_prev = VecNr<N>::Zero();
 
         return slot;
-    }
-
-    /** Remove an energy
-     * @param slot : the index of the energy in the pool to remove
-     */
-    void removeEnergy(unsigned slot)
-    {
-        freeSlot(slot);
     }
 };
 

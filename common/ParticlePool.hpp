@@ -2,10 +2,10 @@
 
 #include "common/common.hpp"
 #include "common/ParticlePoolView.hpp"
-#include "common/TombstonePool.hpp"
+#include "common/PoolBase.hpp"
 
 /** Extra information required for oriented particles */
-struct RotationPool : TombstonePool
+struct RotationPool : PoolBase
 {
     std::vector<Quaternion> rotations;              // particle rotations
     std::vector<Quaternion> buffered_rotations;     // particle buffered rotations
@@ -21,7 +21,7 @@ struct RotationPool : TombstonePool
      * @param capacity : the capacity of the memory pool
      */
     explicit RotationPool(unsigned capacity)
-        : TombstonePool(capacity)
+        : PoolBase(capacity)
         , rotations(capacity)
         , buffered_rotations(capacity)
         , inertial_rotations(capacity)
@@ -38,7 +38,7 @@ struct RotationPool : TombstonePool
     RotationPoolView view()
     {
         RotationPoolView v;
-        TombstonePool::view(v);
+        PoolBase::view(v);
         v.rotations = rotations.data();
         v.buffered_rotations = buffered_rotations.data();
         v.inertial_rotations = inertial_rotations.data();
@@ -54,7 +54,7 @@ struct RotationPool : TombstonePool
     /** Adds new rotational information to the pool. */
     unsigned addParticle(const Quaternion& rotation, const Vec3r& rotational_inertia)
     {
-        unsigned slot = allocSlot();
+        unsigned slot = allocate();
         rotations[slot] = rotation;
         inertial_rotations[slot] = rotation;
         previous_rotations[slot] = rotation;
@@ -75,14 +75,6 @@ struct RotationPool : TombstonePool
     {
         return addParticle(Quaternion::Identity(), Vec3r::Zero());
     }
-
-    /** Removes a particle from the pool.
-     * @param slot : the index of the particle to remove
-     */
-    void removeParticle(unsigned slot)
-    {
-        freeSlot(slot);
-    } 
 };
 
 
@@ -91,7 +83,7 @@ struct RotationPool : TombstonePool
 
 
 /** Defines a memory pool for all particles in the sim. */
-struct ParticlePool : TombstonePool
+struct ParticlePool : PoolBase
 {
     std::vector<Vec3r> positions;                   // particle positions
     std::vector<Vec3r> buffered_positions;          // position buffer to avoid race conditions for 
@@ -111,7 +103,7 @@ struct ParticlePool : TombstonePool
      * @param capacity : the capacity of the memory pool
      */
     explicit ParticlePool(unsigned capacity, unsigned oriented_capacity)
-        : TombstonePool(capacity)
+        : PoolBase(capacity)
         , positions(capacity)
         , buffered_positions(capacity)
         , inertial_positions(capacity)
@@ -132,7 +124,7 @@ struct ParticlePool : TombstonePool
     ParticlePoolView view()
     {
         ParticlePoolView v;
-        TombstonePool::view(v);
+        PoolBase::view(v);
         v.positions = positions.data();
         v.buffered_positions = buffered_positions.data();
         v.inertial_positions = inertial_positions.data();
@@ -254,7 +246,7 @@ struct ParticlePool : TombstonePool
      */
     unsigned addParticle(const Vec3r& position, Real mass)
     {
-        unsigned slot = allocSlot();
+        unsigned slot = allocate();
         positions[slot] = position;
         masses[slot] = mass;
 
@@ -307,18 +299,6 @@ struct ParticlePool : TombstonePool
     {
         return addOrientedParticle(Vec3r::Zero(), Quaternion::Identity(), 0, Vec3r::Zero());
     }
-
-    /** Removes a particle from the pool.
-     * @param slot : the index of the particle to remove
-     */
-    void removeParticle(unsigned slot)
-    {
-        // if particle is oriented, free its slot in the rotational pool
-        if (isOriented(slot))
-            rotation_pool.removeParticle(rotation_idx[slot]);
-
-        freeSlot(slot);
-    } 
 
 };
 

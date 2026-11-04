@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/TombstonePool.hpp"
+#include "common/PoolBase.hpp"
 #include "energy/elastic/NeoHookeanEnergyDefs.hpp"
 
 namespace Energy
@@ -8,7 +8,7 @@ namespace Energy
 
 /** Pool of memory for the Neo-Hookean energies.
  */
-struct NeoHookeanEnergyPool : TombstonePool
+struct NeoHookeanEnergyPool : PoolBase
 {
     static constexpr int NumParticlesPerEnergy = 4; // number of particles per energy
     static constexpr EnergyType Type = EnergyType::NEO_HOOKEAN;   // type of energy in the EnergyType enum
@@ -19,7 +19,7 @@ struct NeoHookeanEnergyPool : TombstonePool
     std::vector<NeoHookeanEnergyInfo> data;
 
     explicit NeoHookeanEnergyPool(unsigned capacity)
-        : TombstonePool(capacity)
+        : PoolBase(capacity)
         , data(capacity)
     {
 
@@ -29,7 +29,7 @@ struct NeoHookeanEnergyPool : TombstonePool
     NeoHookeanEnergyPoolView view()
     {
         NeoHookeanEnergyPoolView v;
-        TombstonePool::view(v);
+        PoolBase::view(v);
         v.data = data.data();
         return v;
     }
@@ -46,7 +46,7 @@ struct NeoHookeanEnergyPool : TombstonePool
         Real rest_volume
     )
     {
-        unsigned slot = allocSlot();
+        unsigned slot = allocate();
 
         data[slot].particle_indices = indices;
         data[slot].lambda = lambda;
@@ -64,14 +64,6 @@ struct NeoHookeanEnergyPool : TombstonePool
         // rest_volumes[slot] = rest_volume;
 
         return slot;
-    }
-
-    /** Remove an energy
-     * @param slot : the index of the energy in the pool to remove
-     */
-    void removeEnergy(unsigned slot)
-    {
-        freeSlot(slot);
     }
 };
 

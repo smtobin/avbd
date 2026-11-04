@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/TombstonePoolView.hpp"
+#include "common/PoolBase.hpp"
 
-struct RotationPoolView : TombstonePoolView
+struct RotationPoolView : PoolBaseView
 {
     Quaternion* rotations;
     Quaternion* buffered_rotations;
@@ -16,7 +16,7 @@ struct RotationPoolView : TombstonePoolView
     Vec3r* rotational_inertias;
 };
 
-struct ParticlePoolView : TombstonePoolView
+struct ParticlePoolView : PoolBaseView
 {
     Vec3r* positions;
     Vec3r* buffered_positions;

@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/TombstonePool.hpp"
+#include "common/PoolBase.hpp"
 #include "energy/elastic/CosseratRodEnergyDefs.hpp"
 
 namespace Energy
 {
 
 /** Pool of memory for the Cosserat rod elastic energies. */
-struct CosseratRodEnergyPool : TombstonePool
+struct CosseratRodEnergyPool : PoolBase
 {
     static constexpr int NumParticlesPerEnergy = 2;
     static constexpr EnergyType Type = EnergyType::COSSERAT_ROD;
@@ -18,7 +18,7 @@ struct CosseratRodEnergyPool : TombstonePool
     std::vector<CosseratRodEnergyInfo> data;
 
     explicit CosseratRodEnergyPool(unsigned capacity)
-        : TombstonePool(capacity)
+        : PoolBase(capacity)
         , data(capacity)
     {
 
@@ -28,7 +28,7 @@ struct CosseratRodEnergyPool : TombstonePool
     CosseratRodEnergyPoolView view()
     {
         CosseratRodEnergyPoolView v;
-        TombstonePool::view(v);
+        PoolBase::view(v);
         v.data = data.data();
         return v;
     }
@@ -43,7 +43,7 @@ struct CosseratRodEnergyPool : TombstonePool
         const Vec3r& precurvature
     )
     {
-        unsigned slot = allocSlot();
+        unsigned slot = allocate();
 
         data[slot].particle_indices = indices;
         data[slot].stiffness = stiffness;
@@ -51,14 +51,6 @@ struct CosseratRodEnergyPool : TombstonePool
         data[slot].precurvature = precurvature;
 
         return slot;
-    }
-
-    /** Remove an energy
-     * @param slot : the index of the energy in the pool to remove
-     */
-    void removeEnergy(unsigned slot)
-    {
-        freeSlot(slot);
     }
 };
 

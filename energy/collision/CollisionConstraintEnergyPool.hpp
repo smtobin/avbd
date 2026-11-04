@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/TombstonePool.hpp"
+#include "common/PoolBase.hpp"
 #include "energy/collision/CollisionConstraintEnergyDefs.hpp"
 
 namespace Energy
@@ -9,21 +9,21 @@ namespace Energy
 
 /** Pool of memory specifically for collision-related constraint energies */
 template <typename CollisionEnergyInfo>
-struct CollisionConstraintEnergyPool : TombstonePool
+struct CollisionConstraintEnergyPool : PoolBase
 {
     std::vector<CollisionEnergyInfo> data;
 
     explicit CollisionConstraintEnergyPool(
         unsigned capacity
     )
-        : TombstonePool(capacity)
+        : PoolBase(capacity)
         , data(capacity)
     {}
 
     /** Returns a non-owning view into the collision constraint energy pool */
     void view(CollisionConstraintEnergyPoolView<CollisionEnergyInfo>& v)
     {
-        TombstonePool::view(v);
+        PoolBase::view(v);
         v.data = data.data();
     }
 
@@ -32,7 +32,7 @@ struct CollisionConstraintEnergyPool : TombstonePool
      */
     unsigned addEnergy(Real k_start, Real mu_s, Real mu_k)
     {
-        unsigned slot = allocSlot();
+        unsigned slot = allocate();
 
         // initialize lambdas and ks
         data[slot].lambda_n = 0;
@@ -51,14 +51,6 @@ struct CollisionConstraintEnergyPool : TombstonePool
         data[slot].unclamped_lambda_tb = false;
 
         return slot;
-    }
-
-    /** Remove an energy
-     * @param slot : the index of the energy in the pool to remove
-     */
-    void removeEnergy(unsigned slot)
-    {
-        freeSlot(slot);
     }
         
 };
