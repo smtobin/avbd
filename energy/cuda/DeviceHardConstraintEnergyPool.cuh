@@ -1,30 +1,30 @@
 #pragma once
 
-#include "common/cuda/DeviceTombstonePool.cuh"
+#include "common/cuda/DevicePoolBase.cuh"
 #include "energy/HardConstraintEnergyPool.hpp"
 
 namespace Energy
 {
 
 template <typename EnergyInfo, int N>
-struct DeviceHardConstraintEnergyPool : public DeviceTombstonePool
+struct DeviceHardConstraintEnergyPool : public DevicePoolBase
 {
     DeviceBuffer<EnergyInfo> data;
 
     explicit DeviceHardConstraintEnergyPool(unsigned capacity)
-        : DeviceTombstonePool(capacity)
+        : DevicePoolBase(capacity)
         , data(capacity)
     {}
 
     void view(HardConstraintEnergyPoolView<EnergyInfo, N>& v)
     {
-        DeviceTombstonePool::view(v);
+        DevicePoolBase::view(v);
         v.data = data.data();
     }
 
     void upload(const HardConstraintEnergyPool<EnergyInfo, N>& src)
     {
-        DeviceTombstonePool::upload(src);
+        DevicePoolBase::upload(src);
         data.upload(src.data.data(), src.data.size());
     }
 };

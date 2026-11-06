@@ -8,9 +8,10 @@
 /** Non-owning view into PoolBase. */
 struct PoolBaseView
 {
+    unsigned capacity;
     unsigned* high_water;
 
-    bool isActive(unsigned i) const { return i < *high_water; }
+    HD bool isActive(unsigned i) const { return i < *high_water; }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,6 +47,7 @@ struct PoolBase
     /** Returns a non-owning view into the pool */
     void view(PoolBaseView& v)
     {
+        v.capacity = capacity;
         v.high_water = &high_water;
     }
 

@@ -90,7 +90,7 @@ struct DeviceSimulationContext
         coloring.upload(src.coloring);
 
         num_colors = src.coloring.num_colors;  // remove
-        num_particles = src.particles.counters.highest_index + 1; // remove
+        num_particles = src.particles.high_water; // remove
 
         params = src.params;
     }

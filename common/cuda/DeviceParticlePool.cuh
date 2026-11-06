@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/cuda/DeviceTombstonePool.cuh"
+#include "common/cuda/DevicePoolBase.cuh"
 #include "common/ParticlePool.hpp"
 #include "common/ParticlePoolView.hpp"
 
@@ -8,7 +8,7 @@
 struct RotationPool;
 struct ParticlePool;
 
-struct DeviceRotationPool : DeviceTombstonePool
+struct DeviceRotationPool : DevicePoolBase
 {
     DeviceBuffer<Quaternion> rotations;
     DeviceBuffer<Quaternion> buffered_rotations;
@@ -21,7 +21,7 @@ struct DeviceRotationPool : DeviceTombstonePool
     DeviceBuffer<Vec3r> rotational_inertias;
 
     explicit DeviceRotationPool(unsigned capacity)
-        : DeviceTombstonePool(capacity)
+        : DevicePoolBase(capacity)
         , rotations(capacity)
         , buffered_rotations(capacity)
         , inertial_rotations(capacity)
@@ -40,7 +40,7 @@ struct DeviceRotationPool : DeviceTombstonePool
         RotationPoolView v;
 
         // tombstone pool data
-        DeviceTombstonePool::view(v);
+        DevicePoolBase::view(v);
 
         // rotation pool data
         v.rotations = rotations.data();
@@ -59,10 +59,7 @@ struct DeviceRotationPool : DeviceTombstonePool
     /** Upload data from host to device */
     void upload(const RotationPool& src)
     {
-        if (src.capacity != capacity)
-            throw std::runtime_error("Host and device pool capacities do not match");
-
-        DeviceTombstonePool::upload(src);
+        DevicePoolBase::upload(src);
 
         rotations.upload(src.rotations.data(), capacity);
         buffered_rotations.upload(src.buffered_rotations.data(), capacity);
@@ -77,11 +74,8 @@ struct DeviceRotationPool : DeviceTombstonePool
 
     /** Synchronous download from device to host */
     void download(RotationPool& dst) const
-    {
-        if (dst.capacity != capacity)
-            throw std::runtime_error("Host and device pool capacities do not match");
-        
-        DeviceTombstonePool::download(dst);
+    {   
+        DevicePoolBase::download(dst);
 
         rotations.download(dst.rotations.data(), capacity);
         buffered_rotations.download(dst.buffered_rotations.data(), capacity);
@@ -97,7 +91,7 @@ struct DeviceRotationPool : DeviceTombstonePool
 
 //////////////////////////////////////////////////////////////////////
 
-struct DeviceParticlePool : DeviceTombstonePool
+struct DeviceParticlePool : DevicePoolBase
 {
     DeviceBuffer<Vec3r> positions;                   // particle positions
     DeviceBuffer<Vec3r> buffered_positions;          // position buffer to avoid race conditions for 
@@ -114,7 +108,7 @@ struct DeviceParticlePool : DeviceTombstonePool
     DeviceRotationPool rotation_pool;
 
     explicit DeviceParticlePool(unsigned capacity, unsigned oriented_capacity)
-        : DeviceTombstonePool(capacity)
+        : DevicePoolBase(capacity)
         , positions(capacity)
         , buffered_positions(capacity)
         , inertial_positions(capacity)
@@ -137,7 +131,7 @@ struct DeviceParticlePool : DeviceTombstonePool
         ParticlePoolView v;
 
         // tombstone pool data
-        DeviceTombstonePool::view(v);
+        DevicePoolBase::view(v);
 
         // particle pool data
         v.positions = positions.data();
@@ -162,10 +156,7 @@ struct DeviceParticlePool : DeviceTombstonePool
     /** Upload data from host to device */
     void upload(const ParticlePool& src)
     {
-        if (src.capacity != capacity)
-            throw std::runtime_error("Host and device pool capacities do not match");
-
-        DeviceTombstonePool::upload(src);
+        DevicePoolBase::upload(src);
 
         positions.upload(src.positions.data(), capacity);
         buffered_positions.upload(src.buffered_positions.data(), capacity);
@@ -185,10 +176,7 @@ struct DeviceParticlePool : DeviceTombstonePool
     /** Synchronous download from device to host */
     void download(ParticlePool& dst) const
     {
-        if (dst.capacity != capacity)
-            throw std::runtime_error("Host and device pool capacities do not match");
-
-        DeviceTombstonePool::download(dst);
+        DevicePoolBase::download(dst);
 
         positions.download(dst.positions.data(), capacity);
         buffered_positions.download(dst.buffered_positions.data(), capacity);

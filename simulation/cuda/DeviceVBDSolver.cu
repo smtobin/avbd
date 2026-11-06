@@ -21,10 +21,7 @@ template <typename PoolView>
 __global__ void updateAfterTimeStepKernel(PoolView view, ParticlePoolView particles)
 {
     unsigned e_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (e_idx >= view.counters->highest_index+1)
-        return;
-
-    if (!view.active[e_idx])
+    if (!view.isActive(e_idx))
         return;
 
     if constexpr (Energy::HasUpdateContactPoints<typename PoolView::PoolType::SolverType>)
@@ -38,10 +35,7 @@ template <typename PoolView>
 __global__ void updateAfterIterationKernel(PoolView view, ParticlePoolView particles)
 {
     unsigned e_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (e_idx >= view.counters->highest_index+1)
-        return;
-
-    if (!view.active[e_idx])
+    if (!view.isActive(e_idx))
         return;
 
     PoolView::PoolType::SolverType::updateAfterIteration(e_idx, view, particles);
@@ -50,7 +44,7 @@ __global__ void updateAfterIterationKernel(PoolView view, ParticlePoolView parti
 __global__ void particleInertialUpdateKernel(ParticlePoolView view, unsigned count, Vec3r a_ext, Real dt)
 {
     unsigned p_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (p_idx >= count)
+    if (!view.isActive(p_idx))
         return;
 
     // skip fixed particles
@@ -128,7 +122,7 @@ __global__ void particleInertialUpdateKernel(ParticlePoolView view, unsigned cou
 __global__ void particleChebyshevAccelerationKernel(ParticlePoolView v, unsigned count, Real omega)
 {
     unsigned p_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (p_idx >= count)
+    if (!v.isActive(p_idx))
         return;
 
     v.positions[p_idx] =
@@ -157,7 +151,7 @@ __global__ void particleChebyshevAccelerationKernel(ParticlePoolView v, unsigned
 __global__ void particleVelocityUpdateKernel(ParticlePoolView v, unsigned count, Real dt)
 {
     unsigned p_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (p_idx >= count)
+    if (!v.isActive(p_idx))
         return;
 
     v.previous_velocities[p_idx] = v.velocities[p_idx];

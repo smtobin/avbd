@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/cuda/DeviceTombstonePool.cuh"
+#include "common/cuda/DevicePoolBase.cuh"
 #include "energy/collision/CollisionConstraintEnergyDefs.hpp"
 #include "energy/collision/CollisionConstraintEnergyPool.hpp"
 
@@ -8,24 +8,24 @@ namespace Energy
 {
 
 template <typename CollisionEnergyInfo>
-struct DeviceCollisionConstraintEnergyPool : public DeviceTombstonePool
+struct DeviceCollisionConstraintEnergyPool : public DevicePoolBase
 {
     DeviceBuffer<CollisionEnergyInfo> data;
 
     explicit DeviceCollisionConstraintEnergyPool(unsigned capacity)
-        : DeviceTombstonePool(capacity)
+        : DevicePoolBase(capacity)
         , data(capacity)
     {}
 
     void view(CollisionConstraintEnergyPoolView<CollisionEnergyInfo>& v)
     {
-        DeviceTombstonePool::view(v);
+        DevicePoolBase::view(v);
         v.data = data.data();
     }
 
     void upload(const CollisionConstraintEnergyPool<CollisionEnergyInfo>& src)
     {
-        DeviceTombstonePool::upload(src);
+        DevicePoolBase::upload(src);
         data.upload(src.data.data(), src.data.size());
     }
 };
