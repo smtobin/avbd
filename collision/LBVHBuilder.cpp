@@ -16,7 +16,7 @@ void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitive
     // compute AABBs and Morton codes
     computeAABB_MortonCode(particle_pool, col_pool, dt);
     // radix sort by Morton code
-    Algorithm::radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.totalSize());
+    Algorithm::radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.high_water);
     // construct the radix tree
     constructTree(col_pool, lbvh);
     // coalesce bounding boxes using radix tree
@@ -26,7 +26,7 @@ void LBVHBuilder::buildBVH(const ParticlePool& particle_pool, CollisionPrimitive
 
 void LBVHBuilder::buildBVH_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx)
 {
-    if (ctx.collision_pool.totalSize() < PARALLEL_AABB_MORTON_THRESHOLD)
+    if (ctx.collision_pool.high_water < PARALLEL_AABB_MORTON_THRESHOLD)
     {
         if (w_ctx.idx == 0)
             computeAABB_MortonCode(ctx.particles, ctx.collision_pool, ctx.params.dt);
@@ -40,7 +40,7 @@ void LBVHBuilder::buildBVH_Parallel(WorkerThreadContext& w_ctx, const std::vecto
         {
             // auto morton_copy = ctx.collision_pool.morton_code;
             computeAABB_MortonCode(ctx.particles, ctx.collision_pool, ctx.params.dt);
-            // for (unsigned i = 0; i < ctx.collision_pool.totalSize(); i++)
+            // for (unsigned i = 0; i < ctx.collision_pool.high_water; i++)
             // {
             //     std::cout << "Parallel Morton " << i << ": " << morton_copy[i] << " Serial: " << ctx.collision_pool.morton_code[i] << std::endl;
             // }
@@ -49,10 +49,10 @@ void LBVHBuilder::buildBVH_Parallel(WorkerThreadContext& w_ctx, const std::vecto
         w_ctx.barrier->arrive_and_wait();
     }
 
-    if (ctx.collision_pool.totalSize() < PARALLEL_RADIX_SORT_THRESHOLD)
+    if (ctx.collision_pool.high_water < PARALLEL_RADIX_SORT_THRESHOLD)
     {
         if (w_ctx.idx == 0)
-            Algorithm::radixSort(ctx.collision_pool.morton_code, ctx.collision_pool.sorted_order, ctx.collision_pool.totalSize());
+            Algorithm::radixSort(ctx.collision_pool.morton_code, ctx.collision_pool.sorted_order, ctx.collision_pool.high_water);
         w_ctx.barrier->arrive_and_wait();
     }
     else
@@ -64,11 +64,11 @@ void LBVHBuilder::buildBVH_Parallel(WorkerThreadContext& w_ctx, const std::vecto
             ctx.collision_pool.morton_code, 
             ctx.collision_pool.sorted_order, 
             _radix_sort_temp, 
-            ctx.collision_pool.totalSize()
+            ctx.collision_pool.high_water
         );
     }
 
-    if (ctx.collision_pool.totalSize() < PARALLEL_CONSTRUCT_TREE_THRESHOLD)
+    if (ctx.collision_pool.high_water < PARALLEL_CONSTRUCT_TREE_THRESHOLD)
     {
         if (w_ctx.idx == 0)
             constructTree(ctx.collision_pool, ctx.lbvh);
@@ -79,7 +79,7 @@ void LBVHBuilder::buildBVH_Parallel(WorkerThreadContext& w_ctx, const std::vecto
         constructTree_Parallel(w_ctx, ctx);
     }
 
-    if (ctx.collision_pool.totalSize() < PARALLEL_ASSEMBLE_BVH_THRESHOLD)
+    if (ctx.collision_pool.high_water < PARALLEL_ASSEMBLE_BVH_THRESHOLD)
     {
         if (w_ctx.idx == 0)
             assembleBVH(ctx.collision_pool, ctx.lbvh);
@@ -99,7 +99,7 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, Coll
 {
     // iterate through primtivies and compute AABB, centroid, and Morton code
     AABB scene_box = AABB::empty();
-    for (unsigned p_idx : col_pool)
+    for (unsigned p_idx = 0; p_idx < col_pool.high_water; p_idx++)
     {
         col_pool.aabb[p_idx] = col_pool.speculativeGlobalBounds(p_idx, particle_pool, dt);
 
@@ -115,7 +115,7 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, Coll
     // Morton code
     Vec3r extent = scene_box.max - scene_box.min;
     extent = extent.cwiseMax(Vec3r(1e-6)); // guard against degenerate axes
-    for (unsigned p_idx : col_pool)
+    for (unsigned p_idx = 0; p_idx < col_pool.high_water; p_idx++)
     {
         // normalize centroid between [0,1]^3
         Vec3r normalized_centroid = (col_pool.centroid[p_idx] - scene_box.min).cwiseQuotient(extent);
@@ -128,7 +128,7 @@ void LBVHBuilder::computeAABB_MortonCode(const ParticlePool& particle_pool, Coll
 
 void LBVHBuilder::computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx)
 {
-    // std::cout << "Num primitives: " << ctx.collision_pool.totalSize() << std::endl;
+    // std::cout << "Num primitives: " << ctx.collision_pool.high_water << std::endl;
     auto [start, end] = w_ctx.computeStartEnd(ctx.collision_pool);
 
     // reset this thread's scene box
@@ -136,7 +136,7 @@ void LBVHBuilder::computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, co
 
     for (unsigned p_idx = start; p_idx < end; p_idx++)
     {
-        if (!ctx.collision_pool.active[p_idx])
+        if (!ctx.collision_pool.isActive(p_idx))
             continue;
 
         ctx.collision_pool.aabb[p_idx] = ctx.collision_pool.speculativeGlobalBounds(p_idx, ctx.particles, ctx.params.dt);
@@ -167,7 +167,7 @@ void LBVHBuilder::computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, co
     extent = extent.cwiseMax(Vec3r(1e-6)); // guard against degenerate axes
     for (unsigned p_idx = start; p_idx < end; p_idx++)
     {
-        if (!ctx.collision_pool.active[p_idx])
+        if (!ctx.collision_pool.isActive(p_idx))
             continue;
 
         // normalize centroid between [0,1]^3
@@ -180,7 +180,7 @@ void LBVHBuilder::computeAABB_MortonCode_Parallel(WorkerThreadContext& w_ctx, co
 
 void LBVHBuilder::constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh)
 {
-    int n = static_cast<int>(col_pool.totalSize());
+    int n = static_cast<int>(col_pool.high_water);
     lbvh.resize(n);
     lbvh.parent.assign(lbvh.parent.size(), LBVH::INVALID);
     lbvh.left.assign(lbvh.left.size(), LBVH::INVALID);
@@ -287,7 +287,7 @@ void LBVHBuilder::constructTree(CollisionPrimitivePool& col_pool, LBVH& lbvh)
 
 void LBVHBuilder::constructTree_Parallel(WorkerThreadContext& w_ctx, Sim::SimulationContext& ctx)
 {
-    int n = static_cast<int>(ctx.collision_pool.totalSize());
+    int n = static_cast<int>(ctx.collision_pool.high_water);
     LBVH& lbvh = ctx.lbvh;
 
     // allocate memory and reset the BVH
@@ -409,7 +409,7 @@ void LBVHBuilder::constructTree_Parallel(WorkerThreadContext& w_ctx, Sim::Simula
 
 void LBVHBuilder::assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh)
 {
-    unsigned n = col_pool.totalSize();
+    unsigned n = col_pool.high_water;
 
     // refit pass
     std::vector<std::atomic<uint8_t>> visited(2 * n - 1);
@@ -455,7 +455,7 @@ void LBVHBuilder::assembleBVH(CollisionPrimitivePool& col_pool, LBVH& lbvh)
 void LBVHBuilder::assembleBVH_Parallel(WorkerThreadContext& w_ctx, Sim::SimulationContext& ctx)
 {
     /** TODO: (07/31/26) Do level-synchronous refit instead. Calculate depth of each node, then process each depth level in parallel. */
-    unsigned n = ctx.collision_pool.totalSize();
+    unsigned n = ctx.collision_pool.high_water;
     LBVH& lbvh = ctx.lbvh;
 
     // refit pass

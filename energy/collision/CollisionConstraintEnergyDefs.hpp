@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/TombstonePoolView.hpp"
+#include "common/PoolBase.hpp"
 
 namespace Energy
 {
@@ -33,7 +33,7 @@ struct CollisionConstraintEnergyInfo
 
 /** A non-owning view into collision constraint energy pool. */
 template <typename EnergyInfo>
-struct CollisionConstraintEnergyPoolView : public TombstonePoolView
+struct CollisionConstraintEnergyPoolView : public PoolBaseView
 {
     EnergyInfo* data;
 };

@@ -1,6 +1,10 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "energy/collision/CollisionConstraintEnergyDefs.hpp"
+
+namespace Collision
+{
 
 /** Enumerates the different possible collision types in the sim */
 enum class DetectedCollisionType : uint8_t
@@ -24,6 +28,9 @@ struct DetectedCollision
     uint64_t key;           // unique key identifying the detected collision
     unsigned gen1, gen2;    // generations of each of the primitives in the collision pool
     Vec3r normal;   // collision normal
+    
+    bool in_previous_frame;                         // true if this collision was present in the previous frame. When this is true, the info field will be copied from the current energy
+    Energy::CollisionConstraintEnergyInfo info;     // store current data from collisions that already exist and must be continued into next time step
     union {
         struct { unsigned tri_vertex; Vec3u tri; Vec3r barys;  } TriangleTriangle_VertexFace;
         struct { Vec2u edge1; Real s1; Vec2u edge2; Real s2; } TriangleTriangle_EdgeEdge;
@@ -140,3 +147,5 @@ public:
     }
 
 };
+
+} // namespace Collision

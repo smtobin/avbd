@@ -35,7 +35,7 @@ Simulation::Simulation(const Config::SimulationConfig& sim_config)
     )
     , _graphics_scene(sim_config.renderConfig())
     , _config(sim_config)
-#ifdef HAS_CUDA
+#if HAS_CUDA
     , _device_ctx(10000, 1000, 100000, 20000, 1000)
     , _device_executor(
         &_device_ctx,
@@ -94,9 +94,9 @@ void Simulation::setup()
     // after creating the objects, build the adjacency structure
     _ctx.static_adjacency.buildAdjacency(_ctx.particles, _ctx.energies);
     _ctx.dynamic_adjacency.buildAdjacency(_ctx.particles, _ctx.energies);
-    _ctx.coloring.buildInitialColorList(_ctx.static_adjacency, _ctx.dynamic_adjacency, _ctx.particles.totalSize());
+    _ctx.coloring.buildInitialColorList(_ctx.static_adjacency, _ctx.dynamic_adjacency, _ctx.particles.high_water);
     
-#ifdef HAS_CUDA
+#if HAS_CUDA
     _device_ctx.upload(_ctx);
 #endif
 }
@@ -223,7 +223,7 @@ void Simulation::_timeStep()
     //     _logger->logToFile(_time);
     // }
 
-#ifdef HAS_CUDA
+#if HAS_CUDA
     _device_executor.timeStep();
     _device_ctx.particles.download(_ctx.particles);
 

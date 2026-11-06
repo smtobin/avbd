@@ -51,7 +51,7 @@ void CollisionDetector::detectCollisionsAndRecolor(Sim::SimulationContext& ctx)
     /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
     // ctx.static_adjacency.buildAdjacency(ctx.particles, ctx.energies);
     ctx.dynamic_adjacency.buildAdjacency(ctx.particles, ctx.energies);
-    // ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.totalSize());
+    // ctx.coloring.buildColorList(ctx.adjacency, ctx.particles.high_water);
 }
 
 void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext& w_ctx, const std::vector<WorkerThreadContext>& all_worker_contexts, Sim::SimulationContext& ctx)
@@ -109,7 +109,7 @@ void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext&
         /** TODO: (07/22/26) Do this incrementally? Handle collision constraints separately? Anything to not recompute adjacency from scratch each time. */
         // ctx.static_adjacency.buildAdjacency(ctx.particles, ctx.energies);
         ctx.dynamic_adjacency.buildAdjacency(ctx.particles, ctx.energies);
-        ctx.coloring.incrementalRecoloring(ctx.static_adjacency, ctx.dynamic_adjacency, ctx.particles.totalSize());
+        ctx.coloring.incrementalRecoloring(ctx.static_adjacency, ctx.dynamic_adjacency, ctx.particles.high_water);
 
         // std::cout << "=== Adjacency serial ===" << std::endl;
         // for (unsigned v : ctx.particles)
@@ -123,7 +123,7 @@ void CollisionDetector::detectCollisionsAndRecolor_Parallel(WorkerThreadContext&
         //     }
         // }
 
-        // ctx.coloring.buildInitialColorList(ctx.static_adjacency, ctx.dynamic_adjacency, ctx.particles.totalSize());
+        // ctx.coloring.buildInitialColorList(ctx.static_adjacency, ctx.dynamic_adjacency, ctx.particles.high_water);
     }
     w_ctx.barrier->arrive_and_wait();
 }
@@ -289,13 +289,13 @@ void CollisionDetector::_handleDetectedCollisions(Sim::SimulationContext& ctx)
         if (cur.key < prev.key)
         {
             // no previous collision with this key - add a new collision
-            _addCollision(ctx, cur);
+            // _addCollision(ctx, cur);
             cur_idx++;
         }
         else if (cur.key > prev.key)
         {
             // previous collision no longer detected this frame - remove it
-            _removeCollision(ctx, prev);
+            // _removeCollision(ctx, prev);
             prev_idx++;
         }
         else // cur.key == prev.key
@@ -303,27 +303,37 @@ void CollisionDetector::_handleDetectedCollisions(Sim::SimulationContext& ctx)
             if (cur.gen1 == prev.gen1 && cur.gen2 == prev.gen2)
             {
                 // same collision was in previous frame - update normal, contact points, etc.
-                cur.e_idx = prev.e_idx;
+                // cur.e_idx = prev.e_idx;
                 _updateCollision(ctx, cur);
             }
             else
             {
                 // same key, but a stale slot got reused - treat as unrelated
-                _removeCollision(ctx, prev);
-                _addCollision(ctx, cur);
+                // _removeCollision(ctx, prev);
+                // _addCollision(ctx, cur);
             }
             cur_idx++;
             prev_idx++;
         }
     }
 
-    // anything left in cur has no counterpart - all new
-    for (; cur_idx < cur_size; cur_idx++)
-        _addCollision(ctx, _cur_detected_collisions[_cur_sorted_order[cur_idx]]);
+    // // anything left in cur has no counterpart - all new
+    // for (; cur_idx < cur_size; cur_idx++)
+    //     _addCollision(ctx, _cur_detected_collisions[_cur_sorted_order[cur_idx]]);
 
-    // anything left in prev has no counterpart - all removed
-    for (; prev_idx < prev_size; prev_idx++)
-        _removeCollision(ctx, _prev_detected_collisions[_prev_sorted_order[prev_idx]]);
+    // // anything left in prev has no counterpart - all removed
+    // for (; prev_idx < prev_size; prev_idx++)
+    //     _removeCollision(ctx, _prev_detected_collisions[_prev_sorted_order[prev_idx]]);
+
+    // clear dynamic collision pools
+    ctx.energies.triangle_rigid_collision.reset();
+    ctx.energies.triangle_rod_collision.reset();
+
+    // add current detected collisions
+    for (auto& collision : _cur_detected_collisions)
+    {
+        _addCollision(ctx, collision);
+    }
 }
 
 void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedCollision& collision)
@@ -344,81 +354,121 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
         {
             /** TODO: (08/05/26) set coefficients of friction based on material properties */
 
-            // set starting collision stiffness based on minimum particle mass involved
-            Real min_mass = std::min({
-                ctx.particles.masses[collision.TriangleRigid.tri[0]],
-                ctx.particles.masses[collision.TriangleRigid.tri[1]],
-                ctx.particles.masses[collision.TriangleRigid.tri[2]],
-                ctx.particles.masses[collision.TriangleRigid.rb]
-            });
-            Real k_start = min_mass / (ctx.params.dt * ctx.params.dt);
+            if (!collision.in_previous_frame)
+            {
+                // set starting collision stiffness based on minimum particle mass involved
+                Real min_mass = std::min({
+                    ctx.particles.masses[collision.TriangleRigid.tri[0]],
+                    ctx.particles.masses[collision.TriangleRigid.tri[1]],
+                    ctx.particles.masses[collision.TriangleRigid.tri[2]],
+                    ctx.particles.masses[collision.TriangleRigid.rb]
+                });
+                Real k_start = min_mass / (ctx.params.dt * ctx.params.dt);
 
-            Vec3r t, b;
-            Math::completeOrthonormalBasisGivenNormal(collision.normal, t, b);
-            unsigned slot = ctx.energies.triangle_rigid_collision.addEnergy(
-                collision.TriangleRigid.tri[0],
-                collision.TriangleRigid.tri[1],
-                collision.TriangleRigid.tri[2],
-                collision.TriangleRigid.rb,
-                nullptr,
-                collision.normal,
-                t,
-                b,
-                collision.TriangleRigid.barys,
-                collision.TriangleRigid.cp_rb_local,
-                k_start,
-                0.4, 
-                0.2
-            );
-            collision.e_idx = slot;
+                Vec3r t, b;
+                Math::completeOrthonormalBasisGivenNormal(collision.normal, t, b);
+                unsigned slot = ctx.energies.triangle_rigid_collision.addEnergy(
+                    collision.TriangleRigid.tri[0],
+                    collision.TriangleRigid.tri[1],
+                    collision.TriangleRigid.tri[2],
+                    collision.TriangleRigid.rb,
+                    nullptr,
+                    collision.normal,
+                    t,
+                    b,
+                    collision.TriangleRigid.barys,
+                    collision.TriangleRigid.cp_rb_local,
+                    k_start,
+                    0.4, 
+                    0.2
+                );
+                collision.e_idx = slot;
 
-            // add particles involved in this collision to the coloring dirty list for recoloring
-            ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[0]);
-            ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[1]);
-            ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[2]);
-            ctx.coloring.markParticleDirty(collision.TriangleRigid.rb);
+                // add particles involved in this collision to the coloring dirty list for recoloring
+                ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[0]);
+                ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[1]);
+                ctx.coloring.markParticleDirty(collision.TriangleRigid.tri[2]);
+                ctx.coloring.markParticleDirty(collision.TriangleRigid.rb);
+            }
+            else // collision was already in previous frame - copy over existing data
+            {
+                unsigned slot = ctx.energies.triangle_rigid_collision.addEnergy(
+                    collision.TriangleRigid.tri[0],
+                    collision.TriangleRigid.tri[1],
+                    collision.TriangleRigid.tri[2],
+                    collision.TriangleRigid.rb,
+                    nullptr,
+                    collision.TriangleRigid.barys,
+                    collision.TriangleRigid.cp_rb_local,
+                    collision.info
+                );
+                collision.e_idx = slot;
+                
+                // no need to mark particles dirty - this collision already existed last frame and was accounted for
+            }
             break;
         }
         case DetectedCollisionType::TriangleRod:
         {
             /** TODO: (08/26/26) set coefficients of friction based on material properties */
 
-            // set starting collision stiffness based on minimum particle mass involved
-            Real min_mass = std::min({
-                ctx.particles.masses[collision.TriangleRod.tri[0]],
-                ctx.particles.masses[collision.TriangleRod.tri[1]],
-                ctx.particles.masses[collision.TriangleRod.tri[2]],
-                ctx.particles.masses[collision.TriangleRod.rod[0]],
-                ctx.particles.masses[collision.TriangleRod.rod[1]]
-            });
-            Real k_start = min_mass / (ctx.params.dt * ctx.params.dt);
+            if (!collision.in_previous_frame)
+            {
 
-            Vec3r t, b;
-            Math::completeOrthonormalBasisGivenNormal(collision.normal, t, b);
-            unsigned slot = ctx.energies.triangle_rod_collision.addEnergy(
-                collision.TriangleRod.tri[0],
-                collision.TriangleRod.tri[1],
-                collision.TriangleRod.tri[2],
-                collision.TriangleRod.rod[0],
-                collision.TriangleRod.rod[1],
-                collision.normal,
-                t,
-                b,
-                collision.TriangleRod.barys,
-                collision.TriangleRod.s,
-                collision.TriangleRod.cp_rod_local,
-                k_start,
-                0.4, 
-                0.2
-            );
-            collision.e_idx = slot;
+                // set starting collision stiffness based on minimum particle mass involved
+                Real min_mass = std::min({
+                    ctx.particles.masses[collision.TriangleRod.tri[0]],
+                    ctx.particles.masses[collision.TriangleRod.tri[1]],
+                    ctx.particles.masses[collision.TriangleRod.tri[2]],
+                    ctx.particles.masses[collision.TriangleRod.rod[0]],
+                    ctx.particles.masses[collision.TriangleRod.rod[1]]
+                });
+                Real k_start = min_mass / (ctx.params.dt * ctx.params.dt);
 
-            // add particles involved in this collision to the coloring dirty list for recoloring
-            ctx.coloring.markParticleDirty(collision.TriangleRod.tri[0]);
-            ctx.coloring.markParticleDirty(collision.TriangleRod.tri[1]);
-            ctx.coloring.markParticleDirty(collision.TriangleRod.tri[2]);
-            ctx.coloring.markParticleDirty(collision.TriangleRod.rod[0]);
-            ctx.coloring.markParticleDirty(collision.TriangleRod.rod[1]);
+                Vec3r t, b;
+                Math::completeOrthonormalBasisGivenNormal(collision.normal, t, b);
+                unsigned slot = ctx.energies.triangle_rod_collision.addEnergy(
+                    collision.TriangleRod.tri[0],
+                    collision.TriangleRod.tri[1],
+                    collision.TriangleRod.tri[2],
+                    collision.TriangleRod.rod[0],
+                    collision.TriangleRod.rod[1],
+                    collision.normal,
+                    t,
+                    b,
+                    collision.TriangleRod.barys,
+                    collision.TriangleRod.s,
+                    collision.TriangleRod.cp_rod_local,
+                    k_start,
+                    0.4, 
+                    0.2
+                );
+                collision.e_idx = slot;
+
+                // add particles involved in this collision to the coloring dirty list for recoloring
+                ctx.coloring.markParticleDirty(collision.TriangleRod.tri[0]);
+                ctx.coloring.markParticleDirty(collision.TriangleRod.tri[1]);
+                ctx.coloring.markParticleDirty(collision.TriangleRod.tri[2]);
+                ctx.coloring.markParticleDirty(collision.TriangleRod.rod[0]);
+                ctx.coloring.markParticleDirty(collision.TriangleRod.rod[1]);
+            }
+            else
+            {
+                unsigned slot = ctx.energies.triangle_rod_collision.addEnergy(
+                    collision.TriangleRod.tri[0],
+                    collision.TriangleRod.tri[1],
+                    collision.TriangleRod.tri[2],
+                    collision.TriangleRod.rod[0],
+                    collision.TriangleRod.rod[1],
+                    collision.TriangleRod.barys,
+                    collision.TriangleRod.s,
+                    collision.TriangleRod.cp_rod_local,
+                    collision.info
+                );
+                collision.e_idx = slot;
+
+                // no need to mark particles dirty - this collision already existed last frame and was accounted for
+            }
             break;
         }
         default:
@@ -429,40 +479,44 @@ void CollisionDetector::_addCollision(Sim::SimulationContext& ctx, DetectedColli
     }
 }
 
-void CollisionDetector::_removeCollision(Sim::SimulationContext& ctx, DetectedCollision& collision)
-{
-    switch (collision.type)
-    {
-        case DetectedCollisionType::TriangleTriangle_VertexFace:
-        {
-            throw std::runtime_error("TriangleTriangle Vertex-Face collisions not implemented!");
-            break;
-        }
-        case DetectedCollisionType::TriangleTriangle_EdgeEdge:
-        {
-            throw std::runtime_error("TriangleTriangle Edge-Edge collisions not implemented!");
-            break;
-        }
-        case DetectedCollisionType::TriangleRigid:
-        {
-            ctx.energies.triangle_rigid_collision.removeEnergy(collision.e_idx);
-            break;
-        }
-        case DetectedCollisionType::TriangleRod:
-        {
-            ctx.energies.triangle_rod_collision.removeEnergy(collision.e_idx);
-            break;
-        }
-        default:
-        {
-            throw std::runtime_error("CollisionDetector::_removeCollision - unsupported DetectedCollisionType!");
-            break;
-        }
-    }
-}
+// void CollisionDetector::_removeCollision(Sim::SimulationContext& ctx, DetectedCollision& collision)
+// {
+//     switch (collision.type)
+//     {
+//         case DetectedCollisionType::TriangleTriangle_VertexFace:
+//         {
+//             throw std::runtime_error("TriangleTriangle Vertex-Face collisions not implemented!");
+//             break;
+//         }
+//         case DetectedCollisionType::TriangleTriangle_EdgeEdge:
+//         {
+//             throw std::runtime_error("TriangleTriangle Edge-Edge collisions not implemented!");
+//             break;
+//         }
+//         case DetectedCollisionType::TriangleRigid:
+//         {
+//             ctx.energies.triangle_rigid_collision.removeEnergy(collision.e_idx);
+//             break;
+//         }
+//         case DetectedCollisionType::TriangleRod:
+//         {
+//             ctx.energies.triangle_rod_collision.removeEnergy(collision.e_idx);
+//             break;
+//         }
+//         default:
+//         {
+//             throw std::runtime_error("CollisionDetector::_removeCollision - unsupported DetectedCollisionType!");
+//             break;
+//         }
+//     }
+// }
 
 void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCollision& collision)
 {
+    // mark that this collision was present in the previous frame
+    // so we know to copy over the info from the existing constraint to the new one
+    collision.in_previous_frame = true;
+
     switch (collision.type)
     {
         case DetectedCollisionType::TriangleTriangle_VertexFace:
@@ -477,19 +531,21 @@ void CollisionDetector::_updateCollision(Sim::SimulationContext& ctx, DetectedCo
         }
         case DetectedCollisionType::TriangleRigid:
         {
-            Energy::TriangleRigidCollisionEnergyInfo& info = ctx.energies.triangle_rigid_collision.data[collision.e_idx];
-            info.cp_rb_local = collision.TriangleRigid.cp_rb_local;
-            info.barys = collision.TriangleRigid.barys;
             Energy::TriangleRigidCollisionEnergySolver::updateCollisionFrame(collision.e_idx, ctx.energies.triangle_rigid_collision, collision.normal);
+            collision.info = ctx.energies.triangle_rigid_collision.data[collision.e_idx];
+            // Energy::TriangleRigidCollisionEnergyInfo& info = ctx.energies.triangle_rigid_collision.data[collision.e_idx];
+            // info.cp_rb_local = collision.TriangleRigid.cp_rb_local;
+            // info.barys = collision.TriangleRigid.barys;
             break;
         }
         case DetectedCollisionType::TriangleRod:
         {
-            Energy::TriangleRodCollisionEnergyInfo& info = ctx.energies.triangle_rod_collision.data[collision.e_idx];
-            info.s = collision.TriangleRod.s;
-            info.cp_rod_local = collision.TriangleRod.cp_rod_local;
-            info.barys = collision.TriangleRod.barys;
             Energy::TriangleRodCollisionEnergySolver::updateCollisionFrame(collision.e_idx, ctx.energies.triangle_rod_collision, collision.normal);
+            collision.info = ctx.energies.triangle_rod_collision.data[collision.e_idx];
+            // Energy::TriangleRodCollisionEnergyInfo& info = ctx.energies.triangle_rod_collision.data[collision.e_idx];
+            // info.s = collision.TriangleRod.s;
+            // info.cp_rod_local = collision.TriangleRod.cp_rod_local;
+            // info.barys = collision.TriangleRod.barys;
             break;
         }
         default:

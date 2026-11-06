@@ -81,7 +81,7 @@ private:
 
     inline void _handleDetectedCollisions(Sim::SimulationContext& ctx);
     inline void _addCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
-    inline void _removeCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
+    // inline void _removeCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
     inline void _updateCollision(Sim::SimulationContext& ctx, DetectedCollision& collision);
     
 

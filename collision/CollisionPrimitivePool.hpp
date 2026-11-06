@@ -14,12 +14,12 @@ namespace Collision
 {
 
 /** Storage of extra data for analytic collision shapes. */
-struct CollisionShapeParamsPool : TombstonePool
+struct CollisionShapeParamsPool : PoolBase
 {
     std::vector<CollisionShapeParams> shape_params;
 
     explicit CollisionShapeParamsPool(unsigned capacity)
-        : TombstonePool(capacity)
+        : PoolBase(capacity)
         , shape_params(capacity)
     {}
 
@@ -34,7 +34,7 @@ struct CollisionShapeParamsPool : TombstonePool
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Storage of different collision primitives. Used in collision detection and generating the LBVH. */
-struct CollisionPrimitivePool : TombstonePool
+struct CollisionPrimitivePool : PoolBase
 {
     /** Collision primitive storage */
     // type of collision primitive
@@ -45,7 +45,8 @@ struct CollisionPrimitivePool : TombstonePool
     // this indexing is assisted by the getShapeParamIndex() helper function
     std::vector<std::array<unsigned, 3>> particle_indices;
     std::vector<uint8_t> num_particles;     // number of particles for each primitive (not sure if this is really necessary)
-    std::vector<unsigned> object_id;
+    std::vector<unsigned> object_id;        // object ID associated with the primitive
+    std::vector<unsigned> generation;       // the current generation of this primitive - when new primitives replace old primitives, generation is incremented
 
     // required data for resolving collisions with analytic shapes (e.g. spheres, boxes)
     // one entry per analytic object (not per-primitive)
@@ -64,11 +65,12 @@ struct CollisionPrimitivePool : TombstonePool
      * @param sdf_capacity : the capacity of the memory pool for objects described by an SDF
      */
     explicit CollisionPrimitivePool(unsigned capacity, unsigned sdf_capacity)
-        : TombstonePool(capacity)
+        : PoolBase(capacity)
         , type(capacity)
         , particle_indices(capacity)
         , num_particles(capacity)
         , object_id(capacity)
+        , generation(capacity, 0)
         , shape_params_pool(sdf_capacity)
         , aabb(capacity)
         , centroid(capacity)

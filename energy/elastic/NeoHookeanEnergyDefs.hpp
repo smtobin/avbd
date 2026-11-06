@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/TombstonePoolView.hpp"
+#include "common/PoolBase.hpp"
 
 namespace Energy
 {
@@ -22,7 +22,7 @@ struct NeoHookeanEnergyInfo
 
 
 /** A non-owning view into NeoHookean energy storage */
-struct NeoHookeanEnergyPoolView : TombstonePoolView
+struct NeoHookeanEnergyPoolView : PoolBaseView
 {
     using PoolType = NeoHookeanEnergyPool;
 

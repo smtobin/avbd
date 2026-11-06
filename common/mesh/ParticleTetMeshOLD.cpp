@@ -10,10 +10,10 @@ ParticleTetMesh::ParticleTetMesh(const std::vector<Vec3r>& vertices, const std::
 
 void ParticleTetMesh::_computeAdjacentVertices()
 {
-    _vertex_adjacent_vertices.resize(_vertices.totalSize());
+    _vertex_adjacent_vertices.resize(_vertices.high_water);
     
     // clear all the adjacency lists
-    for (unsigned i = 0; i < _vertices.totalSize(); i++)
+    for (unsigned i = 0; i < _vertices.high_water; i++)
     {
         _vertex_adjacent_vertices[i].clear();
     }
@@ -49,7 +49,7 @@ void ParticleTetMesh::setCurrentStateAsUndeformedState()
 
     // update maps for vertices -> elements, edges -> elements, faces -> elements
     _vertex_to_elements_map.clear();
-    _vertex_to_elements_map.resize(_vertices.totalSize());
+    _vertex_to_elements_map.resize(_vertices.high_water);
     _edge_to_elements_map.clear();
     _face_to_elements_map.clear();
     for (const auto& elem_ind : _elements.validIndices())
@@ -72,7 +72,7 @@ void ParticleTetMesh::setCurrentStateAsUndeformedState()
     }
 
     // inverse undeformed basis for each element
-    _element_inv_undeformed_basis.resize(_elements.totalSize());
+    _element_inv_undeformed_basis.resize(_elements.high_water);
     for (const auto& elem_ind : _elements.validIndices())
     {
         const Eigen::Vector4i& elem = element(elem_ind);
@@ -90,7 +90,7 @@ void ParticleTetMesh::setCurrentStateAsUndeformedState()
     }
 
     // element rest volumes
-    _element_rest_volumes.resize(_elements.totalSize());
+    _element_rest_volumes.resize(_elements.high_water);
     for (const auto& elem_ind : _elements.validIndices())
     {
         _element_rest_volumes[elem_ind] = elementVolume(elem_ind);
@@ -98,7 +98,7 @@ void ParticleTetMesh::setCurrentStateAsUndeformedState()
 
     // vertex rest volumes
     _vertex_rest_volumes.clear();
-    _vertex_rest_volumes.resize(_vertices.totalSize(), 0);
+    _vertex_rest_volumes.resize(_vertices.high_water, 0);
     for (const auto& elem_ind : _elements.validIndices())
     {
         for (const auto& v : _elements[elem_ind])
@@ -108,7 +108,7 @@ void ParticleTetMesh::setCurrentStateAsUndeformedState()
     // find surface elements
     // for now, just do a dumb O(n^2) search
     _surface_face_to_element_map.clear();
-    _surface_face_to_element_map.resize(_faces.totalSize(), -1);
+    _surface_face_to_element_map.resize(_faces.high_water, -1);
     _element_to_surface_faces_map.clear();
     for (const auto& face_ind : _faces.validIndices())
     {
@@ -295,7 +295,7 @@ void ParticleTetMesh::_updateElementMapsForNewElement(int element_index)
     const Vec4i& elem = element(element_index);
     // update vertex -> element map
     // first make sure it has enough space
-    _vertex_to_elements_map.resize(_vertices.totalSize());
+    _vertex_to_elements_map.resize(_vertices.high_water);
     for (int k = 0; k < 4; k++)
     {
         _vertex_to_elements_map[elem[k]].push_back(element_index);
@@ -484,14 +484,14 @@ int ParticleTetMesh::_addFace(const Vec3i& new_face, int elem_with_face)
     int new_face_index = _faces.push_back(new_face_copy);
 
     // update surface elements vector
-    _surface_face_to_element_map.resize(_faces.totalSize());
+    _surface_face_to_element_map.resize(_faces.high_water);
     _surface_face_to_element_map[new_face_index] = elem_with_face;
 
     _element_to_surface_faces_map.insert({elem_with_face, new_face_index});
 
     // resize face properties after adding the face
     _face_properties.for_each_element([&](auto& prop) {
-        prop.resize(_faces.totalSize());
+        prop.resize(_faces.high_water);
     });
 
     return new_face_index;

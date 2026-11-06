@@ -32,7 +32,7 @@ MeshGraphicsObject::MeshGraphicsObject(const ParticleMesh* mesh, const Config::M
 
     // create points
     vtkNew<vtkPoints> vtk_points;
-    for (unsigned i = 0; i < _mesh->vertices().totalSize(); i++)
+    for (unsigned i = 0; i < _mesh->vertices().size(); i++)
     {
         const Vec3r& p = _mesh->vertex(i);
         vtk_points->InsertNextPoint(p[0], p[1], p[2]);
@@ -102,7 +102,7 @@ void MeshGraphicsObject::update()
     // update points
     vtkPoints* points = _vtk_poly_data->GetPoints();
 
-    for (size_t i = 0; i < _mesh->vertices().totalSize(); i++)
+    for (size_t i = 0; i < _mesh->vertices().size(); i++)
     {
         // p[3*i]     = rmesh->vertices[i][0];
         // p[3*i + 1] = rmesh->vertices[i][1];

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/TombstonePoolView.hpp"
+#include "common/PoolBase.hpp"
 
 namespace Energy
 {
@@ -19,7 +19,7 @@ struct HardConstraintEnergyInfo
 
 /** A non-owning view into the hard constraint energy storage. */
 template <typename EnergyInfo, int N>
-struct HardConstraintEnergyPoolView : public TombstonePoolView
+struct HardConstraintEnergyPoolView : public PoolBaseView
 {
     EnergyInfo* data;
     VecNr<N> k_start;           // the initial stiffnesses of the quadratic energy

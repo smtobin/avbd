@@ -30,6 +30,8 @@ if (ENABLE_CUDA)
             ${SIMULATION_CUDA_SOURCES}
     )
 
+    message(STATUS "CUDA compilation enabled for Simulation target")
+
     target_link_libraries(Simulation CUDA::cudart)
     target_compile_definitions(Simulation PUBLIC HAS_CUDA=1)
 else ()

@@ -23,7 +23,7 @@ struct alignas(64) WorkerThreadContext
     std::vector<std::pair<unsigned, unsigned>> potential_collisions; 
 
     // stores detected collisions from narrow phase
-    std::vector<DetectedCollision> detected_collisions;
+    std::vector<Collision::DetectedCollision> detected_collisions;
 
     // scratch memory for computation
     union 
@@ -53,15 +53,15 @@ struct alignas(64) WorkerThreadContext
     }
 
     /** Compute start and end indices for worker thread when iterating over a TombstonePool. */
-    std::pair<unsigned, unsigned> computeStartEnd(const TombstonePool& pool) const
+    std::pair<unsigned, unsigned> computeStartEnd(const PoolBase& pool) const
     {
-        return computeStartEnd(pool.totalSize());
+        return computeStartEnd(pool.high_water);
     }
 
     /** Compute start and end indices for worker thread when iterating over a TombstonePoolView. */
-    std::pair<unsigned, unsigned> computeStartEnd(const TombstonePoolView& view) const
+    std::pair<unsigned, unsigned> computeStartEnd(const PoolBaseView& view) const
     {
         /** TODO: (10/27/26) Resolve the discrepancy between high_water and highest_index! */
-        return computeStartEnd(view.counters->highest_index+1);
+        return computeStartEnd(*view.high_water);
     }
 };

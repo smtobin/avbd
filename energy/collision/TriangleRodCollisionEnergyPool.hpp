@@ -48,7 +48,7 @@ struct TriangleRodCollisionEnergyPool : CollisionConstraintEnergyPool<TriangleRo
         Real mu_k
     )
     {
-        // parent will call allocSlot()
+        // parent will call allocate()
         unsigned slot = CollisionConstraintEnergyPool::addEnergy(k_start, mu_s, mu_k);
 
         data[slot].particle_indices[0] = p_idx1;
@@ -66,12 +66,30 @@ struct TriangleRodCollisionEnergyPool : CollisionConstraintEnergyPool<TriangleRo
         return slot;
     }
 
-    /** Remove an energy
-     * @param slot : the index of the energy in the pool to remove
-     */
-    void removeEnergy(unsigned slot)
+    /** Add an energy from an already existing CollisionConstraintEnergyInfo */
+    unsigned addEnergy(
+        unsigned p_idx1, 
+        unsigned p_idx2, 
+        unsigned p_idx3, 
+        unsigned s_idx1,
+        unsigned s_idx2,
+        const Vec3r& barys,
+        Real s,
+        const Vec3r& cp_rod_local,
+        const CollisionConstraintEnergyInfo& info
+    )
     {
-        freeSlot(slot);
+        // parent will call allocate()
+        unsigned slot = CollisionConstraintEnergyPool::addEnergy(info);
+        data[slot].particle_indices[0] = p_idx1;
+        data[slot].particle_indices[1] = p_idx2;
+        data[slot].particle_indices[2] = p_idx3;
+        data[slot].particle_indices[3] = s_idx1;
+        data[slot].particle_indices[4] = s_idx2;
+        data[slot].barys = barys;
+        data[slot].s = s;
+        data[slot].cp_rod_local = cp_rod_local;
+        return slot;
     }
 };
 

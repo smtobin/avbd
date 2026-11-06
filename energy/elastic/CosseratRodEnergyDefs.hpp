@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "common/TombstonePoolView.hpp"
+#include "common/PoolBase.hpp"
 
 namespace Energy
 {
@@ -18,7 +18,7 @@ struct CosseratRodEnergyInfo
 /////////////////////////////////////////////////////////////////////////////////////////
 
 /** Non-owning view into Cosserat energy pool */
-struct CosseratRodEnergyPoolView : public TombstonePoolView
+struct CosseratRodEnergyPoolView : public PoolBaseView
 {
     using PoolType = CosseratRodEnergyPool;
     

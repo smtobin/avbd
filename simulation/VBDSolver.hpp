@@ -147,7 +147,7 @@ public:
         auto [start, end] = w_ctx.computeStartEnd(view);
         for (unsigned e_idx = start; e_idx < end; e_idx++)
         {
-            if (view.active[e_idx])
+            if (view.isActive(e_idx))
             {
                 if constexpr (Energy::HasUpdateContactPoints<typename EnergyPoolView::PoolType::SolverType>)
                 {
@@ -166,7 +166,7 @@ public:
         auto [start, end] = w_ctx.computeStartEnd(view);
         for (unsigned e_idx = start; e_idx < end; e_idx++)
         {
-            if (view.active[e_idx])
+            if (view.isActive(e_idx))
                 EnergyPoolView::PoolType::SolverType::updateAfterIteration(e_idx, view, particles);
         }
     }
@@ -190,7 +190,7 @@ public:
         auto [start, end] = w_ctx.computeStartEnd(_ctx->particles);
         for (unsigned p_idx = start; p_idx < end; p_idx++)
         {
-            if (_ctx->particles.active[p_idx])
+            if (_ctx->particles.isActive(p_idx))
                 _particleChebyshevAcceleration(p_idx, omega);
         }
     }
@@ -200,7 +200,7 @@ public:
         auto [start, end] = w_ctx.computeStartEnd(_ctx->particles);
         for (unsigned p_idx = start; p_idx < end; p_idx++)
         {
-            if (_ctx->particles.active[p_idx])
+            if (_ctx->particles.isActive(p_idx))
                 _particleVelocityUpdate(p_idx, dt);
         }
     }

@@ -32,7 +32,7 @@ struct DynamicParticleAdjacency
 
     void buildAdjacency(const ParticlePool& particle_pool, const Energy::EnergyRegistry& energy_registry)
     {
-        unsigned num_particles = particle_pool.totalSize();
+        unsigned num_particles = particle_pool.high_water;
         e_valences.assign(num_particles, {});
         p_degree.assign(num_particles, 0);
 
@@ -42,7 +42,7 @@ struct DynamicParticleAdjacency
             unsigned e_type_ind = (unsigned)Pool::DynamicType;
 
             // iterate through each (active) energy in the pool
-            for (unsigned e_idx : pool)
+            for (unsigned e_idx = 0; e_idx < pool.high_water; e_idx++)
             {
                 // iterate through each particle in the energy
                 for (unsigned k = 0; k < pool.NumParticlesPerEnergy; k++)
@@ -96,7 +96,7 @@ struct DynamicParticleAdjacency
             unsigned e_type_ind = (unsigned)Pool::DynamicType;
 
             // iterate through each (active) energy in the pool
-            for (unsigned e_idx : pool)
+            for (unsigned e_idx = 0; e_idx < pool.high_water; e_idx++)
             {
                 // iterate through each particle in the energy
                 for (unsigned short k = 0; k < pool.NumParticlesPerEnergy; k++)

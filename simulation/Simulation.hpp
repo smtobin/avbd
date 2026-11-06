@@ -21,7 +21,7 @@
 #include <deque>
 #include <unordered_map>
 
-#ifdef HAS_CUDA
+#if HAS_CUDA
 #include "simulation/cuda/DeviceSimulationExecutor.cuh"
 #include "simulation/cuda/DeviceSimulationContext.cuh"
 #endif
@@ -190,7 +190,7 @@ class Simulation
     Config::SimulationConfig _config;
 
     /** Responsible for executing the simulation on GPU */
-#ifdef HAS_CUDA
+#if HAS_CUDA
     DeviceSimulationContext _device_ctx;
     DeviceSimulationExecutor _device_executor;
 #endif

@@ -169,11 +169,11 @@ class ParticleTetMesh : public ParticleMesh
     
         if (default_value.has_value())
         {
-            _element_properties.template emplace_back<MeshProperty<T>>(name, _elements.totalSize(), default_value.value(), is_field);
+            _element_properties.template emplace_back<MeshProperty<T>>(name, _elements.high_water, default_value.value(), is_field);
         }
         else
         {
-            _element_properties.template emplace_back<MeshProperty<T>>(name, _elements.totalSize(), is_field);
+            _element_properties.template emplace_back<MeshProperty<T>>(name, _elements.high_water, is_field);
         }
     }
 

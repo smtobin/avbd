@@ -44,14 +44,6 @@ struct GroundCollisionEnergyPool : CollisionConstraintEnergyPool<GroundCollision
 
         return slot;
     }
-
-    /** Remove an energy
-     * @param slot : the index of the energy in the pool to remove
-     */
-    void removeEnergy(unsigned slot)
-    {
-        freeSlot(slot);
-    }
 };
 
 } // namespace Energy

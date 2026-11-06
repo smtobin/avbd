@@ -85,8 +85,8 @@ void ParticleMesh::setCurrentStateAsUndeformedState()
     }
 
     // set the initial vertices
-    _initial_vertices.resize(_vertices.totalSize());
-    for (unsigned i = 0; i < _vertices.totalSize(); i++)
+    _initial_vertices.resize(_vertices.high_water);
+    for (unsigned i = 0; i < _vertices.high_water; i++)
     {
         _initial_vertices[i] = _vertices[i].position;
     }
@@ -95,7 +95,7 @@ void ParticleMesh::setCurrentStateAsUndeformedState()
 void ParticleMesh::updateVertexNormals()
 {
     // make sure we have enough space
-    _vertex_normals.resize(_vertices.totalSize());
+    _vertex_normals.resize(_vertices.high_water);
 
     // zero out all normals
     for (const auto& vert_index : _vertices.validIndices())

@@ -48,14 +48,14 @@ void testRadixTree()
 
     for (unsigned i = 0; i < morton_codes.size(); i++)
     {
-        unsigned new_slot = col_pool.allocSlot();
+        unsigned new_slot = col_pool.allocate();
         std::cout << "New slot: " << new_slot << std::endl;
         col_pool.morton_code[new_slot] = morton_codes[i];
     }
 
-    Algorithm::radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.totalSize());
+    Algorithm::radixSort(col_pool.morton_code, col_pool.sorted_order, col_pool.high_water);
     std::cout << "Sorted order:" << std::endl;
-    for (unsigned i = 0; i < col_pool.totalSize(); i++)
+    for (unsigned i = 0; i < col_pool.high_water; i++)
     {
         std::cout << " " << i << ": " << col_pool.sorted_order[i] << std::endl;
     }
@@ -201,7 +201,7 @@ void testFewTrianglesBVH()
         }
         triangles.push_back(new_tri);
 
-        unsigned c_idx = col_pool.allocSlot();
+        unsigned c_idx = col_pool.allocate();
         col_pool.type[c_idx] = Collision::CollisionGeometryType::Triangle;
         col_pool.particle_indices[c_idx][0] = new_tri[0];
         col_pool.particle_indices[c_idx][1] = new_tri[1];
@@ -312,7 +312,7 @@ void testSpheresAndMeshBVH()
         }
         triangles.push_back(new_tri);
 
-        unsigned c_idx = ctx.collision_pool.allocSlot();
+        unsigned c_idx = ctx.collision_pool.allocate();
         ctx.collision_pool.type[c_idx] = Collision::CollisionGeometryType::Triangle;
         ctx.collision_pool.particle_indices[c_idx][0] = new_tri[0];
         ctx.collision_pool.particle_indices[c_idx][1] = new_tri[1];
@@ -324,13 +324,13 @@ void testSpheresAndMeshBVH()
     lbvh_builder.buildBVH(ctx.particles, ctx.collision_pool, ctx.lbvh, 1e-3);
     
     std::cout << "Morton codes: " << std::endl;
-    for (unsigned i = 0; i < ctx.collision_pool.totalSize(); i++)
+    for (unsigned i = 0; i < ctx.collision_pool.high_water; i++)
     {
         std::cout << " " << i << ": " << std::bitset<64>(ctx.collision_pool.morton_code[i]) << std::endl;
     }
 
     std::cout << "Sorted order:" << std::endl;
-    for (unsigned i = 0; i < ctx.collision_pool.totalSize(); i++)
+    for (unsigned i = 0; i < ctx.collision_pool.high_water; i++)
     {
         std::cout << " " << i << ": " << std::bitset<64>(ctx.collision_pool.morton_code[ctx.collision_pool.sorted_order[i]]) << std::endl;
     }

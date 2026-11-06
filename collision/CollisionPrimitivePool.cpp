@@ -9,7 +9,7 @@ namespace Collision
 
 unsigned CollisionShapeParamsPool::addObject(const SimObject::RigidSphere& sphere)
 {
-    unsigned slot = allocSlot();
+    unsigned slot = allocate();
     shape_params[slot] = {
         CollisionGeometryType::Sphere,
         { sphere.radius() }
@@ -20,7 +20,7 @@ unsigned CollisionShapeParamsPool::addObject(const SimObject::RigidSphere& spher
 
 unsigned CollisionShapeParamsPool::addObject(const SimObject::Rod& rod)
 {
-    unsigned slot = allocSlot();
+    unsigned slot = allocate();
     shape_params[slot] = {
         CollisionGeometryType::RodSegment,
         { rod.radius() }
@@ -39,7 +39,7 @@ void CollisionPrimitivePool::addObject(const SimObject::TetMeshObject& mesh_obj)
     const auto& vertices = mesh.vertices();
     for (const auto& f : mesh.faces())
     {
-        unsigned slot = allocSlot();
+        unsigned slot = allocate();
         type[slot] = CollisionGeometryType::Triangle;
         particle_indices[slot][0] = vertices.at(f[0]);
         particle_indices[slot][1] = vertices.at(f[1]);
@@ -59,7 +59,7 @@ unsigned CollisionPrimitivePool::addObject(const SimObject::Rod& rod)
     const std::vector<unsigned>& nodes = rod.nodes();
     for (unsigned n_idx = 0; n_idx < nodes.size()-1; n_idx++)
     {
-        unsigned slot = allocSlot();
+        unsigned slot = allocate();
         type[slot] = CollisionGeometryType::RodSegment;
         particle_indices[slot][0] = nodes[n_idx];
         particle_indices[slot][1] = nodes[n_idx+1];
@@ -76,7 +76,7 @@ unsigned CollisionPrimitivePool::addObject(const SimObject::RigidSphere& sphere)
     // create an entry in the CollisionShapeParamsPool to store sphere parameters required for collision
     unsigned shape_params_slot = shape_params_pool.addObject(sphere);
 
-    unsigned slot = allocSlot();
+    unsigned slot = allocate();
     type[slot] = CollisionGeometryType::Sphere;
     particle_indices[slot][0] = sphere.com();
     particle_indices[slot][1] = shape_params_slot;

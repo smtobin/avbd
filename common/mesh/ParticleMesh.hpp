@@ -3,8 +3,6 @@
 #include "common/common.hpp"
 #include "common/ParticlePool.hpp"
 
-#include "common/TombstoneVector.hpp"
-
 class ParticleMesh
 {
 protected:
@@ -13,12 +11,12 @@ protected:
 
     /** Vertices - indices in the particle pool.
      */
-    TombstoneVector<unsigned> _vertices;
+    std::vector<unsigned> _vertices;
 
     /** Faces - 3-vectors of indices in the vertices list
      * (they do not correspond to indices in the particle pool - must go through the vertices list)
      */
-    TombstoneVector<Vec3u> _faces;
+    std::vector<Vec3u> _faces;
 
     /** The size of the mesh in its unrotated state - i.e. the size of the oriented bounding box */
     // Vec3r _unrotated_size_xyz;
@@ -35,9 +33,9 @@ public:
     ParticleMesh(ParticlePool& pool, const std::vector<Vec3r> &vertices, const std::vector<Vec3u> &faces);
 
     /** Returns a const-reference to the vertices of the mesh. */
-    const TombstoneVector<unsigned>& vertices() const { return _vertices; }
+    const std::vector<unsigned>& vertices() const { return _vertices; }
     /** Returns a const-reference to the faces of the mesh. */
-    const TombstoneVector<Vec3u>& faces() const { return _faces; }
+    const std::vector<Vec3u>& faces() const { return _faces; }
 
     /** Number of verticees in the mesh. */
     int numVertices() const { return _vertices.size(); }
@@ -55,9 +53,6 @@ public:
     const Vec3r& vertex(int index) const { return _particle_pool->positions[_vertices[index]]; }
     const Vec3r& previousVertex(int index) const { return _particle_pool->previous_positions[_vertices[index]]; }
 
-    /** Returns whether not the index corresponds to a valid vertex. */
-    bool vertexValid(int index) const { return _particle_pool->active[_vertices[index]]; }
-
     /** Sets the vertex at the specified to a new position. */
     void setVertex(int index, const Vec3r &new_pos) { _particle_pool->positions[_vertices.at(index)] = new_pos; }
 
@@ -65,9 +60,6 @@ public:
      * This assumes that the index used is a valid index (i.e. the face we are trying to access has not been removed).
      */
     const Vec3u& face(int index) const { return _faces.at(index); }
-
-    /** Returns whether or not the index corresponds to a valid face. */
-    bool faceValid(int index) const { return _faces.indexValid(index); }
 
     /** Returns the coordinates of the mesh origin.
      * i.e. where the "origin" of the mesh (the (0,0,0) point when the mesh is first loaded) is currently at

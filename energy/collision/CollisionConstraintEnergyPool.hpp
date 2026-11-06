@@ -52,6 +52,14 @@ struct CollisionConstraintEnergyPool : PoolBase
 
         return slot;
     }
+
+    /** Adds an energy from a CollisionConstraintEnergyInfo */
+    unsigned addEnergy(const CollisionConstraintEnergyInfo& info)
+    {
+        unsigned slot = allocate();
+        static_cast<CollisionConstraintEnergyInfo&>(data[slot]) = info; // copy over only fields in CollisionConstraintEnergyInfo, leave the rest untouched
+        return slot;
+    }
         
 };
 
